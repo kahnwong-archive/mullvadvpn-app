@@ -4,6 +4,7 @@
 
 ```bash
 ./build-prep.sh
+export RUST_MIN_STACK=16777216
 ./build.sh --optimize
 ```
 
