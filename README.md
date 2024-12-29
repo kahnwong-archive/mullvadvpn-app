@@ -1,5 +1,14 @@
 # Mullvad VPN desktop and mobile app
 
+## Usage
+
+```bash
+./build-prep.sh
+./build.sh --optimize
+```
+
+---
+
 Welcome to the Mullvad VPN client app source code repository.
 This is the VPN client software for the Mullvad VPN service.
 For more information about the service, please visit our website,
