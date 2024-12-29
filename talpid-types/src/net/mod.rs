@@ -18,7 +18,7 @@ pub mod proxy;
 pub mod wireguard;
 
 /// When "allow local network" is enabled the app will allow traffic to and from these networks.
-pub static ALLOWED_LAN_NETS: LazyLock<[IpNetwork; 6]> = LazyLock::new(|| {
+pub static ALLOWED_LAN_NETS: LazyLock<[IpNetwork; 7]> = LazyLock::new(|| {
     [
         IpNetwork::V4(Ipv4Network::new(Ipv4Addr::new(10, 0, 0, 0), 8).unwrap()),
         IpNetwork::V4(Ipv4Network::new(Ipv4Addr::new(172, 16, 0, 0), 12).unwrap()),
@@ -26,6 +26,11 @@ pub static ALLOWED_LAN_NETS: LazyLock<[IpNetwork; 6]> = LazyLock::new(|| {
         IpNetwork::V4(Ipv4Network::new(Ipv4Addr::new(169, 254, 0, 0), 16).unwrap()),
         IpNetwork::V6(Ipv6Network::new(Ipv6Addr::new(0xfe80, 0, 0, 0, 0, 0, 0, 0), 10).unwrap()),
         IpNetwork::V6(Ipv6Network::new(Ipv6Addr::new(0xfc00, 0, 0, 0, 0, 0, 0, 0), 7).unwrap()),
+        // added by Karn Wong
+        // for allowing access to Tailscale
+        // ref: <https://github.com/mullvad/mullvadvpn-app/blob/e3a94e899f364de8474d949195e30fcbc32450cf/talpid-types/src/net/mod.rs#L21>
+        // ref: <https://theorangeone.net/posts/tailscale-mullvad/>
+        IpNetwork::V4(Ipv4Network::new(Ipv4Addr::new(100, 64, 0, 0), 10).unwrap()),
     ]
 });
 /// When "allow local network" is enabled the app will allow traffic to these networks.
