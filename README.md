@@ -4,6 +4,13 @@
 
 ```bash
 ./build-prep.sh
+
+git submodule update --init --recursive --depth=1 dist-assets/binaries
+cd ./dist-assets/binaries
+podman build . -t mullvadvpn-app-binaries
+./container-run.sh make libnftnl
+cd ../..
+
 export RUST_MIN_STACK=16777216
 ./build.sh --optimize
 ```
