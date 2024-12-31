@@ -9,6 +9,7 @@ git submodule update --init --recursive --depth=1 dist-assets/binaries
 cd ./dist-assets/binaries
 podman build . -t mullvadvpn-app-binaries
 ./container-run.sh make libnftnl
+./container-run.sh make libmnl
 cd ../..
 
 export RUST_MIN_STACK=16777216
