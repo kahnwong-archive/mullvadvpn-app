@@ -63,8 +63,7 @@ use talpid_types::net::{proxy::CustomProxy, IpVersion, TunnelType};
 /// use mullvad_relay_selector::query::builder::RelayQueryBuilder;
 /// use mullvad_relay_selector::query::builder::{Ownership, GeographicLocationConstraint};
 ///
-/// let query: RelayQuery = RelayQueryBuilder::new()
-///     .wireguard()                                            // Specify the tunnel protocol
+/// let query: RelayQuery = RelayQueryBuilder::wireguard()      // Specify the tunnel protocol
 ///     .location(GeographicLocationConstraint::country("no"))  // Specify the country as Norway
 ///     .ownership(Ownership::MullvadOwned)                     // Specify that the relay must be owned by Mullvad
 ///     .port(443)                                              // Specify the port to use when connecting to the relay
@@ -79,7 +78,7 @@ pub struct RelayQuery {
     location: Constraint<LocationConstraint>,
     providers: Constraint<Providers>,
     ownership: Constraint<Ownership>,
-    tunnel_protocol: Constraint<TunnelType>,
+    tunnel_protocol: TunnelType,
     wireguard_constraints: WireguardRelayQuery,
     openvpn_constraints: OpenVpnRelayQuery,
 }
@@ -90,7 +89,7 @@ impl RelayQuery {
         location: Constraint<LocationConstraint>,
         providers: Constraint<Providers>,
         ownership: Constraint<Ownership>,
-        tunnel_protocol: Constraint<TunnelType>,
+        tunnel_protocol: TunnelType,
         wireguard_constraints: WireguardRelayQuery,
         openvpn_constraints: OpenVpnRelayQuery,
     ) -> Result<RelayQuery, Error> {
@@ -108,11 +107,11 @@ impl RelayQuery {
 
     fn validate(&mut self) -> Result<(), Error> {
         if self.core_privacy_feature_enabled() {
-            if self.tunnel_protocol == Constraint::Only(TunnelType::OpenVpn) {
+            if self.tunnel_protocol == TunnelType::OpenVpn {
                 log::error!("Cannot use OpenVPN with a core privacy feature enabled (DAITA = {}, PQ = {}, or multihop = {})", self.wireguard_constraints.daita, self.wireguard_constraints.quantum_resistant, self.wireguard_constraints.multihop());
                 return Err(Error::InvalidConstraints);
             }
-            self.tunnel_protocol = Constraint::Only(TunnelType::Wireguard);
+            self.tunnel_protocol = TunnelType::Wireguard;
         }
         Ok(())
     }
@@ -139,14 +138,11 @@ impl RelayQuery {
         self.ownership
     }
 
-    pub fn tunnel_protocol(&self) -> Constraint<TunnelType> {
+    pub fn tunnel_protocol(&self) -> TunnelType {
         self.tunnel_protocol
     }
 
-    pub fn set_tunnel_protocol(
-        &mut self,
-        tunnel_protocol: Constraint<TunnelType>,
-    ) -> Result<(), Error> {
+    pub fn set_tunnel_protocol(&mut self, tunnel_protocol: TunnelType) -> Result<(), Error> {
         self.set_if_valid(|query| query.tunnel_protocol = tunnel_protocol)
     }
 
@@ -245,7 +241,7 @@ impl Default for RelayQuery {
             location: Constraint::Any,
             providers: Constraint::Any,
             ownership: Constraint::Any,
-            tunnel_protocol: Constraint::Any,
+            tunnel_protocol: TunnelType::default(),
             wireguard_constraints: WireguardRelayQuery::new(),
             openvpn_constraints: OpenVpnRelayQuery::new(),
         }
@@ -573,52 +569,44 @@ pub mod builder {
     }
 
     impl RelayQueryBuilder<Any> {
-        /// Create a new [`RelayQueryBuilder`] with unopinionated defaults.
+        /// Create a new [`RelayQueryBuilder`] for Wireguard.
         ///
         /// Call [`Self::build`] to convert the builder into a [`RelayQuery`],
         /// which is used to guide the [`RelaySelector`]
         ///
         /// [`RelaySelector`]: crate::RelaySelector
-        pub fn new() -> RelayQueryBuilder<Any> {
-            RelayQueryBuilder {
-                query: RelayQuery::default(),
-                protocol: Any,
-            }
-        }
-        /// Set the VPN protocol for this [`RelayQueryBuilder`] to Wireguard.
-        pub fn wireguard(mut self) -> RelayQueryBuilder<Wireguard<Any, Any, Any, Any>> {
+        pub fn wireguard() -> RelayQueryBuilder<Wireguard<Any, Any, Any, Any>> {
             let protocol = Wireguard {
                 multihop: Any,
                 obfuscation: Any,
                 daita: Any,
                 quantum_resistant: Any,
             };
-            self.query.tunnel_protocol = Constraint::Only(TunnelType::Wireguard);
+            let query = RelayQuery {
+                tunnel_protocol: TunnelType::Wireguard,
+                ..Default::default()
+            };
             // Update the type state
-            RelayQueryBuilder {
-                query: self.query,
-                protocol,
-            }
+            RelayQueryBuilder { query, protocol }
         }
 
-        /// Set the VPN protocol for this [`RelayQueryBuilder`] to OpenVPN.
-        pub fn openvpn(mut self) -> RelayQueryBuilder<OpenVPN<Any, Any>> {
+        /// Create a new [`RelayQueryBuilder`] for OpenVPN.
+        ///
+        /// Call [`Self::build`] to convert the builder into a [`RelayQuery`],
+        /// which is used to guide the [`RelaySelector`]
+        ///
+        /// [`RelaySelector`]: crate::RelaySelector
+        pub fn openvpn() -> RelayQueryBuilder<OpenVPN<Any, Any>> {
             let protocol = OpenVPN {
                 transport_port: Any,
                 bridge_settings: Any,
             };
-            self.query.tunnel_protocol = Constraint::Only(TunnelType::OpenVpn);
+            let query = RelayQuery {
+                tunnel_protocol: TunnelType::OpenVpn,
+                ..Default::default()
+            };
             // Update the type state
-            RelayQueryBuilder {
-                query: self.query,
-                protocol,
-            }
-        }
-    }
-
-    impl Default for RelayQueryBuilder<Any> {
-        fn default() -> Self {
-            Self::new()
+            RelayQueryBuilder { query, protocol }
         }
     }
 
@@ -1064,9 +1052,9 @@ mod test {
     /// DAITA is a core privacy feature.
     #[test]
     fn test_relay_query_daita_openvpn() {
-        let mut query = RelayQueryBuilder::new().wireguard().daita().build();
+        let mut query = RelayQueryBuilder::wireguard().daita().build();
         query
-            .set_tunnel_protocol(Constraint::Only(TunnelType::OpenVpn))
+            .set_tunnel_protocol(TunnelType::OpenVpn)
             .expect_err("expected query to be invalid for OpenVPN");
     }
 
@@ -1074,9 +1062,9 @@ mod test {
     /// Multihop is a core privacy feature.
     #[test]
     fn test_relay_query_multihop_openvpn() {
-        let mut query = RelayQueryBuilder::new().wireguard().multihop().build();
+        let mut query = RelayQueryBuilder::wireguard().multihop().build();
         query
-            .set_tunnel_protocol(Constraint::Only(TunnelType::OpenVpn))
+            .set_tunnel_protocol(TunnelType::OpenVpn)
             .expect_err("expected query to be invalid for OpenVPN");
     }
 
@@ -1084,51 +1072,9 @@ mod test {
     /// PQ is a core privacy feature.
     #[test]
     fn test_relay_query_quantum_resistant_openvpn() {
-        let mut query = RelayQueryBuilder::new()
-            .wireguard()
-            .quantum_resistant()
-            .build();
+        let mut query = RelayQueryBuilder::wireguard().quantum_resistant().build();
         query
-            .set_tunnel_protocol(Constraint::Only(TunnelType::OpenVpn))
+            .set_tunnel_protocol(TunnelType::OpenVpn)
             .expect_err("expected query to be invalid for OpenVPN");
-    }
-
-    /// The tunnel protocol should be constrained to Wireguard when enabling DAITA
-    /// DAITA is a core privacy feature
-    #[test]
-    fn test_relay_query_daita_wireguard() {
-        let mut query = RelayQueryBuilder::new().wireguard().daita().build();
-        query.set_tunnel_protocol(Constraint::Any).unwrap();
-        assert_eq!(
-            query.tunnel_protocol(),
-            Constraint::Only(TunnelType::Wireguard)
-        );
-    }
-
-    /// The tunnel protocol should be constrained to Wireguard when enabling multihop
-    /// Multihop is a core privacy feature
-    #[test]
-    fn test_relay_query_multihop_wireguard() {
-        let mut query = RelayQueryBuilder::new().wireguard().multihop().build();
-        query.set_tunnel_protocol(Constraint::Any).unwrap();
-        assert_eq!(
-            query.tunnel_protocol(),
-            Constraint::Only(TunnelType::Wireguard)
-        );
-    }
-
-    /// The tunnel protocol should be constrained to Wireguard when enabling PQ
-    /// PQ is a core privacy feature
-    #[test]
-    fn test_relay_query_quantum_resistant_wireguard() {
-        let mut query = RelayQueryBuilder::new()
-            .wireguard()
-            .quantum_resistant()
-            .build();
-        query.set_tunnel_protocol(Constraint::Any).unwrap();
-        assert_eq!(
-            query.tunnel_protocol(),
-            Constraint::Only(TunnelType::Wireguard)
-        );
     }
 }

@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by Jon Petersson on 2024-02-16.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import UIKit
@@ -12,7 +12,7 @@ class SettingsFieldValidationErrorContentView: UIView, UIContentView {
     let contentView = UIStackView()
 
     var icon: UIImageView {
-        let view = UIImageView(image: UIImage(resource: .iconAlert).withTintColor(.dangerColor))
+        let view = UIImageView(image: UIImage.Buttons.alert.withTintColor(.dangerColor))
         view.heightAnchor.constraint(equalToConstant: 14).isActive = true
         view.widthAnchor.constraint(equalTo: view.heightAnchor, multiplier: 1).isActive = true
         return view

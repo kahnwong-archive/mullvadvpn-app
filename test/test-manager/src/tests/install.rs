@@ -1,4 +1,5 @@
 use anyhow::{bail, ensure, Context};
+use std::str::FromStr;
 use std::time::Duration;
 
 use mullvad_management_interface::MullvadProxyClient;
@@ -6,7 +7,7 @@ use mullvad_types::{constraints::Constraint, relay_constraints};
 use test_macro::test_function;
 use test_rpc::{mullvad_daemon::ServiceStatus, ServiceClient};
 
-use crate::{mullvad_daemon::MullvadClientArgument, tests::helpers};
+use crate::tests::helpers;
 
 use super::{
     config::TEST_CONFIG,
@@ -25,19 +26,17 @@ use super::{
 pub async fn test_upgrade_app(
     ctx: TestContext,
     rpc: ServiceClient,
-    _mullvad_client: MullvadClientArgument,
+    _mullvad_client: Option<MullvadProxyClient>,
 ) -> anyhow::Result<()> {
     // Install the older version of the app and verify that it is running.
-    install_app(
-        &rpc,
-        TEST_CONFIG
-            .app_package_to_upgrade_from_filename
-            .as_ref()
-            .unwrap(),
-        &ctx.rpc_provider,
-    )
-    .await
-    .context("Failed to install previous app version")?;
+    let old_version = TEST_CONFIG
+        .app_package_to_upgrade_from_filename
+        .as_ref()
+        .context("Could not find previous app version")?;
+    log::debug!("Installing app version {old_version}");
+    install_app(&rpc, old_version, &ctx.rpc_provider)
+        .await
+        .context("Failed to install previous app version")?;
 
     // Verify that daemon is running
     if rpc.mullvad_daemon_get_status().await? != ServiceStatus::Running {
@@ -104,14 +103,16 @@ pub async fn test_upgrade_app(
     tokio::time::sleep(Duration::from_secs(3)).await;
 
     // verify that daemon is running
-    if rpc.mullvad_daemon_get_status().await? != ServiceStatus::Running {
-        bail!(Error::DaemonNotRunning);
-    }
+    ensure!(
+        rpc.mullvad_daemon_get_status().await? == ServiceStatus::Running,
+        Error::DaemonNotRunning
+    );
 
     // Verify that the correct version was installed
     let running_daemon_version = rpc.mullvad_daemon_version().await?;
-    let running_daemon_version =
-        mullvad_version::Version::parse(&running_daemon_version).to_string();
+    let running_daemon_version = mullvad_version::Version::from_str(&running_daemon_version)
+        .unwrap()
+        .to_string();
     ensure!(
         &TEST_CONFIG
             .app_package_filename

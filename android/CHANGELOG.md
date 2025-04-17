@@ -23,6 +23,55 @@ Line wrap the file at 100 chars.                                              Th
 
 ## [Unreleased]
 ### Added
+- Make feature indicators clickable, allowing for easy access to active features.
+
+
+## [android/2025.2-beta2] - 2025-04-15
+### Fixed
+- Fix focus on TV devices when returning to connect screen from select location.
+
+
+## [android/2025.2-beta1] - 2025-04-04
+### Added
+- Prompt password manager to store new account number on account creation.
+- Add the ability to force the ip version used to connect to a relay.
+- Add the ability to disable IPv6 in the tunnel.
+
+### Changed
+- Disable Wireguard port setting when a obfuscation is selected since it is not used when an
+  obfuscation is applied.
+- Adapt UI on Connect Screen for Android TV, including a navigation rail and redesigned in-app
+  notification bar.
+
+### Removed
+- Remove Google's resolvers from encrypted DNS proxy.
+
+### Fixed
+- Will no longer try to connect using an IP version if that IP version is not available.
+- Fix connection details showing in IP from exit server instead of entry when using multihop.
+
+
+## [android/2025.1] - 2025-03-20
+Identical to `android/2025.1-beta1`
+
+
+## [android/2025.1-beta1] - 2025-03-05
+### Fixed
+- Fix a crash that could occur in the Filter screen.
+- Fix a bug that could cause the app to crash while navigating.
+
+### Security
+- Make daemon aware of route changes to prevent sending traffic before routes are up.
+- Minimize calls to re-establish the VPN tunnel, since this may cause Android to leak some traffic.
+
+
+## [android/2024.10-beta2] - 2024-12-20
+### Fixed
+- Update bundled relay list to address a UI bug in the filter screen.
+
+
+## [android/2024.10-beta1] - 2024-12-19
+### Added
 - Add multihop which allows the routing of traffic through an entry and exit server, making it
   harder to trace.
 - Enable DAITA to route traffic through servers with DAITA support to enable the use

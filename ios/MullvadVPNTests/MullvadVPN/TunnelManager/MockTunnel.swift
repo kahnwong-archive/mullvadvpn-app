@@ -3,14 +3,14 @@
 //  MullvadVPNTests
 //
 //  Created by Andrew Bulhak on 2024-02-05.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import MullvadTypes
 import NetworkExtension
 
-class MockTunnel: TunnelProtocol {
+class MockTunnel: TunnelProtocol, @unchecked Sendable {
     typealias TunnelManagerProtocol = SimulatorTunnelProviderManager
 
     var status: NEVPNStatus

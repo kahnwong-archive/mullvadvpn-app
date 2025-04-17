@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by Andreas Lif on 2022-07-26.
-//  Copyright © 2022 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -56,7 +56,7 @@ class OutOfTimeContentView: UIView {
         let localizedString = NSLocalizedString(
             "OUT_OF_TIME_PURCHASE_BUTTON",
             tableName: "OutOfTime",
-            value: "Add 30 days time",
+            value: "Add time",
             comment: ""
         )
         button.setTitle(localizedString, for: .normal)

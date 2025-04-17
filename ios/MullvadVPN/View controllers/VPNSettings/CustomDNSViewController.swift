@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by Jon Petersson on 2023-11-09.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadSettings
@@ -96,7 +96,7 @@ class CustomDNSViewController: UITableViewController {
     }
 }
 
-extension CustomDNSViewController: DNSSettingsDataSourceDelegate {
+extension CustomDNSViewController: @preconcurrency DNSSettingsDataSourceDelegate {
     func didChangeViewModel(_ viewModel: VPNSettingsViewModel) {
         interactor.updateSettings([.dnsSettings(viewModel.asDNSSettings())])
     }

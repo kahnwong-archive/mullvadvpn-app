@@ -1,11 +1,11 @@
 import React from 'react';
 import styled from 'styled-components';
 
-import { colors } from '../../config.json';
+import { Flex, Logo } from '../lib/components';
+import { Colors } from '../lib/foundations';
+import { AppMainHeader } from './app-main-header';
 import { measurements } from './common-styles';
-import { HeaderBarSettingsButton } from './HeaderBar';
-import ImageView from './ImageView';
-import { Container, Header, Layout } from './Layout';
+import { Container, Layout } from './Layout';
 
 const StyledContainer = styled(Container)({
   flex: 1,
@@ -14,29 +14,12 @@ const StyledContainer = styled(Container)({
   justifyContent: 'end',
 });
 
-const StyledContent = styled.div({
-  display: 'flex',
-  flex: 1,
-  flexDirection: 'column',
-  alignItems: 'center',
-  justifyContent: 'end',
-});
-
-const Logo = styled(ImageView)({
-  marginBottom: '12px',
-});
-
-const Title = styled(ImageView)({
-  opacity: 0.6,
-  marginBottom: '9px',
-});
-
 const Subtitle = styled.span({
   fontFamily: 'Open Sans',
   fontSize: '14px',
   lineHeight: '20px',
   margin: `0 ${measurements.horizontalViewMargin}`,
-  color: colors.white40,
+  color: Colors.white40,
   textAlign: 'center',
 });
 
@@ -56,14 +39,18 @@ interface ErrorViewProps {
 export default function ErrorView(props: ErrorViewProps) {
   return (
     <Layout>
-      <Header>{!props.settingsUnavailable && <HeaderBarSettingsButton />}</Header>
+      <AppMainHeader logoVariant="none">
+        {!props.settingsUnavailable && <AppMainHeader.SettingsButton />}
+      </AppMainHeader>
       <StyledContainer>
-        <StyledContent>
-          <Logo height={106} width={106} source="logo-icon" />
-          <Title height={18} source="logo-text" />
+        <Flex $flexDirection="column" $gap="medium">
+          <Flex $flexDirection="column" $alignItems="center" $justifyContent="end" $gap="medium">
+            <Logo variant="icon" size="2" />
+            <Logo variant="text" size="2" />
+          </Flex>
           <Subtitle role="alert">{props.children}</Subtitle>
-        </StyledContent>
-        <StyledFooterContainer>{props.footer}</StyledFooterContainer>
+          <StyledFooterContainer>{props.footer}</StyledFooterContainer>
+        </Flex>
       </StyledContainer>
     </Layout>
   );

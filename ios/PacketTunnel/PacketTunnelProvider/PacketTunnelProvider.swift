@@ -3,7 +3,7 @@
 //  PacketTunnel
 //
 //  Created by pronebird on 31/08/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -16,7 +16,7 @@ import NetworkExtension
 import PacketTunnelCore
 import WireGuardKitTypes
 
-class PacketTunnelProvider: NEPacketTunnelProvider {
+class PacketTunnelProvider: NEPacketTunnelProvider, @unchecked Sendable {
     private let internalQueue = DispatchQueue(label: "PacketTunnel-internalQueue")
     private let providerLogger: Logger
 
@@ -41,6 +41,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
     override init() {
         Self.configureLogging()
         providerLogger = Logger(label: "PacketTunnelProvider")
+        providerLogger.info("Starting new packet tunnel")
 
         let containerURL = ApplicationConfiguration.containerURL
         let addressCache = REST.AddressCache(canWriteToCache: false, cacheDirectory: containerURL)
@@ -63,6 +64,10 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
             addressCache: addressCache
         )
 
+        let apiTransportProvider = APITransportProvider(
+            requestFactory: MullvadApiRequestFactory(apiContext: REST.apiContext)
+        )
+
         adapter = WgAdapter(packetTunnelProvider: self)
 
         let pinger = TunnelPinger(pingProvider: adapter.icmpPingProvider, replyQueue: internalQueue)
@@ -76,6 +81,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
 
         let proxyFactory = REST.ProxyFactory.makeProxyFactory(
             transportProvider: transportProvider,
+            apiTransportProvider: apiTransportProvider,
             addressCache: addressCache
         )
         let accountsProxy = proxyFactory.createAccountsProxy()
@@ -90,7 +96,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
             timings: PacketTunnelActorTimings(),
             tunnelAdapter: adapter,
             tunnelMonitor: tunnelMonitor,
-            defaultPathObserver: PacketTunnelPathObserver(packetTunnelProvider: self, eventQueue: internalQueue),
+            defaultPathObserver: PacketTunnelPathObserver(eventQueue: internalQueue),
             blockedStateErrorMapper: BlockedStateErrorMapper(),
             relaySelector: relaySelector,
             settingsReader: TunnelSettingsManager(settingsReader: SettingsReader()) { [weak self] settings in
@@ -100,8 +106,19 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
             protocolObfuscator: ProtocolObfuscator<TunnelObfuscator>()
         )
 
-        let urlRequestProxy = URLRequestProxy(dispatchQueue: internalQueue, transportProvider: transportProvider)
-        appMessageHandler = AppMessageHandler(packetTunnelActor: actor, urlRequestProxy: urlRequestProxy)
+        let urlRequestProxy = URLRequestProxy(
+            dispatchQueue: internalQueue,
+            transportProvider: transportProvider
+        )
+        let apiRequestProxy = APIRequestProxy(
+            dispatchQueue: internalQueue,
+            transportProvider: apiTransportProvider
+        )
+        appMessageHandler = AppMessageHandler(
+            packetTunnelActor: actor,
+            urlRequestProxy: urlRequestProxy,
+            apiRequestProxy: apiRequestProxy
+        )
 
         ephemeralPeerExchangingPipeline = EphemeralPeerExchangingPipeline(
             EphemeralPeerExchangeActor(
@@ -179,7 +196,7 @@ class PacketTunnelProvider: NEPacketTunnelProvider {
     }
 
     private func performSettingsMigration() {
-        var hasNotMigrated = true
+        nonisolated(unsafe) var hasNotMigrated = true
         repeat {
             migrationManager.migrateSettings(
                 store: SettingsManager.store,

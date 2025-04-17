@@ -2,24 +2,25 @@ import { useCallback } from 'react';
 import { sprintf } from 'sprintf-js';
 import styled from 'styled-components';
 
-import { colors } from '../../config.json';
 import { IDevice } from '../../shared/daemon-rpc-types';
 import { messages } from '../../shared/gettext';
 import log from '../../shared/logging';
 import { capitalizeEveryWord } from '../../shared/string-helpers';
 import { useAppContext } from '../context';
+import { Button, Flex, IconButton, Spinner } from '../lib/components';
+import { Colors } from '../lib/foundations';
 import { transitions, useHistory } from '../lib/history';
 import { formatHtml } from '../lib/html-formatter';
+import { IconBadge, IconBadgeProps } from '../lib/icon-badge';
 import { RoutePath } from '../lib/routes';
 import { useBoolean } from '../lib/utility-hooks';
 import { useSelector } from '../redux/store';
+import { AppMainHeader } from './app-main-header';
 import * as AppButton from './AppButton';
 import * as Cell from './cell';
 import { bigText, measurements, normalText, tinyText } from './common-styles';
 import CustomScrollbars from './CustomScrollbars';
-import { Brand, HeaderBarSettingsButton } from './HeaderBar';
-import ImageView from './ImageView';
-import { Footer, Header, Layout, SettingsContainer } from './Layout';
+import { Footer, Layout, SettingsContainer } from './Layout';
 import List from './List';
 import { ModalAlert, ModalAlertType, ModalContainer, ModalMessage } from './Modal';
 
@@ -28,7 +29,6 @@ const StyledCustomScrollbars = styled(CustomScrollbars)({
 });
 
 const StyledContainer = styled(SettingsContainer)({
-  paddingTop: '14px',
   minHeight: '100%',
 });
 
@@ -39,17 +39,10 @@ const StyledBody = styled.div({
   paddingBottom: 'auto',
 });
 
-const StyledStatusIcon = styled.div({
-  alignSelf: 'center',
-  width: '60px',
-  height: '60px',
-  marginBottom: '18px',
-});
-
 const StyledTitle = styled.span(bigText, {
   lineHeight: '38px',
   margin: `0 ${measurements.horizontalViewMargin} 8px`,
-  color: colors.white,
+  color: Colors.white,
 });
 
 const StyledLabel = styled.span({
@@ -57,7 +50,7 @@ const StyledLabel = styled.span({
   fontSize: '12px',
   fontWeight: 600,
   lineHeight: '20px',
-  color: colors.white,
+  color: Colors.white,
   margin: `0 ${measurements.horizontalViewMargin} 18px`,
 });
 
@@ -81,15 +74,7 @@ const StyledDeviceName = styled.span(normalText, {
 const StyledDeviceDate = styled.span(tinyText, {
   fontSize: '10px',
   lineHeight: '10px',
-  color: colors.white60,
-});
-
-const StyledRemoveDeviceButton = styled.button({
-  cursor: 'default',
-  padding: 0,
-  marginLeft: 8,
-  backgroundColor: 'transparent',
-  border: 'none',
+  color: Colors.white60,
 });
 
 export default function TooManyDevices() {
@@ -115,7 +100,7 @@ export default function TooManyDevices() {
     reset(RoutePath.login, { transition: transitions.pop });
   }, [reset, cancelLogin]);
 
-  const iconSource = getIconSource(devices);
+  const imageSource = getIconSource(devices);
   const title = getTitle(devices);
   const subtitle = getSubtitle(devices);
 
@@ -124,16 +109,15 @@ export default function TooManyDevices() {
   return (
     <ModalContainer>
       <Layout>
-        <Header>
-          <Brand />
-          <HeaderBarSettingsButton />
-        </Header>
+        <AppMainHeader>
+          <AppMainHeader.SettingsButton />
+        </AppMainHeader>
         <StyledCustomScrollbars fillContainer>
           <StyledContainer>
             <StyledBody>
-              <StyledStatusIcon>
-                <ImageView key={iconSource} source={iconSource} height={60} width={60} />
-              </StyledStatusIcon>
+              <Flex $justifyContent="center" $margin={{ top: 'large', bottom: 'medium' }}>
+                <IconBadge key={imageSource} state={imageSource} />
+              </Flex>
               {devices !== undefined && (
                 <>
                   <StyledTitle data-testid="title">{title}</StyledTitle>
@@ -146,15 +130,20 @@ export default function TooManyDevices() {
             {devices !== undefined && (
               <Footer>
                 <AppButton.ButtonGroup>
-                  <AppButton.GreenButton onClick={continueLogin} disabled={continueButtonDisabled}>
-                    {
-                      // TRANSLATORS: Button for continuing login process.
-                      messages.pgettext('device-management', 'Continue with login')
-                    }
-                  </AppButton.GreenButton>
-                  <AppButton.BlueButton onClick={cancel}>
-                    {messages.gettext('Back')}
-                  </AppButton.BlueButton>
+                  <Button
+                    variant="success"
+                    onClick={continueLogin}
+                    disabled={continueButtonDisabled}>
+                    <Button.Text>
+                      {
+                        // TRANSLATORS: Button for continuing login process.
+                        messages.pgettext('device-management', 'Continue with login')
+                      }
+                    </Button.Text>
+                  </Button>
+                  <Button onClick={cancel}>
+                    <Button.Text>{messages.gettext('Back')}</Button.Text>
+                  </Button>
                 </AppButton.ButtonGroup>
               </Footer>
             )}
@@ -198,7 +187,7 @@ function Device(props: IDeviceProps) {
 
   const handleError = useCallback(
     async (error: Error) => {
-      log.error(`Failede to remove device: ${error.message}`);
+      log.error(`Failed to remove device: ${error.message}`);
 
       let devices: Array<IDevice> | undefined = undefined;
       try {
@@ -247,9 +236,10 @@ function Device(props: IDeviceProps) {
           </StyledDeviceDate>
         </StyledDeviceInfo>
         {deleting ? (
-          <ImageView source="icon-spinner" width={24} />
+          <Spinner />
         ) : (
-          <StyledRemoveDeviceButton
+          <IconButton
+            variant="secondary"
             onClick={showConfirmation}
             aria-label={sprintf(
               // TRANSLATORS: Button action description provided to accessibility tools such as screen
@@ -259,20 +249,14 @@ function Device(props: IDeviceProps) {
               messages.pgettext('accessibility', 'Remove device named %(deviceName)s'),
               { deviceName: props.device.name },
             )}>
-            <ImageView
-              source="icon-close"
-              width={18}
-              height={18}
-              tintColor={colors.white40}
-              tintHoverColor={colors.white60}
-            />
-          </StyledRemoveDeviceButton>
+            <IconButton.Icon icon="cross-circle" />
+          </IconButton>
         )}
       </Cell.Container>
       <ModalAlert
         isOpen={confirmationVisible}
         type={ModalAlertType.warning}
-        iconColor={colors.red}
+        iconColor={Colors.red}
         buttons={[
           <AppButton.RedButton key="remove" onClick={onRemove} disabled={deleting}>
             {
@@ -304,7 +288,7 @@ function Device(props: IDeviceProps) {
       <ModalAlert
         isOpen={error}
         type={ModalAlertType.warning}
-        iconColor={colors.red}
+        iconColor={Colors.red}
         buttons={[
           <AppButton.BlueButton key="close" onClick={resetError}>
             {messages.gettext('Close')}
@@ -317,15 +301,11 @@ function Device(props: IDeviceProps) {
   );
 }
 
-function getIconSource(devices?: Array<IDevice>): string {
-  if (devices) {
-    if (devices.length === 5) {
-      return 'icon-fail';
-    } else {
-      return 'icon-success';
-    }
+function getIconSource(devices: Array<IDevice>): IconBadgeProps['state'] {
+  if (devices.length === 5) {
+    return 'negative';
   } else {
-    return 'icon-spinner';
+    return 'positive';
   }
 }
 

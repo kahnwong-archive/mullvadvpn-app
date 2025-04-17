@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 19/03/2019.
-//  Copyright © 2019 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadLogging
@@ -87,10 +87,6 @@ class LoginViewController: UIViewController, RootContainment {
         contentView.accountInputGroup.satisfiesMinimumTokenLengthRequirement
     }
 
-    var prefersNotificationBarHidden: Bool {
-        true
-    }
-
     var prefersDeviceInfoBarHidden: Bool {
         true
     }
@@ -141,7 +137,9 @@ class LoginViewController: UIViewController, RootContainment {
         }
 
         interactor.suggestPreferredAccountNumber = { [weak self] value in
-            self?.contentView.accountInputGroup.setAccount(value)
+            Task { @MainActor in
+                self?.contentView.accountInputGroup.setAccount(value)
+            }
         }
 
         contentView.accountInputGroup.setOnReturnKey { [weak self] _ in

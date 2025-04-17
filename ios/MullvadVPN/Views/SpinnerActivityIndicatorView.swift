@@ -3,16 +3,18 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 15/05/2019.
-//  Copyright © 2019 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import UIKit
 
+@MainActor
 class SpinnerActivityIndicatorView: UIView {
     private static let rotationAnimationKey = "rotation"
     private static let animationDuration = 0.6
 
-    enum Style {
+    @MainActor
+    enum Style: Sendable {
         case small, medium, large, custom
 
         var intrinsicSize: CGSize {
@@ -29,7 +31,7 @@ class SpinnerActivityIndicatorView: UIView {
         }
     }
 
-    private let imageView = UIImageView(image: UIImage(named: "IconSpinner"))
+    private let imageView = UIImageView(image: .spinner)
 
     private(set) var isAnimating = false
     private(set) var style = Style.large
@@ -57,7 +59,9 @@ class SpinnerActivityIndicatorView: UIView {
     }
 
     deinit {
-        unregisterSceneActivationObserver()
+        MainActor.assumeIsolated {
+            unregisterSceneActivationObserver()
+        }
     }
 
     override func didMoveToWindow() {
@@ -110,7 +114,9 @@ class SpinnerActivityIndicatorView: UIView {
             forName: UIScene.willEnterForegroundNotification,
             object: window?.windowScene,
             queue: .main, using: { [weak self] _ in
-                self?.restartAnimationIfNeeded()
+                MainActor.assumeIsolated {
+                    self?.restartAnimationIfNeeded()
+                }
             }
         )
     }

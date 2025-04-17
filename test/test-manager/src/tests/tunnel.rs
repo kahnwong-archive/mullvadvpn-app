@@ -1,14 +1,11 @@
 use super::{
     config::TEST_CONFIG,
-    helpers::{
-        self, apply_settings_from_relay_query, connect_and_wait, disconnect_and_wait,
-        set_relay_settings,
-    },
+    helpers::{self, apply_settings_from_relay_query, connect_and_wait, disconnect_and_wait},
     Error, TestContext,
 };
 use crate::{
     network_monitor::{start_packet_monitor, MonitorOptions},
-    tests::helpers::login_with_retries,
+    tests::helpers::{login_with_retries, update_relay_constraints},
 };
 
 use anyhow::Context;
@@ -17,8 +14,7 @@ use mullvad_relay_selector::query::builder::RelayQueryBuilder;
 use mullvad_types::{
     constraints::Constraint,
     relay_constraints::{
-        self, BridgeConstraints, BridgeSettings, BridgeType, OpenVpnConstraints, RelayConstraints,
-        RelaySettings, TransportPort,
+        self, BridgeConstraints, BridgeSettings, BridgeType, OpenVpnConstraints, TransportPort,
     },
     wireguard,
 };
@@ -63,15 +59,12 @@ pub async fn test_openvpn_tunnel(
     for (protocol, constraint) in CONSTRAINTS {
         log::info!("Connect to {protocol} OpenVPN endpoint");
 
-        let relay_settings = RelaySettings::Normal(RelayConstraints {
-            tunnel_protocol: Constraint::Only(TunnelType::OpenVpn),
-            openvpn_constraints: OpenVpnConstraints { port: constraint },
-            ..Default::default()
-        });
-
-        set_relay_settings(&mut mullvad_client, relay_settings)
-            .await
-            .expect("failed to update relay settings");
+        update_relay_constraints(&mut mullvad_client, |relay_constraints| {
+            relay_constraints.tunnel_protocol = TunnelType::OpenVpn;
+            relay_constraints.openvpn_constraints = OpenVpnConstraints { port: constraint };
+        })
+        .await
+        .expect("failed to update relay constraints");
 
         connect_and_wait(&mut mullvad_client).await?;
 
@@ -103,7 +96,7 @@ pub async fn test_wireguard_tunnel(
     for (port, should_succeed) in PORTS {
         log::info!("Connect to WireGuard endpoint on port {port}");
 
-        let query = RelayQueryBuilder::new().wireguard().port(port).build();
+        let query = RelayQueryBuilder::wireguard().port(port).build();
 
         apply_settings_from_relay_query(&mut mullvad_client, query)
             .await
@@ -137,7 +130,7 @@ pub async fn test_udp2tcp_tunnel(
     rpc: ServiceClient,
     mut mullvad_client: MullvadProxyClient,
 ) -> Result<(), Error> {
-    let query = RelayQueryBuilder::new().wireguard().udp2tcp().build();
+    let query = RelayQueryBuilder::wireguard().udp2tcp().build();
 
     apply_settings_from_relay_query(&mut mullvad_client, query).await?;
 
@@ -187,15 +180,7 @@ pub async fn test_wireguard_over_shadowsocks(
     rpc: ServiceClient,
     mut mullvad_client: MullvadProxyClient,
 ) -> anyhow::Result<()> {
-    // NOTE: We have experienced flakiness due to timeout issues if distant relays are selected.
-    // This is an attempt to try to reduce this type of flakiness.
-    use helpers::custom_lists::LowLatency;
-
-    let query = RelayQueryBuilder::new()
-        .wireguard()
-        .shadowsocks()
-        .location(LowLatency)
-        .build();
+    let query = RelayQueryBuilder::wireguard().shadowsocks().build();
 
     apply_settings_from_relay_query(&mut mullvad_client, query).await?;
 
@@ -227,7 +212,7 @@ pub async fn test_bridge(
     //
     log::info!("Updating bridge settings");
 
-    let query = RelayQueryBuilder::new().openvpn().bridge().build();
+    let query = RelayQueryBuilder::openvpn().bridge().build();
 
     apply_settings_from_relay_query(&mut mullvad_client, query).await?;
 
@@ -294,16 +279,7 @@ pub async fn test_multihop(
     rpc: ServiceClient,
     mut mullvad_client: MullvadProxyClient,
 ) -> Result<(), Error> {
-    // NOTE: We have experienced flakiness due to timeout issues if distant relays are selected.
-    // This is an attempt to try to reduce this type of flakiness.
-    use helpers::custom_lists::LowLatency;
-
-    let query = RelayQueryBuilder::new()
-        .wireguard()
-        .multihop()
-        .location(LowLatency)
-        .entry(LowLatency)
-        .build();
+    let query = RelayQueryBuilder::wireguard().multihop().build();
 
     apply_settings_from_relay_query(&mut mullvad_client, query).await?;
 
@@ -370,15 +346,11 @@ pub async fn test_wireguard_autoconnect(
     mut mullvad_client: MullvadProxyClient,
 ) -> Result<(), Error> {
     log::info!("Setting tunnel protocol to WireGuard");
-
-    let relay_settings = RelaySettings::Normal(RelayConstraints {
-        tunnel_protocol: Constraint::Only(TunnelType::Wireguard),
-        ..Default::default()
-    });
-
-    set_relay_settings(&mut mullvad_client, relay_settings)
-        .await
-        .expect("failed to update relay settings");
+    update_relay_constraints(&mut mullvad_client, |relay_constraints| {
+        relay_constraints.tunnel_protocol = TunnelType::Wireguard;
+    })
+    .await
+    .expect("failed to update relay constraints");
 
     mullvad_client
         .set_auto_connect(true)
@@ -413,14 +385,11 @@ pub async fn test_openvpn_autoconnect(
 ) -> Result<(), Error> {
     log::info!("Setting tunnel protocol to OpenVPN");
 
-    let relay_settings = RelaySettings::Normal(RelayConstraints {
-        tunnel_protocol: Constraint::Only(TunnelType::OpenVpn),
-        ..Default::default()
-    });
-
-    set_relay_settings(&mut mullvad_client, relay_settings)
-        .await
-        .expect("failed to update relay settings");
+    update_relay_constraints(&mut mullvad_client, |relay_constraints| {
+        relay_constraints.tunnel_protocol = TunnelType::OpenVpn;
+    })
+    .await
+    .expect("failed to update relay constraints");
 
     mullvad_client
         .set_auto_connect(true)
@@ -455,10 +424,6 @@ pub async fn test_quantum_resistant_tunnel(
     rpc: ServiceClient,
     mut mullvad_client: MullvadProxyClient,
 ) -> anyhow::Result<()> {
-    // NOTE: We have experienced flakiness due to timeout issues if distant relays are selected.
-    // This is an attempt to try to reduce this type of flakiness.
-    use helpers::custom_lists::LowLatency;
-
     mullvad_client
         .set_quantum_resistant_tunnel(wireguard::QuantumResistantState::Off)
         .await
@@ -472,10 +437,7 @@ pub async fn test_quantum_resistant_tunnel(
 
     log::info!("Setting tunnel protocol to WireGuard");
 
-    let query = RelayQueryBuilder::new()
-        .wireguard()
-        .location(LowLatency)
-        .build();
+    let query = RelayQueryBuilder::wireguard().build();
 
     apply_settings_from_relay_query(&mut mullvad_client, query).await?;
 
@@ -536,22 +498,12 @@ pub async fn test_quantum_resistant_multihop_udp2tcp_tunnel(
     rpc: ServiceClient,
     mut mullvad_client: MullvadProxyClient,
 ) -> Result<(), Error> {
-    // NOTE: We have experienced flakiness due to timeout issues if distant relays are selected.
-    // This is an attempt to try to reduce this type of flakiness.
-    use helpers::custom_lists::LowLatency;
-
     mullvad_client
         .set_quantum_resistant_tunnel(wireguard::QuantumResistantState::On)
         .await
         .expect("Failed to enable PQ tunnels");
 
-    let query = RelayQueryBuilder::new()
-        .wireguard()
-        .multihop()
-        .udp2tcp()
-        .entry(LowLatency)
-        .location(LowLatency)
-        .build();
+    let query = RelayQueryBuilder::wireguard().multihop().udp2tcp().build();
 
     apply_settings_from_relay_query(&mut mullvad_client, query).await?;
 
@@ -577,21 +529,14 @@ pub async fn test_quantum_resistant_multihop_shadowsocks_tunnel(
     rpc: ServiceClient,
     mut mullvad_client: MullvadProxyClient,
 ) -> anyhow::Result<()> {
-    // NOTE: We have experienced flakiness due to timeout issues if distant relays are selected.
-    // This is an attempt to try to reduce this type of flakiness.
-    use helpers::custom_lists::LowLatency;
-
     mullvad_client
         .set_quantum_resistant_tunnel(wireguard::QuantumResistantState::On)
         .await
         .context("Failed to enable PQ tunnels")?;
 
-    let query = RelayQueryBuilder::new()
-        .wireguard()
+    let query = RelayQueryBuilder::wireguard()
         .multihop()
         .shadowsocks()
-        .entry(LowLatency)
-        .location(LowLatency)
         .build();
 
     apply_settings_from_relay_query(&mut mullvad_client, query).await?;
@@ -625,22 +570,18 @@ pub async fn test_remote_socks_bridge(
             bridge_type: BridgeType::Custom,
             normal: BridgeConstraints::default(),
             custom: Some(CustomProxy::Socks5Remote(Socks5Remote::new((
-                crate::vm::network::NON_TUN_GATEWAY,
+                TEST_CONFIG.host_bridge_ip,
                 crate::vm::network::SOCKS5_PORT,
             )))),
         })
         .await
         .expect("failed to update bridge settings");
 
-    set_relay_settings(
-        &mut mullvad_client,
-        RelaySettings::Normal(RelayConstraints {
-            tunnel_protocol: Constraint::Only(TunnelType::OpenVpn),
-            ..Default::default()
-        }),
-    )
+    update_relay_constraints(&mut mullvad_client, |relay_constraints| {
+        relay_constraints.tunnel_protocol = TunnelType::OpenVpn;
+    })
     .await
-    .expect("failed to update relay settings");
+    .expect("failed to update relay constraints");
 
     // Connect to VPN
     //
@@ -703,10 +644,8 @@ pub async fn test_local_socks_bridge(
     rpc: ServiceClient,
     mut mullvad_client: MullvadProxyClient,
 ) -> Result<(), Error> {
-    let remote_addr = SocketAddr::from((
-        crate::vm::network::NON_TUN_GATEWAY,
-        crate::vm::network::SOCKS5_PORT,
-    ));
+    let remote_addr =
+        SocketAddr::from((TEST_CONFIG.host_bridge_ip, crate::vm::network::SOCKS5_PORT));
     let socks_server = rpc
         .start_tcp_forward("127.0.0.1:0".parse().unwrap(), remote_addr)
         .await
@@ -732,15 +671,11 @@ pub async fn test_local_socks_bridge(
         .await
         .expect("failed to update bridge settings");
 
-    set_relay_settings(
-        &mut mullvad_client,
-        RelaySettings::Normal(RelayConstraints {
-            tunnel_protocol: Constraint::Only(TunnelType::OpenVpn),
-            ..Default::default()
-        }),
-    )
+    update_relay_constraints(&mut mullvad_client, |relay_constraints| {
+        relay_constraints.tunnel_protocol = TunnelType::OpenVpn;
+    })
     .await
-    .expect("failed to update relay settings");
+    .expect("failed to update relay constraints");
 
     // Connect to VPN
     //

@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by Jon Petersson on 2023-09-07.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 #if targetEnvironment(simulator)
@@ -12,7 +12,7 @@ import Foundation
 import MullvadREST
 import NetworkExtension
 
-class SimulatorVPNConnection: NSObject, VPNConnectionProtocol {
+class SimulatorVPNConnection: NSObject, VPNConnectionProtocol, @unchecked Sendable {
     // Protocol configuration is automatically synced by `SimulatorTunnelInfo`
     var protocolConfiguration = NEVPNProtocol()
 

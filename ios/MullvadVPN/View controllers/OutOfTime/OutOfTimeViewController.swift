@@ -3,38 +3,27 @@
 //  MullvadVPN
 //
 //  Created by Andreas Lif on 2022-07-25.
-//  Copyright © 2022 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import MullvadREST
 import Operations
-import StoreKit
+@preconcurrency import StoreKit
 import UIKit
 
-protocol OutOfTimeViewControllerDelegate: AnyObject {
-    func outOfTimeViewControllerDidBeginPayment(_ controller: OutOfTimeViewController)
-    func outOfTimeViewControllerDidEndPayment(_ controller: OutOfTimeViewController)
+protocol OutOfTimeViewControllerDelegate: AnyObject, Sendable {
+    func didRequestShowInAppPurchase(
+        accountNumber: String,
+        paymentAction: PaymentAction
+    )
 }
 
+@MainActor
 class OutOfTimeViewController: UIViewController, RootContainment {
     weak var delegate: OutOfTimeViewControllerDelegate?
 
     private let interactor: OutOfTimeInteractor
-    private let errorPresenter: PaymentAlertPresenter
-
-    private var productState: ProductState = .none {
-        didSet {
-            applyViewState()
-        }
-    }
-
-    private var paymentState: PaymentState = .none {
-        didSet {
-            applyViewState()
-            notifyDelegate(oldValue)
-        }
-    }
 
     private lazy var contentView = OutOfTimeContentView()
 
@@ -42,7 +31,7 @@ class OutOfTimeViewController: UIViewController, RootContainment {
         .lightContent
     }
 
-    var preferredHeaderBarPresentation: HeaderBarPresentation {
+    nonisolated(unsafe) var preferredHeaderBarPresentation: HeaderBarPresentation {
         let tunnelState = interactor.tunnelStatus.state
 
         return HeaderBarPresentation(
@@ -57,7 +46,6 @@ class OutOfTimeViewController: UIViewController, RootContainment {
 
     init(interactor: OutOfTimeInteractor, errorPresenter: PaymentAlertPresenter) {
         self.interactor = interactor
-        self.errorPresenter = errorPresenter
 
         super.init(nibName: nil, bundle: nil)
     }
@@ -85,7 +73,7 @@ class OutOfTimeViewController: UIViewController, RootContainment {
         )
         contentView.purchaseButton.addTarget(
             self,
-            action: #selector(doPurchase),
+            action: #selector(requestStoreProducts),
             for: .touchUpInside
         )
         contentView.restoreButton.addTarget(
@@ -94,20 +82,13 @@ class OutOfTimeViewController: UIViewController, RootContainment {
             for: .touchUpInside
         )
 
-        interactor.didReceivePaymentEvent = { [weak self] event in
-            self?.didReceivePaymentEvent(event)
-        }
-
         interactor.didReceiveTunnelStatus = { [weak self] _ in
-            self?.setNeedsHeaderBarStyleAppearanceUpdate()
-            self?.applyViewState()
+            Task { @MainActor in
+                self?.setNeedsHeaderBarStyleAppearanceUpdate()
+                self?.applyViewState()
+            }
         }
-
-        if StorePaymentManager.canMakePayments {
-            requestStoreProducts()
-        } else {
-            productState = .cannotMakePurchases
-        }
+        applyViewState()
     }
 
     override func viewDidAppear(_ animated: Bool) {
@@ -122,33 +103,8 @@ class OutOfTimeViewController: UIViewController, RootContainment {
 
     // MARK: - Private
 
-    private func requestStoreProducts() {
-        let productKind = StoreSubscription.thirtyDays
-
-        productState = .fetching(productKind)
-
-        _ = interactor.requestProducts(with: [productKind]) { [weak self] completion in
-            let productState: ProductState = completion.value?.products.first
-                .map { .received($0) } ?? .failed
-
-            self?.productState = productState
-        }
-    }
-
     private func applyViewState() {
         let tunnelState = interactor.tunnelStatus.state
-        let isInteractionEnabled = paymentState.allowsViewInteraction
-        let purchaseButton = contentView.purchaseButton
-
-        let isOutOfTime = interactor.deviceState.accountData.map { $0.expiry < Date() } ?? false
-
-        purchaseButton.setTitle(productState.purchaseButtonTitle, for: .normal)
-        contentView.purchaseButton.isLoading = productState.isFetching
-
-        purchaseButton.isEnabled = productState.isReceived && isInteractionEnabled && !tunnelState
-            .isSecured
-        contentView.restoreButton.isEnabled = isInteractionEnabled
-
         contentView.enableDisconnectButton(tunnelState.isSecured, animated: true)
 
         if tunnelState.isSecured {
@@ -170,98 +126,34 @@ class OutOfTimeViewController: UIViewController, RootContainment {
                     tableName: "OutOfTime",
                     value: """
                     You have no more VPN time left on this account. Either buy credit on our website \
-                    or make an in-app purchase via the **Add 30 days time** button below.
+                    or make an in-app purchase via the **Add time** button below.
                     """,
                     comment: ""
                 )
             )
         }
-
-        if !isInteractionEnabled {
-            contentView.statusActivityView.state = .activity
-        } else {
-            contentView.statusActivityView.state = isOutOfTime ? .failure : .success
-        }
-
-        view.isUserInteractionEnabled = isInteractionEnabled
-    }
-
-    private func notifyDelegate(_ oldPaymentState: PaymentState) {
-        switch (oldPaymentState, paymentState) {
-        case (.none, .makingPayment), (.none, .restoringPurchases):
-            delegate?.outOfTimeViewControllerDidBeginPayment(self)
-
-        case (.makingPayment, .none), (.restoringPurchases, .none):
-            delegate?.outOfTimeViewControllerDidEndPayment(self)
-
-        default:
-            break
-        }
-    }
-
-    private func didReceivePaymentEvent(_ event: StorePaymentEvent) {
-        guard case let .makingPayment(payment) = paymentState,
-              payment == event.payment else { return }
-
-        switch event {
-        case let .finished(completion):
-            errorPresenter.showAlertForResponse(completion.serverResponse, context: .purchase)
-
-        case let .failure(paymentFailure):
-            switch paymentFailure.error {
-            case .storePayment(SKError.paymentCancelled):
-                break
-
-            default:
-                errorPresenter.showAlertForError(paymentFailure.error, context: .purchase) {
-                    self.paymentState = .none
-                }
-            }
-        }
-
-        paymentState = .none
     }
 
     // MARK: - Actions
 
-    @objc private func doPurchase() {
-        guard case let .received(product) = productState,
-              let accountData = interactor.deviceState.accountData
-        else {
+    @objc private func requestStoreProducts() {
+        guard let accountNumber = interactor.deviceState.accountData?.number else {
             return
         }
-
-        let payment = SKPayment(product: product)
-        interactor.addPayment(payment, for: accountData.number)
-
-        paymentState = .makingPayment(payment)
+        delegate?.didRequestShowInAppPurchase(
+            accountNumber: accountNumber,
+            paymentAction: .purchase
+        )
     }
 
     @objc func restorePurchases() {
-        guard let accountData = interactor.deviceState.accountData else {
+        guard let accountNumber = interactor.deviceState.accountData?.number else {
             return
         }
-
-        paymentState = .restoringPurchases
-
-        _ = interactor.restorePurchases(for: accountData.number) { [weak self] result in
-            guard let self else { return }
-
-            switch result {
-            case let .success(response):
-                errorPresenter.showAlertForResponse(response, context: .restoration) {
-                    self.paymentState = .none
-                }
-
-            case let .failure(error as StorePaymentManagerError):
-                errorPresenter.showAlertForError(error, context: .restoration) {
-                    self.paymentState = .none
-                }
-
-            default:
-                paymentState = .none
-            }
-        }
+        delegate?.didRequestShowInAppPurchase(
+            accountNumber: accountNumber,
+            paymentAction: .restorePurchase
+        )
     }
 
     @objc private func handleDisconnect(_ sender: Any) {

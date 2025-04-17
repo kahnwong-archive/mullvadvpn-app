@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 10/02/2021.
-//  Copyright © 2021 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import UIKit
@@ -97,9 +97,11 @@ class ProblemReportReviewViewController: UIViewController {
         spinnerView.startAnimating()
         interactor.fetchReportString { [weak self] reportString in
             guard let self else { return }
-            textView.text = reportString
-            spinnerView.stopAnimating()
-            spinnerContainerView.isHidden = true
+            Task { @MainActor in
+                textView.text = reportString
+                spinnerView.stopAnimating()
+                spinnerContainerView.isHidden = true
+            }
         }
     }
 
@@ -107,14 +109,16 @@ class ProblemReportReviewViewController: UIViewController {
     private func share() {
         interactor.fetchReportString { [weak self] reportString in
             guard let self,!reportString.isEmpty else { return }
-            let activityController = UIActivityViewController(
-                activityItems: [reportString],
-                applicationActivities: nil
-            )
+            Task { @MainActor in
+                let activityController = UIActivityViewController(
+                    activityItems: [reportString],
+                    applicationActivities: nil
+                )
 
-            activityController.popoverPresentationController?.barButtonItem = navigationItem.leftBarButtonItem
+                activityController.popoverPresentationController?.barButtonItem = navigationItem.leftBarButtonItem
 
-            present(activityController, animated: true)
+                present(activityController, animated: true)
+            }
         }
     }
     #endif

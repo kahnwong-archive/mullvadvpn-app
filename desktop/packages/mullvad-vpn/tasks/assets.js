@@ -4,8 +4,12 @@ function copyStaticAssets() {
   return src('assets/**').pipe(dest('build/assets'));
 }
 
-function copyConfig() {
-  return src('src/config.json').pipe(dest('build/src'));
+function copyImagesVite() {
+  return src('assets/images/**').pipe(dest('build/assets/images'));
+}
+
+function copyIconsVite() {
+  return src('assets/icons/**').pipe(dest('build/assets/icons'));
 }
 
 function copyCss() {
@@ -20,27 +24,26 @@ function copyLocales() {
   return src('locales/**/*.po').pipe(dest('build/locales'));
 }
 
+function copyLocalesVite() {
+  return src('locales/**/*.po').pipe(dest('build/locales'));
+}
+
 function copyGeoData() {
+  return src('../../../dist-assets/geo/*.gl').pipe(dest('build/assets/geo'));
+}
+function copyGeoDataVite() {
   return src('../../../dist-assets/geo/*.gl').pipe(dest('build/assets/geo'));
 }
 
 copyStaticAssets.displayName = 'copy-static-assets';
-copyConfig.displayName = 'copy-config';
 copyCss.displayName = 'copy-css';
 copyHtml.displayName = 'copy-html';
 copyLocales.displayName = 'copy-locales';
 copyGeoData.displayName = 'copy-geo-data';
 
-exports.copyAll = parallel(
-  copyStaticAssets,
-  copyConfig,
-  copyCss,
-  copyHtml,
-  copyLocales,
-  copyGeoData,
-);
+exports.copyAll = parallel(copyStaticAssets, copyCss, copyHtml, copyLocales, copyGeoData);
+exports.copyAllVite = parallel(copyImagesVite, copyIconsVite, copyLocalesVite, copyGeoDataVite);
 exports.copyStaticAssets = copyStaticAssets;
 exports.copyCss = copyCss;
 exports.copyHtml = copyHtml;
-exports.copyConfig = copyConfig;
 exports.copyGeoData = copyGeoData;

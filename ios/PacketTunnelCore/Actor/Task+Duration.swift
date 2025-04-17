@@ -3,7 +3,7 @@
 //  PacketTunnelCore
 //
 //  Created by pronebird on 11/09/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -36,7 +36,7 @@ extension Task where Success == Never, Failure == Never {
      */
     @available(iOS, introduced: 15.0, obsoleted: 16.0, message: "Replace with Task.sleep(for:tolerance:clock:).")
     static func sleepUsingContinuousClock(for duration: Duration) async throws {
-        let timer = DispatchSource.makeTimerSource()
+        nonisolated(unsafe) let timer = DispatchSource.makeTimerSource()
 
         try await withTaskCancellationHandler {
             try await withCheckedThrowingContinuation { continuation in

@@ -3,12 +3,12 @@
 //  MullvadSettings
 //
 //  Created by Mojgan on 2024-08-09.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadTypes
 
-public protocol SettingsPropagation {
+public protocol SettingsPropagation: Sendable {
     typealias SettingsHandler = (LatestTunnelSettings) -> Void
     var onNewSettings: SettingsHandler? { get set }
 }
@@ -30,7 +30,7 @@ public class SettingsObserverBlock: SettingsObserver {
     }
 }
 
-public final class TunnelSettingsListener: SettingsPropagation {
+public final class TunnelSettingsListener: SettingsPropagation, @unchecked Sendable {
     public var onNewSettings: SettingsHandler?
 
     public init(onNewSettings: SettingsHandler? = nil) {
@@ -38,10 +38,10 @@ public final class TunnelSettingsListener: SettingsPropagation {
     }
 }
 
-public class SettingsUpdater {
+public final class SettingsUpdater: Sendable {
     /// Observers.
     private let observerList = ObserverList<SettingsObserver>()
-    private var listener: SettingsPropagation
+    nonisolated(unsafe) private var listener: SettingsPropagation
 
     public init(listener: SettingsPropagation) {
         self.listener = listener

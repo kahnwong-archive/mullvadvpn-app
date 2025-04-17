@@ -118,18 +118,16 @@ Linux distro:
 
   ```bash
   cd "$ANDROID_HOME"  # Or some other directory to place the Android NDK
-  wget https://dl.google.com/android/repository/android-ndk-r27b-linux.zip
-  unzip android-ndk-r27b-linux.zip
+  wget https://dl.google.com/android/repository/android-ndk-r27c-linux.zip
+  unzip android-ndk-r27c-linux.zip
 
-  cd android-ndk-r27b
+  cd android-ndk-r27c
   export ANDROID_NDK_HOME="$PWD"
   ```
 
 #### 5. Install and configure Rust toolchain
 
 - Get the latest **stable** Rust toolchain via [rustup.rs](https://rustup.rs/).
-  Also install `cbindgen` which is required to build `wireguard-go-rs`:
-  `cargo install --force cbindgen`
 
 - Configure Android cross-compilation targets and set up linker and archiver. This can be done by setting the following
 environment variables:
@@ -153,16 +151,22 @@ environment variables:
 
 - Install Android targets
   ```bash
-  rustup target add aarch64-linux-android armv7-linux-androideabi i686-linux-android x86_64-linux-android
+  ./scripts/setup-rust android
+  ```
+
+- (Optional) Run the following to install a git `post-checkout` hook that will automatically
+  run the `setup-rust` script when the Rust version specified in the `rust-toolchain.toml` file changes:
+  ```bash
+  .scripts/setup-rust install-hook
   ```
 
 #### 6. Download wireguard-go-rs submodule
-Run the following command to download wireguard-go-rs submodule: `git submodule update --init --recursive --depth=1 wireguard-go-rs`
+Run the following command to download wireguard-go-rs submodule: `git submodule update --init wireguard-go-rs/libwg/wireguard-go`
 
 ### Debug build
 Run the following command to build a debug build:
 ```bash
-../build-apk.sh --dev-build
+../android/build.sh --dev-build
 ```
 
 ### Release build
@@ -170,7 +174,7 @@ Run the following command to build a debug build:
 2. Move, copy or symlink the directory from step 1 to [./credentials/](./credentials/) (`<repository>/android/credentials/`).
 3. Run the following command to build:
    ```bash
-   ../build-apk.sh --app-bundle
+   ../android/build.sh --app-bundle
    ```
 
 ## Configure signing key
@@ -219,13 +223,6 @@ rm ./gradle/verification-metadata.xml
 ## Gradle properties
 Some gradle properties can be set to simplify development. These are listed below.
 
-### Always show changelog
-For development purposes, `ALWAYS_SHOW_CHANGELOG` can be set in `local.properties` to always show
-the changelog dialog on each app start. For example:
-```
-ALWAYS_SHOW_CHANGELOG=true
-```
-
 ### Override version code and version name
 To avoid or override the rust based version generation, the `OVERRIDE_VERSION_CODE` and
 `OVERRIDE_VERSION_NAME` properties can be set in `local.properties`. For example:
@@ -243,3 +240,45 @@ ENABLE_IN_APP_VERSION_NOTIFICATIONS=false
 
 ### Run tests highly affected by rate limiting
 To avoid being rate limited we avoid running tests sending requests that are highly rate limited too often. If you want to run these tests you can set `enable_highly_rate_limited_tests=true` in `local.properties`. The default value is `false`.
+
+## Reproducible builds
+
+Reproducible builds are a way to verify that the app was built from the exact source code it claims to be built from. When a build is reproducible, compiling the same source code with the same tools will always produce bit-for-bit identical output.
+
+The Mullvad Android app is by default reproducible when built using our build container, as the container ensures a consistent build environment with fixed versions of all tools and dependencies.
+
+When building without the container on Linux systems, reproducibility depends on having the exact same versions of system tools (compilers, build tools, etc) installed. Small differences in tool versions or configurations can lead to different build outputs even when using the same source code.
+
+> **Make sure that the `local.properties` file has not changed keys that affect the reproducibility of the build such as `CARGO_TARGETS` and `ENABLE_IN_APP_VERSION_NOTIFICATIONS`.**
+
+To maximize reproducibility when building without the container:
+
+- Build the app on a **Linux system or virtual machine**.
+- Use the exact same versions of all build dependencies as specified in the [root Dockerfile](../building/Dockerfile) and [Android Dockerfile](docker/Dockerfile). This includes for example the Go version and Android SDK and NDK versions.
+
+### How to verify reproducible builds across environments
+
+A simple way to check that a build is reproducible across environments is to build the `fdroid` version of the app with and without the container and comparing the checksums of the produced APKs.
+
+1. Build the app with the container: `../building/containerized-build.sh android --fdroid`
+1. Copy the resulting APK to a different folder as it will be overwritten in the following step: `app/build/outputs/apk/ossProd/fdroid/app-oss-prod-fdroid-unsigned.apk fdroid-container.apk`
+1. Build the app locally without the container: `./build.sh --fdroid`
+1. Compare the checksums of the two APKs: `sha256sum fdroid-container.apk app/build/outputs/apk/ossProd/fdroid/app-oss-prod-fdroid-unsigned.apk`
+
+## Verifying that an official release is reproducible
+
+1. Obtain the release APK (`2025.2-beta1` or newer) from [GitHub releases](https://github.com/mullvad/mullvadvpn-app/releases)
+1. Checkout the release tag: `git checkout android/<version>`
+1. Build a release build using our [build instructions](#release-build)
+1. Delete the signatures from the two APKs by running `zip -d app-oss-prod-release.apk "META-INF/*"` and `zip -d MullvadVPN-<version>.apk "META-INF/*"`
+1. Compare the checksums of the two APKs: `sha256sum app-oss-prod-release.apk MullvadVPN-<version>.apk`. If the checksums are equal the build is reproducible.
+
+### Troubleshooting reproducibility
+
+If two APKs built from the same commit have different checksums the build is not reproducible. This could be because of either:
+
+1. A build dependency on the local system has the wrong version.
+1. There is a bug that breaks the build reproducibility.
+1. The APK built is a version prior to `2025.2-beta1`, which is the first version that supports reproducible builds.
+
+If you suspect that a bug is causing the build to not be reproducible, please open a Github issue.

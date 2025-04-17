@@ -3,17 +3,18 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 15/12/2021.
-//  Copyright © 2021 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import MullvadLogging
 import MullvadREST
+import MullvadSettings
 import NetworkExtension
 import Operations
 import PacketTunnelCore
 
-class StartTunnelOperation: ResultOperation<Void> {
+class StartTunnelOperation: ResultOperation<Void>, @unchecked Sendable {
     typealias EncodeErrorHandler = (Error) -> Void
 
     private let interactor: TunnelInteractor
@@ -48,7 +49,7 @@ class StartTunnelOperation: ResultOperation<Void> {
 
             finish(result: .success(()))
 
-        case .disconnected, .pendingReconnect:
+        case .disconnected, .pendingReconnect, .waitingForConnectivity:
             makeTunnelProviderAndStartTunnel { error in
                 self.finish(result: error.map { .failure($0) } ?? .success(()))
             }
@@ -58,7 +59,7 @@ class StartTunnelOperation: ResultOperation<Void> {
         }
     }
 
-    private func makeTunnelProviderAndStartTunnel(completionHandler: @escaping (Error?) -> Void) {
+    private func makeTunnelProviderAndStartTunnel(completionHandler: @escaping @Sendable (Error?) -> Void) {
         makeTunnelProvider { result in
             self.dispatchQueue.async {
                 do {
@@ -100,31 +101,20 @@ class StartTunnelOperation: ResultOperation<Void> {
         try tunnel.start(options: tunnelOptions.rawOptions())
     }
 
-    private func makeTunnelProvider(completionHandler: @escaping (Result<any TunnelProtocol, Error>) -> Void) {
+    private func makeTunnelProvider(
+        completionHandler: @escaping @Sendable (Result<any TunnelProtocol, Error>)
+            -> Void
+    ) {
         let persistentTunnels = interactor.getPersistentTunnels()
         let tunnel = persistentTunnels.first ?? interactor.createNewTunnel()
-        let configuration = Self.makeTunnelConfiguration()
+        let configuration = TunnelConfiguration(
+            includeAllNetworks: interactor.settings.includeAllNetworks,
+            excludeLocalNetworks: interactor.settings.localNetworkSharing
+        )
 
         tunnel.setConfiguration(configuration)
         tunnel.saveToPreferences { error in
             completionHandler(error.map { .failure($0) } ?? .success(tunnel))
         }
-    }
-
-    private class func makeTunnelConfiguration() -> TunnelConfiguration {
-        let protocolConfig = NETunnelProviderProtocol()
-        protocolConfig.providerBundleIdentifier = ApplicationTarget.packetTunnel.bundleIdentifier
-        protocolConfig.serverAddress = ""
-
-        let alwaysOnRule = NEOnDemandRuleConnect()
-        alwaysOnRule.interfaceTypeMatch = .any
-
-        return TunnelConfiguration(
-            isEnabled: true,
-            localizedDescription: "WireGuard",
-            protocolConfiguration: protocolConfig,
-            onDemandRules: [alwaysOnRule],
-            isOnDemandEnabled: true
-        )
     }
 }

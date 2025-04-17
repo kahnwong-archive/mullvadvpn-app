@@ -3,14 +3,14 @@
 //  MullvadVPNTests
 //
 //  Created by Marco Nikic on 2023-10-03.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import MullvadTypes
 import NetworkExtension
 
-struct TunnelStoreStub: TunnelStoreProtocol {
+struct TunnelStoreStub: TunnelStoreProtocol, Sendable {
     typealias TunnelType = TunnelStub
     let backgroundTaskProvider: any BackgroundTaskProviding
     func getPersistentTunnels() -> [TunnelType] {
@@ -26,7 +26,7 @@ class DummyTunnelStatusObserver: TunnelStatusObserver {
     func tunnel(_ tunnel: any TunnelProtocol, didReceiveStatus status: NEVPNStatus) {}
 }
 
-final class TunnelStub: TunnelProtocol, Equatable {
+final class TunnelStub: TunnelProtocol, Equatable, @unchecked Sendable {
     typealias TunnelManagerProtocol = SimulatorTunnelProviderManager
 
     static func == (lhs: TunnelStub, rhs: TunnelStub) -> Bool {

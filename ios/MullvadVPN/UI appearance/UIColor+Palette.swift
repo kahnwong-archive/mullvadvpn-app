@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 20/03/2019.
-//  Copyright © 2019 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import UIKit
@@ -142,6 +142,10 @@ extension UIColor {
     enum SegmentedControl {
         static let backgroundColor = UIColor(red: 0.14, green: 0.25, blue: 0.38, alpha: 1.0)
         static let selectedColor = successColor
+    }
+
+    enum AlertController {
+        static let tintColor = UIColor(red: 0.0, green: 0.59, blue: 1.0, alpha: 1)
     }
 
     // Common colors

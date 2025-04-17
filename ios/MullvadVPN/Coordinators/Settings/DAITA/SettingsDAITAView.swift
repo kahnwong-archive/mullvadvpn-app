@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by Jon Petersson on 2024-11-14.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadSettings
@@ -104,15 +104,14 @@ extension SettingsDAITAView {
                         "SETTINGS_INFO_DAITA_PAGE_1",
                         tableName: "Settings",
                         value: """
+                        **Attention: This increases network traffic and will also negatively affect speed, latency, \
+                        and battery usage. Use with caution on limited plans.**
+
                         DAITA (Defense against AI-guided Traffic Analysis) hides patterns in \
                         your encrypted VPN traffic.
 
                         By using sophisticated AI it’s possible to analyze the traffic of data \
                         packets going in and out of your device (even if the traffic is encrypted).
-
-                        If an observer monitors these data packets, DAITA makes it significantly \
-                        harder for them to identify which websites you are visiting or with whom \
-                        you are communicating.
                         """,
                         comment: ""
                     ),
@@ -123,14 +122,16 @@ extension SettingsDAITAView {
                         "SETTINGS_INFO_DAITA_PAGE_2",
                         tableName: "Settings",
                         value: """
+                        If an observer monitors these data packets, DAITA makes it significantly \
+                        harder for them to identify which websites you are visiting or with whom \
+                        you are communicating.
+
                         DAITA does this by carefully adding network noise and making all network \
                         packets the same size.
 
                         Not all our servers are DAITA-enabled. Therefore, we use multihop \
                         automatically to enable DAITA with any server.
 
-                        Attention: Be cautious if you have a limited data plan as this feature \
-                        will increase your network traffic.
                         """,
                         comment: ""
                     ),

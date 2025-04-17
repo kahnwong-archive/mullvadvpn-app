@@ -3,7 +3,7 @@
 //  RelaySelector
 //
 //  Created by pronebird on 11/06/2019.
-//  Copyright © 2019 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadSettings
@@ -60,16 +60,6 @@ public enum RelaySelector {
         assert(randomRelay != nil, "At least one relay must've had a weight above 0")
 
         return randomRelay
-    }
-
-    static func mapRelays<T: AnyRelay>(
-        relays: [T],
-        locations: [String: REST.ServerLocation]
-    ) -> [RelayWithLocation<T>] {
-        relays.compactMap { relay in
-            guard let serverLocation = locations[relay.location] else { return nil }
-            return makeRelayWithLocationFrom(serverLocation, relay: relay)
-        }
     }
 
     /// Produce a list of `RelayWithLocation` items satisfying the given constraints
@@ -151,14 +141,11 @@ public enum RelaySelector {
         _ serverLocation: REST.ServerLocation,
         relay: T
     ) -> RelayWithLocation<T>? {
-        let locationComponents = relay.location.split(separator: "-")
-        guard locationComponents.count > 1 else { return nil }
-
         let location = Location(
             country: serverLocation.country,
-            countryCode: String(locationComponents[0]),
+            countryCode: String(relay.location.country),
             city: serverLocation.city,
-            cityCode: String(locationComponents[1]),
+            cityCode: String(relay.location.city),
             latitude: serverLocation.latitude,
             longitude: serverLocation.longitude
         )

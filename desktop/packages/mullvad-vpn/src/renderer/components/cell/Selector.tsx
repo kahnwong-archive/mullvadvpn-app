@@ -1,18 +1,22 @@
 import { useCallback, useRef, useState } from 'react';
 import styled from 'styled-components';
 
-import { colors } from '../../../config.json';
 import { messages } from '../../../shared/gettext';
+import { Icon } from '../../lib/components';
+import { Colors, spacings } from '../../lib/foundations';
 import { useHistory } from '../../lib/history';
 import { RoutePath } from '../../lib/routes';
 import { useStyledRef } from '../../lib/utility-hooks';
 import { AriaDetails, AriaInput, AriaLabel } from '../AriaGroup';
-import ImageView from '../ImageView';
 import InfoButton from '../InfoButton';
 import * as Cell from '.';
 
 const StyledTitleLabel = styled(Cell.SectionTitle)({
   flex: 1,
+});
+
+const StyledInfoButton = styled(InfoButton)({
+  marginRight: spacings.medium,
 });
 
 export interface SelectorItem<T> {
@@ -94,7 +98,7 @@ export default function Selector<T, U>(props: SelectorProps<T, U>) {
       </AriaLabel>
       {props.details && (
         <AriaDetails>
-          <InfoButton title={props.infoTitle}>{props.details}</InfoButton>
+          <StyledInfoButton title={props.infoTitle}>{props.details}</StyledInfoButton>
         </AriaDetails>
       )}
     </>
@@ -132,7 +136,7 @@ export default function Selector<T, U>(props: SelectorProps<T, U>) {
   }
 }
 
-const StyledCellIcon = styled(Cell.Icon)<{ $visible: boolean }>((props) => ({
+const StyledCellIcon = styled(Icon)<{ $visible: boolean }>((props) => ({
   opacity: props.$visible ? 1 : 0,
   marginRight: '8px',
 }));
@@ -151,10 +155,6 @@ interface SelectorCellProps<T> {
 
 const StyledSelectorCell = styled.div({
   display: 'flex',
-});
-
-const StyledSideButtonImage = styled(ImageView)({
-  padding: '0 3px',
 });
 
 const StyledSideButton = styled(Cell.SideButton)({
@@ -189,26 +189,16 @@ function SelectorCell<T>(props: SelectorCellProps<T>) {
         aria-selected={props.isSelected}
         aria-disabled={props.disabled}
         data-testid={props['data-testid']}>
-        <StyledCellIcon
-          $visible={props.isSelected}
-          source="icon-tick"
-          width={18}
-          tintColor={colors.white}
-        />
+        <StyledCellIcon $visible={props.isSelected} icon="checkmark" />
         <SelectorCellLabel subLabel={props.subLabel}>{props.children}</SelectorCellLabel>
       </Cell.CellButton>
       {props.details && (
         <StyledSideButton
-          $backgroundColor={colors.blue40}
-          $backgroundColorHover={colors.blue80}
+          $backgroundColor={Colors.blue40}
+          $backgroundColorHover={Colors.blue80}
           aria-label={props.details.ariaLabel}
           onClick={navigate}>
-          <StyledSideButtonImage
-            source="icon-chevron"
-            width={7}
-            tintColor={colors.white}
-            tintHoverColor={colors.white80}
-          />
+          <Icon icon="chevron-right" />
         </StyledSideButton>
       )}
     </StyledSelectorCell>
@@ -238,9 +228,9 @@ interface StyledCustomContainerProps {
 }
 
 const StyledCustomContainer = styled(Cell.Container)<StyledCustomContainerProps>((props) => ({
-  backgroundColor: props.selected ? colors.green : colors.blue40,
+  backgroundColor: props.selected ? Colors.green : Colors.blue40,
   '&&:hover': {
-    backgroundColor: props.selected ? colors.green : colors.blue,
+    backgroundColor: props.selected ? Colors.green : Colors.blue,
   },
 }));
 
@@ -358,12 +348,7 @@ export function SelectorWithCustomItem<T, U>(props: SelectorWithCustomItemProps<
           role="option"
           aria-selected={customIsSelected}
           aria-disabled={props.disabled}>
-          <StyledCellIcon
-            $visible={customIsSelected}
-            source="icon-tick"
-            width={18}
-            tintColor={colors.white}
-          />
+          <StyledCellIcon $visible={customIsSelected} icon="checkmark" />
           <Cell.ValueLabel>{messages.gettext('Custom')}</Cell.ValueLabel>
           <AriaInput>
             <Cell.AutoSizingTextInput

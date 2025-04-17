@@ -2,27 +2,23 @@ import React, { useCallback } from 'react';
 import { sprintf } from 'sprintf-js';
 import styled from 'styled-components';
 
-import { strings } from '../../config.json';
+import { strings } from '../../shared/constants';
 import { messages } from '../../shared/gettext';
 import { useAppContext } from '../context';
 import { Flex } from '../lib/components';
-import { Spacings } from '../lib/foundations';
+import { spacings } from '../lib/foundations';
 import { useHistory } from '../lib/history';
 import { useBoolean } from '../lib/utility-hooks';
 import { useSelector } from '../redux/store';
+import { AppNavigationHeader } from './';
 import { AriaDescription, AriaInput, AriaInputGroup, AriaLabel } from './AriaGroup';
 import * as Cell from './cell';
 import InfoButton from './InfoButton';
 import { BackAction } from './KeyboardNavigation';
 import { Layout, SettingsContainer } from './Layout';
 import { ModalAlert, ModalAlertType, ModalMessage } from './Modal';
-import {
-  NavigationBar,
-  NavigationContainer,
-  NavigationItems,
-  NavigationScrollbars,
-  TitleBarItem,
-} from './NavigationBar';
+import { NavigationContainer } from './NavigationContainer';
+import { NavigationScrollbars } from './NavigationScrollbars';
 import PageSlider from './PageSlider';
 import SettingsHeader, { HeaderSubTitle, HeaderTitle } from './SettingsHeader';
 import { SmallButton, SmallButtonColor } from './SmallButton';
@@ -36,6 +32,12 @@ export const StyledIllustration = styled.img({
   padding: '8px 0 8px',
 });
 
+const StyledInfoButton = styled(InfoButton)({
+  marginRight: spacings.medium,
+});
+
+const PATH_PREFIX = process.env.NODE_ENV === 'development' ? '../' : '';
+
 export default function DaitaSettings() {
   const { pop } = useHistory();
 
@@ -44,11 +46,7 @@ export default function DaitaSettings() {
       <Layout>
         <SettingsContainer>
           <NavigationContainer>
-            <NavigationBar>
-              <NavigationItems>
-                <TitleBarItem>{strings.daita}</TitleBarItem>
-              </NavigationItems>
-            </NavigationBar>
+            <AppNavigationHeader title={strings.daita} />
 
             <NavigationScrollbars>
               <SettingsHeader>
@@ -56,11 +54,29 @@ export default function DaitaSettings() {
                 <PageSlider
                   content={[
                     <React.Fragment key="without-daita">
-                      <StyledIllustration src="../../assets/images/daita-off-illustration.svg" />
-                      <Flex $flexDirection="column" $gap={Spacings.spacing5}>
+                      <StyledIllustration
+                        src={`${PATH_PREFIX}assets/images/daita-off-illustration.svg`}
+                      />
+                      <Flex $flexDirection="column" $gap="medium">
                         <StyledHeaderSubTitle>
                           {sprintf(
                             messages.pgettext(
+                              // TRANSLATORS: Information to the user that with this setting enabled
+                              // TRANSLATORS: their network and device's battery life will be
+                              // TRANSLATORS: affected negatively.
+                              'wireguard-settings-view',
+                              'Attention: This increases network traffic and will also negatively affect speed, latency, and battery usage. Use with caution on limited plans. Only works with %(wireguard)s.',
+                            ),
+                            { wireguard: strings.wireguard },
+                          )}
+                        </StyledHeaderSubTitle>
+                        <StyledHeaderSubTitle>
+                          {sprintf(
+                            messages.pgettext(
+                              // TRANSLATORS: Information to the user what the DAITA setting does.
+                              // TRANSLATORS: Available placeholders:
+                              // TRANSLATORS: %(daita)s - Will be replaced with DAITA
+                              // TRANSLATORS: %(daitaFull)s - Will be replaced with Defence against AI-guided Traffic Analysis
                               'wireguard-settings-view',
                               '%(daita)s (%(daitaFull)s) hides patterns in your encrypted VPN traffic.',
                             ),
@@ -69,27 +85,34 @@ export default function DaitaSettings() {
                         </StyledHeaderSubTitle>
                         <StyledHeaderSubTitle>
                           {messages.pgettext(
+                            // TRANSLATORS: Information to the user on the background why the DAITA setting exists.
                             'wireguard-settings-view',
                             'By using sophisticated AI it’s possible to analyze the traffic of data packets going in and out of your device (even if the traffic is encrypted).',
                           )}
                         </StyledHeaderSubTitle>
+                      </Flex>
+                    </React.Fragment>,
+                    <React.Fragment key="with-daita">
+                      <StyledIllustration
+                        src={`${PATH_PREFIX}assets/images/daita-on-illustration.svg`}
+                      />
+                      <Flex $flexDirection="column" $gap="medium">
                         <StyledHeaderSubTitle>
                           {sprintf(
                             messages.pgettext(
+                              // TRANSLATORS: Information to the user on the background why the DAITA setting exists.
                               'wireguard-settings-view',
                               'If an observer monitors these data packets, %(daita)s makes it significantly harder for them to identify which websites you are visiting or with whom you are communicating.',
                             ),
                             { daita: strings.daita },
                           )}
                         </StyledHeaderSubTitle>
-                      </Flex>
-                    </React.Fragment>,
-                    <React.Fragment key="with-daita">
-                      <StyledIllustration src="../../assets/images/daita-on-illustration.svg" />
-                      <Flex $flexDirection="column" $gap={Spacings.spacing5}>
                         <StyledHeaderSubTitle>
                           {sprintf(
                             messages.pgettext(
+                              // TRANSLATORS: Information to the user what the DAITA setting does.
+                              // TRANSLATORS: Available placeholders:
+                              // TRANSLATORS: %(daita)s - Will be replaced with DAITA
                               'wireguard-settings-view',
                               '%(daita)s does this by carefully adding network noise and making all network packets the same size.',
                             ),
@@ -99,19 +122,16 @@ export default function DaitaSettings() {
                         <StyledHeaderSubTitle>
                           {sprintf(
                             messages.pgettext(
+                              // TRANSLATORS: Information to the user that DAITA is not available
+                              // TRANSLATORS: on all servers, however in the background the multihop
+                              // TRANSLATORS: feature is used automatically which enables the use
+                              // TRANSLATORS: of DAITA with any server.
+                              // TRANSLATORS: Available placeholders:
+                              // TRANSLATORS: %(daita)s - Will be replaced with DAITA
                               'wireguard-settings-view',
                               'Not all our servers are %(daita)s-enabled. Therefore, we use multihop automatically to enable %(daita)s with any server.',
                             ),
                             { daita: strings.daita },
-                          )}
-                        </StyledHeaderSubTitle>
-                        <StyledHeaderSubTitle>
-                          {sprintf(
-                            messages.pgettext(
-                              'wireguard-settings-view',
-                              'Attention: Be cautious if you have a limited data plan as this feature will increase your network traffic. This feature can only be used with %(wireguard)s.',
-                            ),
-                            { wireguard: strings.wireguard },
                           )}
                         </StyledHeaderSubTitle>
                       </Flex>
@@ -185,9 +205,9 @@ function DaitaToggle() {
           <AriaLabel>
             <Cell.InputLabel>{directOnlyString}</Cell.InputLabel>
           </AriaLabel>
-          <InfoButton>
+          <StyledInfoButton>
             <DirectOnlyModalMessage />
-          </InfoButton>
+          </StyledInfoButton>
           <AriaInput>
             <Cell.Switch isOn={directOnly && !unavailable} onChange={setDirectOnly} />
           </AriaInput>
@@ -253,14 +273,19 @@ function DirectOnlyModalMessage() {
 }
 
 function featureUnavailableMessage() {
-  const automatic = messages.gettext('Automatic');
   const tunnelProtocol = messages.pgettext('vpn-settings-view', 'Tunnel protocol');
 
   return sprintf(
     messages.pgettext(
+      // TRANSLATORS: Informs the user that the the feature is only available when WireGuard
+      // TRANSLATORS: is selected.
+      // TRANSLATORS: Available placeholders:
+      // TRANSLATORS: %(wireguard)s - will be replaced with WireGuard
+      // TRANSLATORS: %(tunnelProtocol)s - the name of the tunnel protocol setting
+      // TRANSLATORS: %(setting)s - the name of the setting
       'wireguard-settings-view',
-      'Switch to “%(wireguard)s” or “%(automatic)s” in Settings > %(tunnelProtocol)s to make %(setting)s available.',
+      'Switch to “%(wireguard)s” in Settings > %(tunnelProtocol)s to make %(setting)s available.',
     ),
-    { wireguard: strings.wireguard, automatic, tunnelProtocol, setting: strings.daita },
+    { wireguard: strings.wireguard, tunnelProtocol, setting: strings.daita },
   );
 }

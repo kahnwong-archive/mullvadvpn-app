@@ -1,26 +1,24 @@
 import { useCallback } from 'react';
 import { sprintf } from 'sprintf-js';
 
-import { strings } from '../../config.json';
+import { strings } from '../../shared/constants';
 import { messages } from '../../shared/gettext';
 import log from '../../shared/logging';
 import { Flex } from '../lib/components';
 import { useRelaySettingsUpdater } from '../lib/constraint-updater';
 import { useHistory } from '../lib/history';
 import { useSelector } from '../redux/store';
+import { AppNavigationHeader } from './';
 import { AriaDescription, AriaInput, AriaInputGroup, AriaLabel } from './AriaGroup';
 import * as Cell from './cell';
 import { StyledIllustration } from './DaitaSettings';
 import { BackAction } from './KeyboardNavigation';
 import { Layout, SettingsContainer } from './Layout';
-import {
-  NavigationBar,
-  NavigationContainer,
-  NavigationItems,
-  NavigationScrollbars,
-  TitleBarItem,
-} from './NavigationBar';
+import { NavigationContainer } from './NavigationContainer';
+import { NavigationScrollbars } from './NavigationScrollbars';
 import SettingsHeader, { HeaderSubTitle, HeaderTitle } from './SettingsHeader';
+
+const PATH_PREFIX = process.env.NODE_ENV === 'development' ? '../' : '';
 
 export default function MultihopSettings() {
   const { pop } = useHistory();
@@ -30,13 +28,7 @@ export default function MultihopSettings() {
       <Layout>
         <SettingsContainer>
           <NavigationContainer>
-            <NavigationBar>
-              <NavigationItems>
-                <TitleBarItem>
-                  {messages.pgettext('wireguard-settings-view', 'Multihop')}
-                </TitleBarItem>
-              </NavigationItems>
-            </NavigationBar>
+            <AppNavigationHeader title={messages.pgettext('wireguard-settings-view', 'Multihop')} />
 
             <NavigationScrollbars>
               <SettingsHeader>
@@ -44,7 +36,9 @@ export default function MultihopSettings() {
                   {messages.pgettext('wireguard-settings-view', 'Multihop')}
                 </HeaderTitle>
                 <HeaderSubTitle>
-                  <StyledIllustration src="../../assets/images/multihop-illustration.svg" />
+                  <StyledIllustration
+                    src={`${PATH_PREFIX}assets/images/multihop-illustration.svg`}
+                  />
                   {messages.pgettext(
                     'wireguard-settings-view',
                     'Multihop routes your traffic into one WireGuard server and out another, making it harder to trace. This results in increased latency but increases anonymity online.',
@@ -112,15 +106,20 @@ function MultihopSetting() {
 }
 
 function featureUnavailableMessage() {
-  const automatic = messages.gettext('Automatic');
   const tunnelProtocol = messages.pgettext('vpn-settings-view', 'Tunnel protocol');
   const multihop = messages.pgettext('wireguard-settings-view', 'Multihop');
 
   return sprintf(
     messages.pgettext(
+      // TRANSLATORS: Informs the user that the the feature is only available when WireGuard
+      // TRANSLATORS: is selected.
+      // TRANSLATORS: Available placeholders:
+      // TRANSLATORS: %(wireguard)s - will be replaced with WireGuard
+      // TRANSLATORS: %(tunnelProtocol)s - the name of the tunnel protocol setting
+      // TRANSLATORS: %(setting)s - the name of the setting
       'wireguard-settings-view',
-      'Switch to “%(wireguard)s” or “%(automatic)s” in Settings > %(tunnelProtocol)s to make %(setting)s available.',
+      'Switch to “%(wireguard)s” in Settings > %(tunnelProtocol)s to make %(setting)s available.',
     ),
-    { wireguard: strings.wireguard, automatic, tunnelProtocol, setting: multihop },
+    { wireguard: strings.wireguard, tunnelProtocol, setting: multihop },
   );
 }

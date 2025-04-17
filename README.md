@@ -35,7 +35,7 @@ completely standalone implementation that resides in [ios/](ios/).
 
 There are built and signed releases for macOS, Windows, Linux and Android available on
 [our website](https://mullvad.net/download/) and on
-[Github](https://github.com/mullvad/mullvadvpn-app/releases/). The Android app is also available
+[GitHub](https://github.com/mullvad/mullvadvpn-app/releases/). The Android app is also available
 on [Google Play] and [F-Droid] and the iOS version on [App Store].
 
 [Google Play]: https://play.google.com/store/apps/details?id=net.mullvad.mullvadvpn
@@ -75,9 +75,9 @@ the current state of the latest code in git, not necessarily any existing releas
 | WireGuard                     |    ✓    |   ✓   |   ✓   |    ✓    |  ✓  |
 | Quantum-resistant tunnels     |    ✓    |   ✓   |   ✓   |    ✓    |  ✓  |
 | [DAITA]                       |    ✓    |   ✓   |   ✓   |    ✓    |  ✓  |
-| WireGuard multihop            |    ✓    |   ✓   |   ✓   |         |  ✓  |
+| WireGuard multihop            |    ✓    |   ✓   |   ✓   |    ✓    |  ✓  |
 | WireGuard over TCP            |    ✓    |   ✓   |   ✓   |    ✓    |  ✓  |
-| WireGuard over Shadowsocks    |    ✓    |   ✓   |   ✓   |    ✓    |     |
+| WireGuard over Shadowsocks    |    ✓    |   ✓   |   ✓   |    ✓    |  ✓  |
 | OpenVPN over Shadowsocks      |    ✓    |   ✓   |   ✓   |         |     |
 | Split tunneling               |    ✓    |   ✓   |   ✓   |    ✓    |     |
 | Custom DNS server             |    ✓    |   ✓   |   ✓   |    ✓    |  ✓  |
@@ -110,9 +110,9 @@ cd mullvadvpn-app
 git submodule update --init
 ```
 
-On Android, Linux and macOS you also want to checkout the wireguard-go submodule recursively:
+On Android, Windows, Linux and macOS you also want to checkout the wireguard-go submodule:
 ```bash
-git submodule update --init --recursive --depth=1 wireguard-go-rs
+git submodule update --init wireguard-go-rs/libwg/wireguard-go
 ```
 Further details on why this is necessary can be found in the [wireguard-go-rs crate](./wireguard-go-rs/README.md).
 
@@ -301,7 +301,6 @@ If you're using GNOME, try installing one of these GNOME Shell extensions:
       - **app.tsx** - Entry file for the renderer process
       - **routes.tsx** - Routes configurator
       - **transitions.ts** - Transition rules between views
-    - **config.json** - App color definitions and URLs to external resources
   - **tasks/** - Gulp tasks used to build app and watch for changes during development
     - **distribution.js** - Configuration for `electron-builder`
   - **test/** - Electron GUI tests
@@ -441,7 +440,7 @@ more about them in the [audits readme](./audits/README.md).
 
 # License
 
-Copyright (C) 2024  Mullvad VPN AB
+Copyright (C) 2025  Mullvad VPN AB
 
 This program is free software: you can redistribute it and/or modify it under the terms of the
 GNU General Public License as published by the Free Software Foundation, either version 3 of

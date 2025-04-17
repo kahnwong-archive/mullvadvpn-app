@@ -3,14 +3,14 @@
 //  MullvadSettings
 //
 //  Created by Mojgan on 2024-04-26.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import MullvadTypes
 
-/// Whether multihop is enabled.
-public enum MultihopState: Codable {
+/// Whether Multi-hop is enabled
+public enum MultihopState: Codable, Sendable {
     case on
     case off
 

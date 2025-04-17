@@ -3,14 +3,14 @@
 //  MullvadVPN
 //
 //  Created by Jon Petersson on 2023-05-08.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import UIKit
 
 class SelectableSettingsCell: SettingsCell {
     let tickImageView: UIImageView = {
-        let imageView = UIImageView(image: UIImage(named: "IconTick"))
+        let imageView = UIImageView(image: UIImage.tick)
         imageView.contentMode = .center
         imageView.tintColor = .white
         imageView.alpha = 0

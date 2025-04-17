@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 15/09/2020.
-//  Copyright © 2020 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadREST
@@ -262,7 +262,9 @@ final class ProblemReportViewController: UIViewController, UITextFieldDelegate {
             email: viewModel.email,
             message: viewModel.message
         ) { completion in
-            self.didSendProblemReport(viewModel: viewModel, completion: completion)
+            Task { @MainActor in
+                self.didSendProblemReport(viewModel: viewModel, completion: completion)
+            }
         }
     }
 

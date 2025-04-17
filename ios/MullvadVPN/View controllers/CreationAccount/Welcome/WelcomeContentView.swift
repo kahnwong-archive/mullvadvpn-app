@@ -3,23 +3,25 @@
 //  MullvadVPN
 //
 //  Created by Mojgan on 2023-06-27.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import UIKit
 
-protocol WelcomeContentViewDelegate: AnyObject {
+protocol WelcomeContentViewDelegate: AnyObject, Sendable {
     func didTapPurchaseButton(welcomeContentView: WelcomeContentView, button: AppButton)
-    func didTapRedeemVoucherButton(welcomeContentView: WelcomeContentView, button: AppButton)
     func didTapInfoButton(welcomeContentView: WelcomeContentView, button: UIButton)
+    func didTapCopyButton(welcomeContentView: WelcomeContentView, button: UIButton)
 }
 
-struct WelcomeViewModel {
+struct WelcomeViewModel: Sendable {
     let deviceName: String
     let accountNumber: String
 }
 
-final class WelcomeContentView: UIView {
+final class WelcomeContentView: UIView, Sendable {
+    private var revertCopyImageWorkItem: DispatchWorkItem?
+
     private let titleLabel: UILabel = {
         let label = UILabel()
         label.font = .preferredFont(forTextStyle: .largeTitle, weight: .bold)
@@ -63,6 +65,14 @@ final class WelcomeContentView: UIView {
         return label
     }()
 
+    private let copyButton: UIButton = {
+        let button = UIButton(type: .system)
+        button.setAccessibilityIdentifier(.copyButton)
+        button.tintColor = .white
+        button.setContentHuggingPriority(.defaultHigh, for: .horizontal)
+        return button
+    }()
+
     private let deviceNameLabel: UILabel = {
         let label = UILabel()
         label.adjustsFontForContentSizeCategory = true
@@ -79,7 +89,7 @@ final class WelcomeContentView: UIView {
         button.setAccessibilityIdentifier(.infoButton)
         button.tintColor = .white
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.setImage(UIImage(named: "IconInfo"), for: .normal)
+        button.setImage(UIImage.Buttons.info, for: .normal)
         button.setContentHuggingPriority(.defaultHigh, for: .horizontal)
         button.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
         return button
@@ -110,30 +120,26 @@ final class WelcomeContentView: UIView {
         let button = InAppPurchaseButton()
         button.setAccessibilityIdentifier(.purchaseButton)
         let localizedString = NSLocalizedString(
-            "BUY_CREDIT_BUTTON",
+            "ADD_TIME_BUTTON",
             tableName: "Welcome",
-            value: "Buy credit",
+            value: "Add time",
             comment: ""
         )
         button.setTitle(localizedString, for: .normal)
         return button
     }()
 
-    private let redeemVoucherButton: AppButton = {
-        let button = AppButton(style: .success)
-        button.setAccessibilityIdentifier(.redeemVoucherButton)
-        button.setTitle(NSLocalizedString(
-            "REDEEM_VOUCHER_BUTTON_TITLE",
-            tableName: "Account",
-            value: "Redeem voucher",
-            comment: ""
-        ), for: .normal)
-        return button
-    }()
-
     private let textsStackView: UIStackView = {
         let stackView = UIStackView()
         stackView.axis = .vertical
+        return stackView
+    }()
+
+    private let accountRowStackView: UIStackView = {
+        let stackView = UIStackView()
+        stackView.axis = .horizontal
+        stackView.distribution = .fill
+        stackView.spacing = UIMetrics.padding8
         return stackView
     }()
 
@@ -171,25 +177,6 @@ final class WelcomeContentView: UIView {
         }
     }
 
-    var isPurchasing = false {
-        didSet {
-            let alpha = isPurchasing ? 0.7 : 1.0
-            purchaseButton.isLoading = isPurchasing
-            purchaseButton.isEnabled = !isPurchasing
-            purchaseButton.alpha = alpha
-            redeemVoucherButton.isEnabled = !isPurchasing
-            redeemVoucherButton.alpha = alpha
-        }
-    }
-
-    var productState: ProductState = .none {
-        didSet {
-            purchaseButton.setTitle(productState.purchaseButtonTitle, for: .normal)
-            purchaseButton.isLoading = productState.isFetching
-            purchaseButton.isEnabled = productState.isReceived
-        }
-    }
-
     override init(frame: CGRect) {
         super.init(frame: frame)
 
@@ -207,12 +194,16 @@ final class WelcomeContentView: UIView {
     }
 
     private func configureUI() {
+        accountRowStackView.addArrangedSubview(accountNumberLabel)
+        accountRowStackView.addArrangedSubview(copyButton)
+        accountRowStackView.addArrangedSubview(UIView()) // To push content to the left.
+
         textsStackView.addArrangedSubview(titleLabel)
         textsStackView.setCustomSpacing(UIMetrics.padding8, after: titleLabel)
         textsStackView.addArrangedSubview(subtitleLabel)
         textsStackView.setCustomSpacing(UIMetrics.padding16, after: subtitleLabel)
-        textsStackView.addArrangedSubview(accountNumberLabel)
-        textsStackView.setCustomSpacing(UIMetrics.padding16, after: accountNumberLabel)
+        textsStackView.addArrangedSubview(accountRowStackView)
+        textsStackView.setCustomSpacing(UIMetrics.padding16, after: accountRowStackView)
 
         deviceRowStackView.addArrangedSubview(deviceNameLabel)
         deviceRowStackView.setCustomSpacing(UIMetrics.padding8, after: deviceNameLabel)
@@ -224,13 +215,12 @@ final class WelcomeContentView: UIView {
         textsStackView.addArrangedSubview(descriptionLabel)
 
         buttonsStackView.addArrangedSubview(purchaseButton)
-        #if DEBUG
-        buttonsStackView.addArrangedSubview(redeemVoucherButton)
-        #endif
 
         addSubview(textsStackView)
         addSubview(buttonsStackView)
         addConstraints()
+
+        showCheckmark(false)
     }
 
     private func addConstraints() {
@@ -244,7 +234,7 @@ final class WelcomeContentView: UIView {
     }
 
     private func addActions() {
-        [redeemVoucherButton, purchaseButton, infoButton].forEach {
+        [purchaseButton, infoButton, copyButton].forEach {
             $0.addTarget(self, action: #selector(tapped(button:)), for: .touchUpInside)
         }
     }
@@ -253,11 +243,42 @@ final class WelcomeContentView: UIView {
         switch button.accessibilityIdentifier {
         case AccessibilityIdentifier.purchaseButton.asString:
             delegate?.didTapPurchaseButton(welcomeContentView: self, button: button)
-        case AccessibilityIdentifier.redeemVoucherButton.asString:
-            delegate?.didTapRedeemVoucherButton(welcomeContentView: self, button: button)
         case AccessibilityIdentifier.infoButton.asString:
             delegate?.didTapInfoButton(welcomeContentView: self, button: button)
+        case AccessibilityIdentifier.copyButton.asString:
+            didTapCopyAccountNumber()
         default: return
         }
+    }
+
+    private func showCheckmark(_ showCheckmark: Bool) {
+        if showCheckmark {
+            let tickIcon = UIImage(named: "IconTick")
+
+            copyButton.setImage(tickIcon, for: .normal)
+            copyButton.tintColor = .successColor
+        } else {
+            let copyIcon = UIImage(named: "IconCopy")
+
+            copyButton.setImage(copyIcon, for: .normal)
+            copyButton.tintColor = .white
+        }
+    }
+
+    @objc private func didTapCopyAccountNumber() {
+        let delayedWorkItem = DispatchWorkItem { [weak self] in
+            self?.showCheckmark(false)
+        }
+
+        revertCopyImageWorkItem?.cancel()
+        revertCopyImageWorkItem = delayedWorkItem
+
+        showCheckmark(true)
+        delegate?.didTapCopyButton(welcomeContentView: self, button: copyButton)
+
+        DispatchQueue.main.asyncAfter(
+            deadline: .now() + .seconds(2),
+            execute: delayedWorkItem
+        )
     }
 }

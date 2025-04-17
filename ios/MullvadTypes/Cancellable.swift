@@ -3,7 +3,7 @@
 //  MullvadTypes
 //
 //  Created by pronebird on 15/03/2022.
-//  Copyright © 2022 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -19,7 +19,7 @@ public final class AnyCancellable: Cancellable {
     private let block: (() -> Void)?
 
     /// Create cancellation token with block handler.
-    public init(block: @escaping () -> Void) {
+    public init(block: @escaping @Sendable () -> Void) {
         self.block = block
     }
 

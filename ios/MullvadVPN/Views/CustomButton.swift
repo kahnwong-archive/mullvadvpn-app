@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 23/05/2019.
-//  Copyright © 2019 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import UIKit
@@ -24,7 +24,7 @@ extension UIControl.State {
 }
 
 /// A custom `UIButton` subclass that implements additional layouts for the image
-class CustomButton: UIButton {
+class CustomButton: UIButton, Sendable {
     var imageAlignment: NSDirectionalRectEdge = .leading {
         didSet {
             self.configuration?.imagePlacement = imageAlignment

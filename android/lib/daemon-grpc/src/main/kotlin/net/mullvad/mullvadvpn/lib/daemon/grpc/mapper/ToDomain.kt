@@ -5,6 +5,8 @@ package net.mullvad.mullvadvpn.lib.daemon.grpc.mapper
 import io.grpc.ConnectivityState
 import java.net.InetAddress
 import java.net.InetSocketAddress
+import java.time.Instant
+import java.time.ZoneId
 import java.util.UUID
 import mullvad_daemon.management_interface.ManagementInterface
 import net.mullvad.mullvadvpn.lib.daemon.grpc.GrpcConnectivityState
@@ -36,12 +38,11 @@ import net.mullvad.mullvadvpn.lib.model.DnsState
 import net.mullvad.mullvadvpn.lib.model.Endpoint
 import net.mullvad.mullvadvpn.lib.model.ErrorState
 import net.mullvad.mullvadvpn.lib.model.ErrorStateCause
-import net.mullvad.mullvadvpn.lib.model.ErrorStateCause.AuthFailed
-import net.mullvad.mullvadvpn.lib.model.ErrorStateCause.OtherAlwaysOnApp
-import net.mullvad.mullvadvpn.lib.model.ErrorStateCause.TunnelParameterError
 import net.mullvad.mullvadvpn.lib.model.FeatureIndicator
+import net.mullvad.mullvadvpn.lib.model.GenericOptions
 import net.mullvad.mullvadvpn.lib.model.GeoIpLocation
 import net.mullvad.mullvadvpn.lib.model.GeoLocationId
+import net.mullvad.mullvadvpn.lib.model.IpVersion
 import net.mullvad.mullvadvpn.lib.model.Mtu
 import net.mullvad.mullvadvpn.lib.model.ObfuscationEndpoint
 import net.mullvad.mullvadvpn.lib.model.ObfuscationMode
@@ -75,7 +76,6 @@ import net.mullvad.mullvadvpn.lib.model.WireguardConstraints
 import net.mullvad.mullvadvpn.lib.model.WireguardEndpointData
 import net.mullvad.mullvadvpn.lib.model.WireguardRelayEndpointData
 import net.mullvad.mullvadvpn.lib.model.WireguardTunnelOptions
-import org.joda.time.Instant
 
 internal fun ManagementInterface.TunnelState.toDomain(): TunnelState =
     when (stateCase!!) {
@@ -125,7 +125,7 @@ private fun ManagementInterface.TunnelState.Error.toDomain(): TunnelState.Error 
     val otherAlwaysOnAppError =
         errorState.let {
             if (it.hasOtherAlwaysOnAppError()) {
-                OtherAlwaysOnApp(it.otherAlwaysOnAppError.appName)
+                ErrorStateCause.OtherAlwaysOnApp(it.otherAlwaysOnAppError.appName)
             } else {
                 null
             }
@@ -176,16 +176,15 @@ internal fun ManagementInterface.GeoIpLocation.toDomain(): GeoIpLocation =
 internal fun ManagementInterface.TunnelEndpoint.toDomain(): TunnelEndpoint =
     TunnelEndpoint(
         endpoint =
-            with(address) {
-                val indexOfSeparator = indexOfLast { it == ':' }
-                val ipPart =
-                    address.substring(0, indexOfSeparator).filter { it !in listOf('[', ']') }
-                val portPart = address.substring(indexOfSeparator + 1)
-
+            Endpoint(address = address.toInetSocketAddress(), protocol = protocol.toDomain()),
+        entryEndpoint =
+            if (hasEntryEndpoint()) {
                 Endpoint(
-                    address = InetSocketAddress(InetAddress.getByName(ipPart), portPart.toInt()),
-                    protocol = protocol.toDomain(),
+                    address = entryEndpoint.address.toInetSocketAddress(),
+                    protocol = entryEndpoint.protocol.toDomain(),
                 )
+            } else {
+                null
             },
         quantumResistant = quantumResistant,
         obfuscation =
@@ -203,6 +202,13 @@ internal fun ManagementInterface.ObfuscationEndpoint.toDomain(): ObfuscationEndp
             Endpoint(address = InetSocketAddress(address, port), protocol = protocol.toDomain()),
         obfuscationType = obfuscationType.toDomain(),
     )
+
+private fun String.toInetSocketAddress(): InetSocketAddress {
+    val indexOfSeparator = indexOfLast { it == ':' }
+    val ipPart = substring(0, indexOfSeparator).filter { it !in listOf('[', ']') }
+    val portPart = substring(indexOfSeparator + 1)
+    return InetSocketAddress(InetAddress.getByName(ipPart), portPart.toInt())
+}
 
 internal fun ManagementInterface.ObfuscationEndpoint.ObfuscationType.toDomain(): ObfuscationType =
     when (this) {
@@ -238,7 +244,7 @@ internal fun ManagementInterface.ErrorState.toDomain(
         cause =
             when (cause!!) {
                 ManagementInterface.ErrorState.Cause.AUTH_FAILED ->
-                    AuthFailed(authFailedError.toDomain())
+                    ErrorStateCause.AuthFailed(authFailedError.toDomain())
                 ManagementInterface.ErrorState.Cause.IPV6_UNAVAILABLE ->
                     ErrorStateCause.Ipv6Unavailable
                 ManagementInterface.ErrorState.Cause.SET_FIREWALL_POLICY_ERROR ->
@@ -247,7 +253,7 @@ internal fun ManagementInterface.ErrorState.toDomain(
                 ManagementInterface.ErrorState.Cause.START_TUNNEL_ERROR ->
                     ErrorStateCause.StartTunnelError
                 ManagementInterface.ErrorState.Cause.TUNNEL_PARAMETER_ERROR ->
-                    TunnelParameterError(parameterError.toDomain())
+                    ErrorStateCause.TunnelParameterError(parameterError.toDomain())
                 ManagementInterface.ErrorState.Cause.IS_OFFLINE -> ErrorStateCause.IsOffline
                 ManagementInterface.ErrorState.Cause.SPLIT_TUNNEL_ERROR ->
                     ErrorStateCause.StartTunnelError
@@ -255,7 +261,6 @@ internal fun ManagementInterface.ErrorState.toDomain(
                 ManagementInterface.ErrorState.Cause.NEED_FULL_DISK_PERMISSIONS,
                 ManagementInterface.ErrorState.Cause.CREATE_TUNNEL_DEVICE ->
                     throw IllegalArgumentException("Unrecognized error state cause")
-
                 ManagementInterface.ErrorState.Cause.NOT_PREPARED -> ErrorStateCause.NotPrepared
                 ManagementInterface.ErrorState.Cause.OTHER_ALWAYS_ON_APP -> otherAlwaysOnApp!!
                 ManagementInterface.ErrorState.Cause.OTHER_LEGACY_ALWAYS_ON_VPN ->
@@ -297,7 +302,11 @@ internal fun ManagementInterface.ErrorState.GenerationError.toDomain(): Paramete
         ManagementInterface.ErrorState.GenerationError.NO_WIREGUARD_KEY ->
             ParameterGenerationError.NoWireguardKey
         ManagementInterface.ErrorState.GenerationError.CUSTOM_TUNNEL_HOST_RESOLUTION_ERROR ->
-            ParameterGenerationError.CustomTunnelHostResultionError
+            ParameterGenerationError.CustomTunnelHostResolutionError
+        ManagementInterface.ErrorState.GenerationError.NETWORK_IPV4_UNAVAILABLE ->
+            ParameterGenerationError.Ipv4_Unavailable
+        ManagementInterface.ErrorState.GenerationError.NETWORK_IPV6_UNAVAILABLE ->
+            ParameterGenerationError.Ipv6_Unavailable
         ManagementInterface.ErrorState.GenerationError.UNRECOGNIZED ->
             throw IllegalArgumentException("Unrecognized parameter generation error")
     }
@@ -365,7 +374,7 @@ internal fun ManagementInterface.GeographicLocationConstraint.toDomain(): GeoLoc
 }
 
 internal fun List<String>.toDomain(): Constraint<Providers> =
-    if (isEmpty()) Constraint.Any else Constraint.Only(Providers(map { ProviderId(it) }.toSet()))
+    if (isEmpty()) Constraint.Any else Constraint.Only(map { ProviderId(it) }.toSet())
 
 internal fun ManagementInterface.WireguardConstraints.toDomain(): WireguardConstraints =
     WireguardConstraints(
@@ -377,6 +386,12 @@ internal fun ManagementInterface.WireguardConstraints.toDomain(): WireguardConst
             },
         isMultihopEnabled = useMultihop,
         entryLocation = entryLocation.toDomain(),
+        ipVersion =
+            if (hasIpVersion()) {
+                Constraint.Only(ipVersion.toDomain())
+            } else {
+                Constraint.Any
+            },
     )
 
 internal fun ManagementInterface.Ownership.toDomain(): Constraint<Ownership> =
@@ -430,7 +445,11 @@ internal fun ManagementInterface.CustomList.toDomain(): CustomList =
     )
 
 internal fun ManagementInterface.TunnelOptions.toDomain(): TunnelOptions =
-    TunnelOptions(wireguard = wireguard.toDomain(), dnsOptions = dnsOptions.toDomain())
+    TunnelOptions(
+        wireguard = wireguard.toDomain(),
+        dnsOptions = dnsOptions.toDomain(),
+        genericOptions = generic.toDomain(),
+    )
 
 internal fun ManagementInterface.TunnelOptions.WireguardOptions.toDomain(): WireguardTunnelOptions =
     WireguardTunnelOptions(
@@ -574,8 +593,10 @@ internal fun ManagementInterface.Relay.toDomain(
             } else false,
     )
 
+private fun Instant.atDefaultZone() = atZone(ZoneId.systemDefault())
+
 internal fun ManagementInterface.Device.toDomain(): Device =
-    Device(DeviceId.fromString(id), name, Instant.ofEpochSecond(created.seconds).toDateTime())
+    Device(DeviceId.fromString(id), name, Instant.ofEpochSecond(created.seconds).atDefaultZone())
 
 internal fun ManagementInterface.DeviceState.toDomain(): DeviceState =
     when (state) {
@@ -591,13 +612,13 @@ internal fun ManagementInterface.DeviceState.toDomain(): DeviceState =
 internal fun ManagementInterface.AccountData.toDomain(): AccountData =
     AccountData(
         AccountId(UUID.fromString(id)),
-        expiryDate = Instant.ofEpochSecond(expiry.seconds).toDateTime(),
+        expiryDate = Instant.ofEpochSecond(expiry.seconds).atDefaultZone(),
     )
 
 internal fun ManagementInterface.VoucherSubmission.toDomain(): RedeemVoucherSuccess =
     RedeemVoucherSuccess(
         timeAdded = secondsAdded,
-        newExpiryDate = Instant.ofEpochSecond(newExpiry.seconds).toDateTime(),
+        newExpiryDate = Instant.ofEpochSecond(newExpiry.seconds).atDefaultZone(),
     )
 
 internal fun ManagementInterface.SplitTunnelSettings.toDomain(): SplitTunnelSettings =
@@ -668,6 +689,9 @@ internal fun ManagementInterface.SocksAuth.toDomain(): SocksAuth =
 internal fun ManagementInterface.FeatureIndicators.toDomain(): List<FeatureIndicator> =
     activeFeaturesList.map { it.toDomain() }.sorted()
 
+internal fun ManagementInterface.TunnelOptions.GenericOptions.toDomain(): GenericOptions =
+    GenericOptions(enableIpv6 = enableIpv6)
+
 internal fun ManagementInterface.FeatureIndicator.toDomain() =
     when (this) {
         ManagementInterface.FeatureIndicator.QUANTUM_RESISTANCE ->
@@ -684,9 +708,17 @@ internal fun ManagementInterface.FeatureIndicator.toDomain() =
         ManagementInterface.FeatureIndicator.DAITA -> FeatureIndicator.DAITA
         ManagementInterface.FeatureIndicator.SHADOWSOCKS -> FeatureIndicator.SHADOWSOCKS
         ManagementInterface.FeatureIndicator.MULTIHOP -> FeatureIndicator.MULTIHOP
+        ManagementInterface.FeatureIndicator.DAITA_MULTIHOP -> FeatureIndicator.DAITA_MULTIHOP
         ManagementInterface.FeatureIndicator.LOCKDOWN_MODE,
         ManagementInterface.FeatureIndicator.BRIDGE_MODE,
         ManagementInterface.FeatureIndicator.CUSTOM_MSS_FIX,
         ManagementInterface.FeatureIndicator.UNRECOGNIZED ->
             error("Feature not supported ${this.name}")
+    }
+
+internal fun ManagementInterface.IpVersion.toDomain() =
+    when (this) {
+        ManagementInterface.IpVersion.V4 -> IpVersion.IPV4
+        ManagementInterface.IpVersion.V6 -> IpVersion.IPV6
+        ManagementInterface.IpVersion.UNRECOGNIZED -> error("Not supported ${this.name}")
     }

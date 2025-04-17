@@ -9,10 +9,13 @@ mod summary;
 mod tests;
 mod vm;
 
+#[cfg(target_os = "macos")]
+use std::net::IpAddr;
 use std::{net::SocketAddr, path::PathBuf};
 
-use anyhow::{Context, Result};
+use anyhow::{Context, Ok, Result};
 use clap::{builder::PossibleValuesParser, Parser};
+use config::ConfigFile;
 use package::TargetInfo;
 use tests::{config::TEST_CONFIG, get_filtered_tests};
 use vm::provision;
@@ -28,29 +31,15 @@ struct Args {
 }
 
 #[derive(clap::Subcommand, Debug)]
+#[allow(clippy::large_enum_variant)]
 enum Commands {
-    /// Create or edit a VM config
-    Set {
-        /// Name of the VM config
-        vm: String,
-
-        /// VM config
-        #[clap(flatten)]
-        config: config::VmConfig,
-    },
-
-    /// Remove specified VM config
-    Remove {
-        /// Name of the VM config, run `test-manager list` to see available configs
-        vm: String,
-    },
-
-    /// List available VM configurations
-    List,
+    /// Manage configuration for tests and VMs
+    #[clap(subcommand)]
+    Config(ConfigArg),
 
     /// Spawn a runner instance without running any tests
     RunVm {
-        /// Name of the VM config, run `test-manager list` to see available configs
+        /// Name of the VM config, run `test-manager config vm list` to see configured VMs
         vm: String,
 
         /// Run VNC server on a specified port
@@ -67,7 +56,7 @@ enum Commands {
 
     /// Spawn a runner instance and run tests
     RunTests {
-        /// Name of the VM config, run `test-manager list` to see available configs
+        /// Name of the VM config, run `test-manager config vm list` to see configured VMs
         #[arg(long)]
         vm: String,
 
@@ -159,14 +148,39 @@ enum Commands {
     },
 }
 
-#[cfg(target_os = "linux")]
-impl Args {
-    fn get_vnc_port(&self) -> Option<u16> {
-        match self.cmd {
-            Commands::RunTests { vnc, .. } | Commands::RunVm { vnc, .. } => vnc,
-            _ => None,
-        }
-    }
+#[derive(clap::Subcommand, Debug)]
+#[allow(clippy::large_enum_variant)]
+enum ConfigArg {
+    /// Print the current config
+    Get,
+    /// Print the path to the current config file
+    Which,
+    /// Manage VM-specific setting
+    #[clap(subcommand)]
+    Vm(VmConfig),
+}
+
+#[derive(clap::Subcommand, Debug)]
+#[allow(clippy::large_enum_variant)]
+enum VmConfig {
+    /// Create or edit a VM config
+    Set {
+        /// Name of the VM config
+        vm: String,
+
+        /// VM config
+        #[clap(flatten)]
+        config: config::VmConfig,
+    },
+
+    /// Remove specified VM config
+    Remove {
+        /// Name of the VM config, run `test-manager config vm list` to see configured VMs
+        vm: String,
+    },
+
+    /// List available VM configurations
+    List,
 }
 
 #[tokio::main]
@@ -175,38 +189,67 @@ async fn main() -> Result<()> {
 
     let args = Args::parse();
 
-    #[cfg(target_os = "linux")]
-    container::relaunch_with_rootlesskit(args.get_vnc_port()).await;
-
     let mut config = config::ConfigFile::load_or_default()
         .await
         .context("Failed to load config")?;
     match args.cmd {
-        Commands::Set {
-            vm,
-            config: vm_config,
-        } => vm::set_config(&mut config, &vm, vm_config)
-            .await
-            .context("Failed to edit or create VM config"),
-        Commands::Remove { vm } => {
-            if config.get_vm(&vm).is_none() {
-                println!("No such configuration");
-                return Ok(());
+        Commands::Config(config_subcommand) => match config_subcommand {
+            ConfigArg::Get => {
+                println!("{:#?}", *config);
+                Ok(())
             }
-            config
-                .edit(|config| {
-                    config.vms.remove_entry(&vm);
-                })
-                .await
-                .context("Failed to remove config entry")?;
-            println!("Removed configuration \"{vm}\"");
+            ConfigArg::Which => {
+                println!(
+                    "{}",
+                    ConfigFile::get_config_path()
+                        .expect("Get config path")
+                        .display()
+                );
+                Ok(())
+            }
+            ConfigArg::Vm(vm_config) => match vm_config {
+                VmConfig::Set {
+                    vm,
+                    config: vm_config,
+                } => vm::set_config(&mut config, &vm, vm_config)
+                    .await
+                    .context("Failed to edit or create VM config"),
+                VmConfig::Remove { vm } => {
+                    if config.get_vm(&vm).is_none() {
+                        println!("No such configuration");
+                        return Ok(());
+                    }
+                    config
+                        .edit(|config| {
+                            config.vms.remove_entry(&vm);
+                        })
+                        .await
+                        .context("Failed to remove config entry")?;
+                    println!("Removed configuration \"{vm}\"");
+                    Ok(())
+                }
+                VmConfig::List => {
+                    println!("Configured VMs:");
+                    for vm in config.vms.keys() {
+                        println!("{vm}");
+                    }
+                    Ok(())
+                }
+            },
+        },
+        Commands::ListTests => {
+            println!("priority\tname");
+            for test in tests::get_test_descriptions() {
+                println!(
+                    "{priority:8}\t{name}",
+                    name = test.name,
+                    priority = test.priority.unwrap_or(0),
+                );
+            }
             Ok(())
         }
-        Commands::List => {
-            println!("Available configurations:");
-            for (vm, config) in config.vms.iter() {
-                println!("{vm}: {config:#?}");
-            }
+        Commands::FormatTestReports { reports } => {
+            summary::print_summary_table(&reports).await;
             Ok(())
         }
         Commands::RunVm {
@@ -214,6 +257,9 @@ async fn main() -> Result<()> {
             vnc,
             keep_changes,
         } => {
+            #[cfg(target_os = "linux")]
+            container::relaunch_with_rootlesskit(vnc).await;
+
             let mut config = config.clone();
             config.runtime_opts.keep_changes = keep_changes;
             config.runtime_opts.display = if vnc.is_some() {
@@ -226,17 +272,6 @@ async fn main() -> Result<()> {
 
             instance.wait().await;
 
-            Ok(())
-        }
-        Commands::ListTests => {
-            println!("priority\tname");
-            for test in tests::get_test_descriptions() {
-                println!(
-                    "{priority:8}\t{name}",
-                    name = test.name,
-                    priority = test.priority.unwrap_or(0),
-                );
-            }
             Ok(())
         }
         Commands::RunTests {
@@ -255,6 +290,9 @@ async fn main() -> Result<()> {
             test_report,
             runner_dir,
         } => {
+            #[cfg(target_os = "linux")]
+            container::relaunch_with_rootlesskit(vnc).await;
+
             let mut config = config.clone();
             config.runtime_opts.display = match (display, vnc.is_some()) {
                 (false, false) => config::Display::None,
@@ -264,7 +302,12 @@ async fn main() -> Result<()> {
             };
 
             if let Some(mullvad_host) = mullvad_host {
-                log::trace!("Setting Mullvad host using --mullvad-host flag");
+                match config.mullvad_host {
+                    Some(old_host) => {
+                        log::info!("Overriding Mullvad host from {old_host} to {mullvad_host}",)
+                    }
+                    None => log::info!("Setting Mullvad host to {mullvad_host}",),
+                };
                 config.mullvad_host = Some(mullvad_host);
             }
             let mullvad_host = config.get_host();
@@ -295,6 +338,15 @@ async fn main() -> Result<()> {
                 .await
                 .context("Failed to run provisioning for VM")?;
 
+            #[cfg(target_os = "macos")]
+            let IpAddr::V4(guest_ip) = instance.get_ip().to_owned() else {
+                panic!("Expected bridge IP to be version 4, but was version 6.")
+            };
+            let (bridge_name, bridge_ip) = vm::network::bridge(
+                #[cfg(target_os = "macos")]
+                &guest_ip,
+            )?;
+
             TEST_CONFIG.init(tests::config::TestConfig::new(
                 account,
                 artifacts_dir,
@@ -311,15 +363,20 @@ async fn main() -> Result<()> {
                     .gui_package_path
                     .map(|path| path.file_name().unwrap().to_string_lossy().into_owned()),
                 mullvad_host,
-                vm::network::bridge()?,
+                bridge_name,
+                bridge_ip,
                 test_rpc::meta::Os::from(vm_config.os_type),
                 openvpn_certificate,
             ));
-            let tests = get_filtered_tests(&test_filters)?;
+
+            let mut tests = get_filtered_tests(&test_filters)?;
+            for test in tests.iter_mut() {
+                test.location = config.test_locations.lookup(test.name).cloned();
+            }
 
             // For convenience, spawn a SOCKS5 server that is reachable for tests that need it
             let socks = socks_server::spawn(SocketAddr::new(
-                crate::vm::network::NON_TUN_GATEWAY.into(),
+                TEST_CONFIG.host_bridge_ip.into(),
                 crate::vm::network::SOCKS5_PORT,
             ))
             .await?;
@@ -349,10 +406,6 @@ async fn main() -> Result<()> {
             socks.close();
             // Propagate any error from the test run if applicable
             result?.anyhow()
-        }
-        Commands::FormatTestReports { reports } => {
-            summary::print_summary_table(&reports).await;
-            Ok(())
         }
         Commands::Update { name } => {
             let vm_config = vm::get_vm_config(&config, &name).context("Cannot get VM config")?;

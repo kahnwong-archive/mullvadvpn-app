@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 08/12/2021.
-//  Copyright © 2021 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadLogging
@@ -12,7 +12,7 @@ import MullvadTypes
 import Operations
 import UIKit
 
-final class AddressCacheTracker {
+final class AddressCacheTracker: @unchecked Sendable {
     /// Update interval.
     private static let updateInterval: Duration = .days(1)
 
@@ -84,7 +84,7 @@ final class AddressCacheTracker {
         timer = nil
     }
 
-    func updateEndpoints(completionHandler: ((Result<Bool, Error>) -> Void)? = nil) -> Cancellable {
+    func updateEndpoints(completionHandler: ((sending Result<Bool, Error>) -> Void)? = nil) -> Cancellable {
         let operation = ResultBlockOperation<Bool> { finish -> Cancellable in
             guard self.nextScheduleDate() <= Date() else {
                 finish(.success(false))
@@ -93,7 +93,6 @@ final class AddressCacheTracker {
 
             return self.apiProxy.getAddressList(retryStrategy: .default) { result in
                 self.setEndpoints(from: result)
-
                 finish(result.map { _ in true })
             }
         }

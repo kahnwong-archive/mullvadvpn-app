@@ -3,14 +3,14 @@
 //  PacketTunnelCore
 //
 //  Created by pronebird on 10/08/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import Network
 
 /// Tunnel monitor event.
-public enum TunnelMonitorEvent {
+public enum TunnelMonitorEvent: Sendable {
     /// Dispatched after receiving the first ping response
     case connectionEstablished
 
@@ -20,7 +20,7 @@ public enum TunnelMonitorEvent {
 }
 
 /// A type that can provide tunnel monitoring.
-public protocol TunnelMonitorProtocol: AnyObject {
+public protocol TunnelMonitorProtocol: AnyObject, Sendable {
     /// Event handler that starts receiving events after the call to `start(probeAddress:)`.
     var onEvent: ((TunnelMonitorEvent) -> Void)? { get set }
 
@@ -40,5 +40,5 @@ public protocol TunnelMonitorProtocol: AnyObject {
     func onSleep()
 
     /// Handle changes in network path, eg. update connection state and monitoring.
-    func handleNetworkPathUpdate(_ networkPath: NetworkPath)
+    func handleNetworkPathUpdate(_ networkPath: Network.NWPath.Status)
 }

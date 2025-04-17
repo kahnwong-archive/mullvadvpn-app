@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by Mojgan on 2023-07-13.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -26,7 +26,7 @@ enum AccountDeletionError: LocalizedError {
     }
 }
 
-class AccountDeletionInteractor {
+final class AccountDeletionInteractor: Sendable {
     private let tunnelManager: TunnelManager
     var viewModel: AccountDeletionViewModel {
         AccountDeletionViewModel(

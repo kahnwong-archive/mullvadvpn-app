@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 20/03/2019.
-//  Copyright © 2019 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -11,7 +11,7 @@ import MullvadSettings
 import Routing
 import UIKit
 
-protocol SettingsViewControllerDelegate: AnyObject {
+protocol SettingsViewControllerDelegate: AnyObject, Sendable {
     func settingsViewControllerDidFinish(_ controller: SettingsViewController)
     func settingsViewController(
         _ controller: SettingsViewController,
@@ -76,7 +76,7 @@ class SettingsViewController: UITableViewController {
     }
 }
 
-extension SettingsViewController: SettingsDataSourceDelegate {
+extension SettingsViewController: @preconcurrency SettingsDataSourceDelegate {
     func didSelectItem(item: SettingsDataSource.Item) {
         guard let route = item.navigationRoute else { return }
         delegate?.settingsViewController(self, didRequestRoutePresentation: route)
@@ -109,8 +109,8 @@ extension SettingsDataSource.Item {
         switch self {
         case .vpnSettings:
             return .vpnSettings
-        case .version:
-            return nil
+        case .changelog:
+            return .changelog
         case .problemReport:
             return .problemReport
         case .faq:

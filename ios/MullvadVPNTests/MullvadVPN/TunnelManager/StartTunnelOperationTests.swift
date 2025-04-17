@@ -3,7 +3,7 @@
 //  MullvadVPNTests
 //
 //  Created by Andrew Bulhak on 2024-02-02.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 @testable import MullvadMockData
@@ -69,7 +69,7 @@ class StartTunnelOperationTests: XCTestCase {
 
     func testSetsReconnectIfDisconnecting() {
         let interactor = makeInteractor(deviceState: loggedInDeviceState, tunnelState: .disconnecting(.nothing))
-        var tunnelStatus = TunnelStatus()
+        nonisolated(unsafe) var tunnelStatus = TunnelStatus()
         interactor.onUpdateTunnelStatus = { status in tunnelStatus = status }
         let expectation = expectation(description: "Tunnel status set to reconnect")
 

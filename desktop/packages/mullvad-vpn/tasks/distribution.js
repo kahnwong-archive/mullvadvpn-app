@@ -49,12 +49,7 @@ function newConfig() {
     files: [
       'package.json',
       'changes.txt',
-      'init.js',
       'build/',
-      '!build/src/renderer',
-      'build/src/renderer/index.html',
-      'build/src/renderer/bundle.js',
-      'build/src/renderer/preloadBundle.js',
       '!**/*.tsbuildinfo',
       '!test/',
       '!playwright.config.ts',
@@ -62,6 +57,7 @@ function newConfig() {
       '!node_modules/grpc-tools',
       '!node_modules/@types',
       '!node_modules/nseventforwarder/debug',
+      '!node_modules/windows-utils/debug',
     ],
 
     // Make sure that all files declared in "extraResources" exists and abort if they don't.
@@ -107,7 +103,6 @@ function newConfig() {
           to: '.',
         },
         { from: distAssets(path.join('binaries', '${env.TARGET_TRIPLE}', 'openvpn')), to: '.' },
-        { from: distAssets(path.join('binaries', '${env.TARGET_TRIPLE}', 'apisocks5')), to: '.' },
         { from: distAssets('uninstall_macos.sh'), to: './uninstall.sh' },
         { from: buildAssets('shell-completions/_mullvad'), to: '.' },
         { from: buildAssets('shell-completions/mullvad.fish'), to: '.' },
@@ -133,7 +128,6 @@ function newConfig() {
 
     win: {
       target: [],
-      signAndEditExecutable: false,
       artifactName: 'MullvadVPN-${version}_${arch}.${ext}',
       publisherName: 'Mullvad VPN AB',
       extraResources: [
@@ -159,10 +153,6 @@ function newConfig() {
         // TODO: OpenVPN does not have an ARM64 build yet.
         { from: distAssets('binaries/x86_64-pc-windows-msvc/openvpn.exe'), to: '.' },
         {
-          from: distAssets(path.join('binaries', '${env.TARGET_SUBDIR}', 'apisocks5.exe')),
-          to: '.',
-        },
-        {
           from: distAssets(path.join('binaries', '${env.TARGET_SUBDIR}', 'wintun/wintun.dll')),
           to: '.',
         },
@@ -178,7 +168,8 @@ function newConfig() {
           ),
           to: '.',
         },
-        { from: distAssets('maybenot_machines'), to: '.' },
+        { from: distAssets(path.join('${env.DIST_SUBDIR}', 'libwg.dll')), to: '.' },
+        { from: distAssets(path.join('${env.DIST_SUBDIR}', 'maybenot_ffi.dll')), to: '.' },
       ],
     },
 
@@ -206,7 +197,6 @@ function newConfig() {
         },
         { from: distAssets(path.join('linux', 'apparmor_mullvad')), to: '.' },
         { from: distAssets(path.join('binaries', '${env.TARGET_TRIPLE}', 'openvpn')), to: '.' },
-        { from: distAssets(path.join('binaries', '${env.TARGET_TRIPLE}', 'apisocks5')), to: '.' },
       ],
     },
 
@@ -289,7 +279,7 @@ async function packWin() {
           },
         ],
       },
-      asarUnpack: ['build/assets/images/menubar-icons/win32/lock-*.ico'],
+      asarUnpack: ['build/assets/images/menubar-icons/win32/lock-*.ico', '**/*.node'],
       beforeBuild: (options) => {
         process.env.CPP_BUILD_MODE = release ? 'Release' : 'Debug';
         process.env.CPP_BUILD_TARGET = options.arch;
@@ -300,12 +290,16 @@ async function packWin() {
             process.env.SETUP_SUBDIR = '.';
             process.env.TARGET_SUBDIR = 'x86_64-pc-windows-msvc';
             process.env.DIST_SUBDIR = '';
+
+            execFileSync('npm', ['-w', 'windows-utils', 'run', 'build-x86'], { shell: true });
             break;
           case 'arm64':
             process.env.TARGET_TRIPLE = 'aarch64-pc-windows-msvc';
             process.env.SETUP_SUBDIR = 'aarch64-pc-windows-msvc';
             process.env.TARGET_SUBDIR = 'aarch64-pc-windows-msvc';
             process.env.DIST_SUBDIR = 'aarch64-pc-windows-msvc';
+
+            execFileSync('npm', ['-w', 'windows-utils', 'run', 'build-arm'], { shell: true });
             break;
           default:
             throw new Error('Invalid or unknown target (only one may be specified)');

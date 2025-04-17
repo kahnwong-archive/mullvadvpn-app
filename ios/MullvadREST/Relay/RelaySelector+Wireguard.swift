@@ -3,7 +3,7 @@
 //  MullvadREST
 //
 //  Created by Mojgan on 2024-05-17.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadSettings
@@ -18,7 +18,10 @@ extension RelaySelector {
             filterConstraint: RelayConstraint<RelayFilter>,
             daitaEnabled: Bool
         ) throws -> [RelayWithLocation<REST.ServerRelay>] {
-            let mappedRelays = mapRelays(relays: relays.wireguard.relays, locations: relays.locations)
+            let mappedRelays = RelayWithLocation.locateRelays(
+                relays: relays.wireguard.relays,
+                locations: relays.locations
+            )
 
             return try applyConstraints(
                 relayConstraint,

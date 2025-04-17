@@ -3,7 +3,7 @@
 //  MullvadVPNTests
 //
 //  Created by Andrew Bulhak on 2024-04-29.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadMockData
@@ -36,7 +36,8 @@ final class PacketTunnelActorReducerTests: XCTestCase {
             transportLayer: .udp,
             remotePort: 12345,
             isPostQuantum: false,
-            isDaitaEnabled: false
+            isDaitaEnabled: false,
+            obfuscationMethod: .off
         )
     }
 

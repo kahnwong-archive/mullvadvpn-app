@@ -3,12 +3,12 @@
 //  MullvadTypes
 //
 //  Created by Marco Nikic on 2023-11-24.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 
-public enum TransportLayer: Codable {
+public enum TransportLayer: Codable, Sendable {
     case udp
     case tcp
 }

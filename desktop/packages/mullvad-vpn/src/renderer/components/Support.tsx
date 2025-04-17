@@ -1,12 +1,13 @@
 import { useCallback } from 'react';
 import styled from 'styled-components';
 
-import { links } from '../../config.json';
+import { urls } from '../../shared/constants';
 import { messages } from '../../shared/gettext';
 import { useAppContext } from '../context';
 import { useHistory } from '../lib/history';
 import { RoutePath } from '../lib/routes';
 import { useSelector } from '../redux/store';
+import { AppNavigationHeader } from './';
 import {
   AriaDescribed,
   AriaDescription,
@@ -18,13 +19,8 @@ import {
 import * as Cell from './cell';
 import { BackAction } from './KeyboardNavigation';
 import { Layout, SettingsContainer } from './Layout';
-import {
-  NavigationBar,
-  NavigationContainer,
-  NavigationItems,
-  NavigationScrollbars,
-  TitleBarItem,
-} from './NavigationBar';
+import { NavigationContainer } from './NavigationContainer';
+import { NavigationScrollbars } from './NavigationScrollbars';
 import SettingsHeader, { HeaderTitle } from './SettingsHeader';
 
 const StyledContent = styled.div({
@@ -42,16 +38,12 @@ export default function Support() {
       <Layout>
         <SettingsContainer>
           <NavigationContainer>
-            <NavigationBar>
-              <NavigationItems>
-                <TitleBarItem>
-                  {
-                    // TRANSLATORS: Title label in navigation bar
-                    messages.pgettext('support-view', 'Support')
-                  }
-                </TitleBarItem>
-              </NavigationItems>
-            </NavigationBar>
+            <AppNavigationHeader
+              title={
+                // TRANSLATORS: Title label in navigation bar
+                messages.pgettext('support-view', 'Support')
+              }
+            />
 
             <NavigationScrollbars>
               <SettingsHeader>
@@ -94,7 +86,7 @@ function FaqButton() {
   const isOffline = useSelector((state) => state.connection.isBlocked);
   const { openUrl } = useAppContext();
 
-  const openFaq = useCallback(() => openUrl(links.faq), [openUrl]);
+  const openFaq = useCallback(() => openUrl(urls.faq), [openUrl]);
 
   return (
     <AriaDescriptionGroup>
@@ -107,10 +99,8 @@ function FaqButton() {
             }
           </Cell.Label>
           <AriaDescription>
-            <Cell.Icon
-              height={16}
-              width={16}
-              source="icon-extLink"
+            <Cell.CellTintedIcon
+              icon="external"
               aria-label={messages.pgettext('accessibility', 'Opens externally')}
             />
           </AriaDescription>

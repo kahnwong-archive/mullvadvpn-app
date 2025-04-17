@@ -13,7 +13,7 @@ use futures::{
 };
 use http_body_util::{combinators::BoxBody, BodyExt, Empty, Full};
 use hyper::{
-    body::{Body, Bytes, Incoming},
+    body::{Body, Buf, Bytes, Incoming},
     header::{self, HeaderValue},
     Method, Uri,
 };
@@ -73,6 +73,14 @@ pub enum Error {
 
     #[error("Set account number on factory with no access token store")]
     NoAccessTokenStore,
+
+    /// Failed to obtain versions
+    #[error("Failed to obtain versions")]
+    FetchVersions(#[from] Arc<anyhow::Error>),
+
+    /// Body exceeded size limit
+    #[error("Body exceeded size limit")]
+    BodyTooLarge,
 }
 
 impl From<Infallible> for Error {
@@ -154,11 +162,14 @@ impl<T: ConnectionModeProvider + 'static> RequestService<T> {
         connection_mode_provider: T,
         dns_resolver: Arc<dyn DnsResolver>,
         #[cfg(target_os = "android")] socket_bypass_tx: Option<mpsc::Sender<SocketBypassRequest>>,
+        #[cfg(any(feature = "api-override", test))] disable_tls: bool,
     ) -> RequestServiceHandle {
         let (connector, connector_handle) = HttpsConnectorWithSni::new(
             dns_resolver,
             #[cfg(target_os = "android")]
             socket_bypass_tx.clone(),
+            #[cfg(any(feature = "api-override", test))]
+            disable_tls,
         );
 
         connector_handle.set_connection_mode(connection_mode_provider.initial());
@@ -461,7 +472,6 @@ where
         }
 
         // Parse unexpected responses and errors
-
         let response = response?;
 
         if !self.expected_status.contains(&response.status()) {
@@ -491,7 +501,7 @@ pub struct Response<B> {
     response: hyper::Response<B>,
 }
 
-impl<B: Body> Response<B>
+impl<B: Body + Unpin> Response<B>
 where
     Error: From<<B as Body>::Error>,
 {
@@ -509,6 +519,24 @@ where
 
     pub async fn deserialize<T: serde::de::DeserializeOwned>(self) -> Result<T> {
         deserialize_body_inner(self.response).await
+    }
+
+    pub async fn body(self) -> Result<Vec<u8>> {
+        Ok(BodyExt::collect(self.response).await?.to_bytes().to_vec())
+    }
+
+    pub async fn body_with_max_size(self, size_limit: usize) -> Result<Vec<u8>> {
+        let mut data: Vec<u8> = vec![];
+        let mut stream = self.response.into_data_stream();
+
+        while let Some(chunk) = stream.next().await {
+            data.extend(chunk?.chunk());
+            if data.len() > size_limit {
+                return Err(Error::BodyTooLarge);
+            }
+        }
+
+        Ok(data)
     }
 }
 

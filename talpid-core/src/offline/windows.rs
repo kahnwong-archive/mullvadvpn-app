@@ -24,8 +24,6 @@ pub struct BroadcastListener {
     _notify_tx: Arc<UnboundedSender<Connectivity>>,
 }
 
-unsafe impl Send for BroadcastListener {}
-
 impl BroadcastListener {
     pub async fn start(
         notify_tx: UnboundedSender<Connectivity>,
@@ -232,15 +230,9 @@ impl ConnectivityInner {
     /// `ipv4` and `ipv6` availability to `false`.
     fn into_connectivity(self) -> Connectivity {
         if self.suspended {
-            Connectivity::Status {
-                ipv4: false,
-                ipv6: false,
-            }
+            Connectivity::Offline
         } else {
-            Connectivity::Status {
-                ipv4: self.ipv4,
-                ipv6: self.ipv6,
-            }
+            Connectivity::new(self.ipv4, self.ipv6)
         }
     }
 

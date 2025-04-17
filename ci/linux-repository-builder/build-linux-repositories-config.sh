@@ -15,7 +15,7 @@ SUPPORTED_DEB_CODENAMES+=("noble" "jammy" "focal")
 # ... + latest non-LTS Ubuntu. We officially only support the latest non-LTS.
 # But to not cause too much disturbance just when Ubuntu is released, we keep
 # the last two codenames working in the repository.
-SUPPORTED_DEB_CODENAMES+=("oracular" "mantic")
+SUPPORTED_DEB_CODENAMES+=("plucky" "oracular")
 export SUPPORTED_DEB_CODENAMES
 
 export SUPPORTED_RPM_ARCHITECTURES=("x86_64" "aarch64")
@@ -30,3 +30,7 @@ export DEV_LINUX_REPOSITORY_PUBLIC_URL="https://repository.devmole.eu"
 export PRODUCTION_REPOSITORY_SERVER="cdn.mullvad.net"
 export STAGING_REPOSITORY_SERVER="cdn.stagemole.eu"
 export DEV_REPOSITORY_SERVER="cdn.devmole.eu"
+
+#export PRODUCTION_BUNNYCDN_PULL_ZONE_ID="PLEASE CONFIGURE ME"
+#export STAGING_BUNNYCDN_PULL_ZONE_ID="PLEASE CONFIGURE ME"
+#export BUNNYCDN_API_KEY="PLEASE CONFIGURE ME"

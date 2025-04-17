@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by Jon Petersson on 2023-09-07.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 #if targetEnvironment(simulator)
@@ -13,7 +13,7 @@ import NetworkExtension
 
 final class SimulatorTunnelProviderManager: NSObject, VPNTunnelProviderManagerProtocol {
     static let tunnelsLock = NSRecursiveLock()
-    fileprivate static var tunnels = [SimulatorTunnelInfo]()
+    nonisolated(unsafe) fileprivate static var tunnels = [SimulatorTunnelInfo]()
 
     private let lock = NSLock()
     private var tunnelInfo: SimulatorTunnelInfo

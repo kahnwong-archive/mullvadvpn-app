@@ -3,7 +3,7 @@
 //  MullvadTransport
 //
 //  Created by Mojgan on 2023-12-08.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -24,7 +24,7 @@ public final class URLSessionTransport: RESTTransport {
 
     public func sendRequest(
         _ request: URLRequest,
-        completion: @escaping (Data?, URLResponse?, Swift.Error?) -> Void
+        completion: @escaping @Sendable (Data?, URLResponse?, Swift.Error?) -> Void
     ) -> Cancellable {
         let dataTask = urlSession.dataTask(with: request, completionHandler: completion)
         dataTask.resume()

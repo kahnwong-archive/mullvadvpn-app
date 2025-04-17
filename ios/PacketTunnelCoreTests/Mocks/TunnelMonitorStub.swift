@@ -3,7 +3,7 @@
 //  PacketTunnelCoreTests
 //
 //  Created by pronebird on 05/09/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -11,7 +11,7 @@ import Network
 import PacketTunnelCore
 
 /// Tunnel monitor stub that can be configured with block handler to simulate a specific behavior.
-class TunnelMonitorStub: TunnelMonitorProtocol {
+class TunnelMonitorStub: TunnelMonitorProtocol, @unchecked Sendable {
     enum Command {
         case start, stop
     }
@@ -64,7 +64,7 @@ class TunnelMonitorStub: TunnelMonitorProtocol {
 
     func onSleep() {}
 
-    func handleNetworkPathUpdate(_ networkPath: NetworkPath) {}
+    func handleNetworkPathUpdate(_ networkPath: Network.NWPath.Status) {}
 
     func dispatch(_ event: TunnelMonitorEvent, after delay: DispatchTimeInterval = .never) {
         if case .never = delay {

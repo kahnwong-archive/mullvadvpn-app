@@ -3,12 +3,12 @@
 //  MullvadVPN
 //
 //  Created by Mojgan on 2023-06-30.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import UIKit
 
-protocol SetupAccountCompletedControllerDelegate: AnyObject {
+protocol SetupAccountCompletedControllerDelegate: AnyObject, Sendable {
     func didRequestToSeePrivacy(controller: SetupAccountCompletedController)
     func didRequestToStartTheApp(controller: SetupAccountCompletedController)
 }
@@ -32,10 +32,6 @@ class SetupAccountCompletedController: UIViewController, RootContainment {
         true
     }
 
-    var prefersNotificationBarHidden: Bool {
-        true
-    }
-
     weak var delegate: SetupAccountCompletedControllerDelegate?
 
     override func viewDidLoad() {
@@ -51,7 +47,7 @@ class SetupAccountCompletedController: UIViewController, RootContainment {
     }
 }
 
-extension SetupAccountCompletedController: SetupAccountCompletedContentViewDelegate {
+extension SetupAccountCompletedController: @preconcurrency SetupAccountCompletedContentViewDelegate {
     func didTapPrivacyButton(view: SetupAccountCompletedContentView, button: AppButton) {
         delegate?.didRequestToSeePrivacy(controller: self)
     }

@@ -54,13 +54,13 @@ import kotlinx.coroutines.launch
 import net.mullvad.mullvadvpn.R
 import net.mullvad.mullvadvpn.compose.component.NavigateBackIconButton
 import net.mullvad.mullvadvpn.compose.component.ScaffoldWithLargeTopBarAndButton
-import net.mullvad.mullvadvpn.compose.extensions.toAnnotatedString
 import net.mullvad.mullvadvpn.compose.transitions.SlideInFromRightTransition
 import net.mullvad.mullvadvpn.lib.common.util.openVpnSettings
 import net.mullvad.mullvadvpn.lib.theme.AppTheme
 import net.mullvad.mullvadvpn.lib.theme.Dimens
 import net.mullvad.mullvadvpn.lib.theme.color.AlphaInvisible
 import net.mullvad.mullvadvpn.lib.theme.color.AlphaVisible
+import net.mullvad.mullvadvpn.lib.ui.component.toAnnotatedString
 import net.mullvad.mullvadvpn.service.constant.IS_PLAY_BUILD
 import net.mullvad.mullvadvpn.util.appendHideNavOnPlayBuild
 
@@ -251,18 +251,7 @@ private fun ConstraintLayoutScope.PageIndicator(
 
 @Composable
 private fun buildTopText(@StringRes id: Int) = buildAnnotatedString {
-    withStyle(style = SpanStyle(color = MaterialTheme.colorScheme.onSurfaceVariant)) {
-        append(
-            HtmlCompat.fromHtml(stringResource(id = id), HtmlCompat.FROM_HTML_MODE_COMPACT)
-                .toAnnotatedString(
-                    boldSpanStyle =
-                        SpanStyle(
-                            fontWeight = FontWeight.ExtraBold,
-                            color = MaterialTheme.colorScheme.onSurface,
-                        )
-                )
-        )
-    }
+    append(stringResource(id = id))
 }
 
 @Composable

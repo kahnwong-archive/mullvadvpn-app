@@ -37,13 +37,20 @@ on:
         type: boolean
         required: false
       mockapi_test_repeat:
-        description: Mockapi test repeat(self hosted)
+        description: Mockapi test repeat (self hosted)
         default: '1'
         required: true
         type: string
       e2e_test_repeat:
-        description: e2e test repeat(self hosted)
+        description: e2e test repeat (self hosted)
         default: '0'
+        required: true
+        type: string
+      e2e_tests_infra_flavor:
+        description: >
+          Infra environment to run e2e tests on (prod/stagemole).
+          If set to 'stagemole' test-related artefacts will be uploaded.
+        default: 'stagemole'
         required: true
         type: string
   # Build if main is updated to ensure up-to-date caches are available
@@ -51,6 +58,10 @@ on:
     branches: [main]
 
 permissions: {}
+
+env:
+  DEFAULT_E2E_REPEAT: 0
+  SCHEDULE_E2E_REPEAT: 10
 
 jobs:
   prepare:
@@ -69,82 +80,24 @@ jobs:
         if: ${{ github.event.inputs.override_container_image == '' }}
         run: |
           echo "inner_container_image=$(cat ./building/android-container-image.txt)" >> $GITHUB_ENV
+
+      # Preparing variables this way instead of using `env.*` due to:
+      # https://github.com/orgs/community/discussions/26388
+      - name: Prepare environment variables
+        run: |
+          echo "INNER_E2E_TEST_INFRA_FLAVOR=${{ github.event.inputs.e2e_tests_infra_flavor || 'stagemole' }}" \
+          >> $GITHUB_ENV
+          echo "INNER_E2E_TEST_REPEAT=${{ github.event.inputs.e2e_test_repeat ||
+          (github.event_name == 'schedule' && env.SCHEDULE_E2E_REPEAT) ||
+          env.DEFAULT_E2E_REPEAT }}" \
+          >> $GITHUB_ENV
     outputs:
       container_image: ${{ env.inner_container_image }}
-
-  generate-debug-keystore:
-    name: Generate debug keystore
-    needs: prepare
-    runs-on: ubuntu-latest
-    steps:
-      - name: Generate keystore
-        run: >-
-          keytool -genkey
-          -keystore debug.keystore
-          -storepass android
-          -alias androiddebugkey
-          -keypass android
-          -keyalg RSA
-          -keysize 2048
-          -validity 10000
-          -dname "CN=Android Debug,O=Android,C=US"
-
-      - name: Upload keystore
-        uses: actions/upload-artifact@v4
-        with:
-          name: debug-keystore
-          path: debug.keystore
-          if-no-files-found: error
-          retention-days: 7
-
-  generate-relay-list:
-    name: Generate relay list
-    needs: prepare
-    runs-on: ubuntu-latest
-    container:
-      image: ${{ needs.prepare.outputs.container_image }}
-    steps:
-      # Fix for HOME path overridden by GH runners when building in containers, see:
-      # https://github.com/actions/runner/issues/863
-      - name: Fix HOME path
-        run: echo "HOME=/root" >> $GITHUB_ENV
-
-      - name: Get date
-        id: get-date
-        shell: bash
-        run: echo "date=$(/bin/date -u "+%Y%m%d")" >> $GITHUB_OUTPUT
-
-      - name: Cache
-        uses: actions/cache@v4
-        id: cache-relay-list
-        with:
-          path: android/app/build/extraAssets/relays.json
-          key: relay-list-${{ steps.get-date.outputs.date }}
-
-      - name: Checkout repository
-        if: steps.cache-relay-list.outputs.cache-hit != 'true'
-        uses: actions/checkout@v4
-        with:
-          submodules: true
-
-      - name: Generate
-        if: steps.cache-relay-list.outputs.cache-hit != 'true'
-        env:
-          RUSTFLAGS: --deny warnings
-        run: |
-          mkdir -p android/app/build/extraAssets
-          cargo run --bin relay_list > android/app/build/extraAssets/relays.json
-
-      - name: Upload
-        uses: actions/upload-artifact@v4
-        with:
-          name: relay-list
-          path: android/app/build/extraAssets/relays.json
-          if-no-files-found: error
-          retention-days: 7
+      E2E_TEST_INFRA_FLAVOR: ${{ env.INNER_E2E_TEST_INFRA_FLAVOR }}
+      E2E_TEST_REPEAT: ${{ env.INNER_E2E_TEST_REPEAT }}
 
   build-native:
-    name: Build native
+    name: Build native # Used by wait for jobs.
     needs: prepare
     runs-on: ubuntu-latest
     container:
@@ -152,18 +105,14 @@ jobs:
     strategy:
       matrix:
         include:
-          - arch: "x86_64"
-            abi: "x86_64"
-            target: "x86_64-linux-android"
-          - arch: "i686"
-            abi: "x86"
-            target: "i686-linux-android"
-          - arch: "aarch64"
-            abi: "arm64-v8a"
-            target: "aarch64-linux-android"
-          - arch: "armv7"
-            abi: "armeabi-v7a"
-            target: "armv7-linux-androideabi"
+          - abi: "x86_64"
+            task-variant: "X86_64"
+          - abi: "x86"
+            task-variant: "X86"
+          - abi: "arm64-v8a"
+            task-variant: "Arm64"
+          - abi: "armeabi-v7a"
+            task-variant: "Arm"
     steps:
       # Fix for HOME path overridden by GH runners when building in containers, see:
       # https://github.com/actions/runner/issues/863
@@ -178,7 +127,7 @@ jobs:
       - name: Checkout wireguard-go-rs recursively
         run: |
           git config --global --add safe.directory '*'
-          git submodule update --init --recursive --depth=1 wireguard-go-rs
+          git submodule update --init wireguard-go-rs/libwg/wireguard-go
 
       - name: Calculate native lib cache hash
         id: native-lib-cache-hash
@@ -197,27 +146,28 @@ jobs:
         env:
           cache_hash: ${{ steps.native-lib-cache-hash.outputs.native_lib_hash }}
         with:
-          path: ./android/app/build/extraJni
+          path: ./android/app/build/rustJniLibs/android
           key: android-native-libs-${{ runner.os }}-${{ matrix.abi }}-${{ env.cache_hash }}
 
       - name: Build native libraries
         if: steps.cache-native-libs.outputs.cache-hit != 'true'
-        env:
-          RUSTFLAGS: --deny warnings
-          BUILD_TYPE: debug
-        run: |
-          ARCHITECTURES="${{ matrix.abi }}"
-          UNSTRIPPED_LIB_PATH="$CARGO_TARGET_DIR/${{ matrix.target }}/$BUILD_TYPE/libmullvad_jni.so"
-          STRIPPED_LIB_PATH="./android/app/build/extraJni/${{ matrix.abi }}/libmullvad_jni.so"
-          NDK_TOOLCHAIN_STRIP_TOOL="$NDK_TOOLCHAIN_DIR/llvm-strip"
-          cargo build --target ${{ matrix.target }} --verbose --package mullvad-jni --features api-override
-          $NDK_TOOLCHAIN_STRIP_TOOL --strip-debug --strip-unneeded -o "$STRIPPED_LIB_PATH" "$UNSTRIPPED_LIB_PATH"
+        uses: burrunan/gradle-cache-action@v1
+        with:
+          job-id: jdk17
+          arguments: cargoBuild${{ matrix.task-variant }}
+          gradle-version: wrapper
+          build-root-directory: android
+          execution-only-caches: false
+          # Disable if logs are hard to follow.
+          concurrent: true
+          read-only: ${{ github.ref != 'refs/heads/main' }}
+
 
       - name: Upload native libs
         uses: actions/upload-artifact@v4
         with:
-          name: native-libs-${{ matrix.arch }}
-          path: android/app/build/extraJni
+          name: native-libs-${{ matrix.abi }}
+          path: android/app/build/rustJniLibs/android
           if-no-files-found: error
           retention-days: 7
 
@@ -266,7 +216,7 @@ jobs:
 
   build-app:
     name: Build app
-    needs: [prepare, generate-debug-keystore]
+    needs: [prepare]
     runs-on: ubuntu-latest
     container:
       image: ${{ needs.prepare.outputs.container_image }}
@@ -281,16 +231,18 @@ jobs:
         with:
           submodules: true
 
-      - uses: actions/download-artifact@v4
-        with:
-          name: debug-keystore
-          path: /root/.android
+      - name: Prepare dummy debug keystore
+        run: |
+          echo "${{ secrets.ANDROID_DUMMY_DEBUG_KEYSTORE }}" | \
+            base64 -d > /root/.android/debug.keystore
 
       - name: Compile app
         uses: burrunan/gradle-cache-action@v1
         with:
           job-id: jdk17
-          arguments: compileOssProdDebugKotlin
+          arguments: |
+            compileOssProdDebugKotlin
+            -x cargoBuild
           gradle-version: wrapper
           build-root-directory: android
           execution-only-caches: false
@@ -299,36 +251,31 @@ jobs:
           read-only: ${{ github.ref != 'refs/heads/main' }}
 
       - name: Wait for other jobs (native, relay list)
-        uses: kachick/wait-other-jobs@v2.0.3
+        uses: kachick/wait-other-jobs@v3.6.0
         with:
+          wait-seconds-before-first-polling: '0'
           wait-list: |
             [
               {
                 "workflowFile": "android-app.yml",
-                "jobName": "build-native"
-              },
-              {
-                "workflowFile": "android-app.yml",
-                "jobName": "generate-relay-list"
+                "jobMatchMode": "prefix",
+                "jobName": "Build native"
               }
             ]
 
       - uses: actions/download-artifact@v4
         with:
           pattern: native-libs-*
-          path: android/app/build/extraJni
+          path: android/app/build/rustJniLibs/android
           merge-multiple: true
-
-      - uses: actions/download-artifact@v4
-        with:
-          name: relay-list
-          path: android/app/build/extraAssets
 
       - name: Build app
         uses: burrunan/gradle-cache-action@v1
         with:
           job-id: jdk17
-          arguments: assembleOssProdDebug
+          arguments: |
+            assembleOssProdDebug
+            -x cargoBuild
           gradle-version: wrapper
           build-root-directory: android
           execution-only-caches: true
@@ -338,10 +285,15 @@ jobs:
 
       - name: Build stagemole app
         uses: burrunan/gradle-cache-action@v1
-        if: github.event.inputs.run_firebase_tests == 'true'
+        if: >
+          (needs.prepare.outputs.E2E_TEST_REPEAT != '0' &&
+          needs.prepare.outputs.E2E_TEST_INFRA_FLAVOR == 'stagemole') ||
+          github.event.inputs.run_firebase_tests == 'true'
         with:
           job-id: jdk17
-          arguments: assemblePlayStagemoleDebug
+          arguments: |
+            assemblePlayStagemoleDebug
+            -x cargoBuild
           gradle-version: wrapper
           build-root-directory: android
           execution-only-caches: true
@@ -350,7 +302,6 @@ jobs:
           read-only: ${{ github.ref != 'refs/heads/main' }}
 
       - name: Upload apks
-        # Using v3 due to v4 being very slow for this artifact.
         uses: actions/upload-artifact@v4
         with:
           name: apks
@@ -360,7 +311,7 @@ jobs:
 
   build-instrumented-tests:
     name: Build instrumented test packages
-    needs: [prepare, generate-debug-keystore]
+    needs: [prepare]
     runs-on: ubuntu-latest
     container:
       image: ${{ needs.prepare.outputs.container_image }}
@@ -387,16 +338,20 @@ jobs:
         with:
           submodules: true
 
-      - uses: actions/download-artifact@v4
-        with:
-          name: debug-keystore
-          path: /root/.android
+      - name: Prepare dummy debug keystore
+        run: |
+          echo "${{ secrets.ANDROID_DUMMY_DEBUG_KEYSTORE }}" | \
+            base64 -d > /root/.android/debug.keystore
 
       - name: Assemble instrumented test apk
         uses: burrunan/gradle-cache-action@v1
         with:
           job-id: jdk17
-          arguments: ${{ matrix.assemble-command }}
+          arguments: |
+            ${{ matrix.assemble-command }}
+            -x cargoBuild
+            -x mergeOssProdDebugJniLibFolders
+            -x mergePlayStagemoleDebugJniLibFolders
           gradle-version: wrapper
           build-root-directory: android
           execution-only-caches: false
@@ -405,7 +360,6 @@ jobs:
           read-only: ${{ github.ref != 'refs/heads/main' }}
 
       - name: Upload apks
-        # Using v3 due to v4 being very slow for this artifact.
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.test-type }}-instrumentation-apks
@@ -426,7 +380,7 @@ jobs:
             test-repeat: 1
           - test-type: mockapi
             path: android/test/mockapi/build/outputs/apk
-            test-repeat: ${{ github.event_name == 'schedule' && 10 || github.event.inputs.mockapi_test_repeat || 1 }}
+            test-repeat: ${{ github.event_name == 'schedule' && 100 || github.event.inputs.mockapi_test_repeat || 1 }}
     steps:
       - name: Prepare report dir
         if: ${{ matrix.test-repeat != 0 }}
@@ -441,14 +395,12 @@ jobs:
         if: ${{ matrix.test-repeat != 0 }}
         uses: actions/checkout@v4
 
-      # Using v3 due to v4 being very slow for this artifact.
       - uses: actions/download-artifact@v4
         if: ${{ matrix.test-repeat != 0 }}
         with:
           name: apks
           path: android/app/build/outputs/apk
 
-      # Using v3 due to v4 being very slow for this artifact.
       - uses: actions/download-artifact@v4
         if: ${{ matrix.test-repeat != 0 }}
         with:
@@ -483,19 +435,21 @@ jobs:
 
   instrumented-e2e-tests:
     name: Run instrumented e2e tests
-    # Temporary workaround for targeting the runner android-runner-v1
-    runs-on: [self-hosted, android-device, android-emulator]
-    if: >
-      github.event_name == 'schedule' ||
-      (github.event.inputs.e2e_test_repeat != '0' && github.event_name != 'pull_request')
-    needs: [build-app, build-instrumented-tests]
-    strategy:
-      matrix:
-        include:
-          - test-repeat: ${{ github.event.inputs.e2e_test_repeat || 1 }}
+    runs-on: [self-hosted, android-device]
+    needs: [prepare, build-app, build-instrumented-tests]
+    if: needs.prepare.outputs.E2E_TEST_REPEAT != '0'
     steps:
+      - name: Resolve unique runner test account secret name
+        if: needs.prepare.outputs.E2E_TEST_INFRA_FLAVOR == 'prod'
+        run: |
+          echo "RUNNER_SECRET_NAME=ANDROID_PROD_TEST_ACCOUNT_$(echo $RUNNER_NAME | tr '[:lower:]-' '[:upper:]_')" \
+          >> $GITHUB_ENV
+
+      - name: Resolve runner test account
+        if: needs.prepare.outputs.E2E_TEST_INFRA_FLAVOR == 'prod'
+        run: echo "RESOLVED_TEST_ACCOUNT=${{ secrets[env.RUNNER_SECRET_NAME] }}" >> $GITHUB_ENV
+
       - name: Prepare report dir
-        if: ${{ matrix.test-repeat != 0 }}
         id: prepare-report-dir
         env:
           INNER_REPORT_DIR: /tmp/${{ github.run_id }}-${{ github.run_attempt }}
@@ -504,43 +458,47 @@ jobs:
           echo "report_dir=$INNER_REPORT_DIR" >> $GITHUB_OUTPUT
 
       - name: Checkout repository
-        if: ${{ matrix.test-repeat != 0 }}
         uses: actions/checkout@v4
 
-      # Using v3 due to v4 being very slow for this artifact.
       - uses: actions/download-artifact@v4
-        if: ${{ matrix.test-repeat != 0 }}
         with:
           name: apks
           path: android/app/build/outputs/apk
 
-      # Using v3 due to v4 being very slow for this artifact.
       - uses: actions/download-artifact@v4
-        if: ${{ matrix.test-repeat != 0 }}
         with:
           name: e2e-instrumentation-apks
           path: android/test/e2e/build/outputs/apk
 
       - name: Calculate timeout
         id: calculate-timeout
-        run: echo "timeout=$(( ${{ matrix.test-repeat }} * 10 ))" >> $GITHUB_OUTPUT
+        run: echo "timeout=$(( ${{ needs.prepare.outputs.E2E_TEST_REPEAT }} * 15 ))" >> $GITHUB_OUTPUT
         shell: bash
 
       - name: Run instrumented test script
-        if: ${{ matrix.test-repeat != 0 }}
         timeout-minutes: ${{ fromJSON(steps.calculate-timeout.outputs.timeout) }}
         shell: bash -ieo pipefail {0}
         env:
           AUTO_FETCH_TEST_HELPER_APKS: true
           TEST_TYPE: e2e
-          BILLING_FLAVOR: oss
-          INFRA_FLAVOR: prod
-          VALID_TEST_ACCOUNT_NUMBER: ${{ secrets.ANDROID_PROD_TEST_ACCOUNT }}
+          BILLING_FLAVOR: ${{ needs.prepare.outputs.E2E_TEST_INFRA_FLAVOR == 'prod' && 'oss' || 'play' }}
+          INFRA_FLAVOR: "${{ needs.prepare.outputs.E2E_TEST_INFRA_FLAVOR }}"
+          PARTNER_AUTH: |-
+            ${{ needs.prepare.outputs.E2E_TEST_INFRA_FLAVOR == 'stagemole' && secrets.STAGEMOLE_PARTNER_AUTH || '' }}
+          VALID_TEST_ACCOUNT_NUMBER: ${{ env.RESOLVED_TEST_ACCOUNT }}
           INVALID_TEST_ACCOUNT_NUMBER: '0000000000000000'
           ENABLE_HIGHLY_RATE_LIMITED_TESTS: ${{ github.event_name == 'schedule' && 'true' || 'false' }}
           ENABLE_ACCESS_TO_LOCAL_API_TESTS: true
           REPORT_DIR: ${{ steps.prepare-report-dir.outputs.report_dir }}
-        run: ./android/scripts/run-instrumented-tests-repeat.sh ${{ matrix.test-repeat }}
+        run: ./android/scripts/run-instrumented-tests-repeat.sh ${{ needs.prepare.outputs.E2E_TEST_REPEAT }}
+
+      - name: Upload e2e instrumentation report
+        uses: actions/upload-artifact@v4
+        if: >
+          always() && needs.prepare.outputs.E2E_TEST_INFRA_FLAVOR == 'stagemole'
+        with:
+          name: e2e-instrumentation-report
+          path: ${{ steps.prepare-report-dir.outputs.report_dir }}
 
   firebase-tests:
     name: Run firebase tests
@@ -570,13 +528,11 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Using v3 due to v4 being very slow for this artifact.
       - uses: actions/download-artifact@v4
         with:
           name: apks
           path: android/app/build/outputs/apk
 
-      # Using v3 due to v4 being very slow for this artifact.
       - uses: actions/download-artifact@v4
         with:
           name: ${{ matrix.test-type }}-instrumentation-apks

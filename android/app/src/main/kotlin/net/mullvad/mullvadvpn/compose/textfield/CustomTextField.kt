@@ -1,6 +1,5 @@
 package net.mullvad.mullvadvpn.compose.textfield
 
-import android.text.TextUtils
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -10,6 +9,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
@@ -23,11 +23,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.core.text.isDigitsOnly
 import net.mullvad.mullvadvpn.constant.EMPTY_STRING
 import net.mullvad.mullvadvpn.constant.NEWLINE_STRING
 import net.mullvad.mullvadvpn.lib.theme.Dimens
@@ -48,6 +50,7 @@ fun CustomTextField(
     visualTransformation: VisualTransformation = VisualTransformation.None,
     supportingText: @Composable (() -> Unit)? = null,
     colors: TextFieldColors = mullvadDarkTextFieldColors(),
+    textStyle: TextStyle = LocalTextStyle.current,
     capitalization: KeyboardCapitalization = KeyboardCapitalization.None,
     keyboardOptions: KeyboardOptions =
         KeyboardOptions(
@@ -84,8 +87,7 @@ fun CustomTextField(
 
             if (stringChangedSinceLastInvocation) {
                 val isValidInput =
-                    if (isDigitsOnlyAllowed) TextUtils.isDigitsOnly(newTextFieldValueState.text)
-                    else true
+                    if (isDigitsOnlyAllowed) newTextFieldValueState.text.isDigitsOnly() else true
                 if (newTextFieldValueState.text.length <= maxCharLength && isValidInput) {
                     // Remove any newline chars added by enter key clicks
                     onValueChanged(
@@ -96,11 +98,12 @@ fun CustomTextField(
         },
         enabled = isEnabled,
         singleLine = true,
-        placeholder = placeholderText?.let { { Text(text = it) } },
+        placeholder = placeholderText?.let { { Text(text = it, style = textStyle) } },
         keyboardOptions = keyboardOptions,
         keyboardActions = KeyboardActions(onDone = { onSubmit(value) }),
         visualTransformation = visualTransformation,
         colors = colors,
+        textStyle = textStyle,
         isError = !isValidValue,
         modifier = modifier.clip(MaterialTheme.shapes.small).fillMaxWidth(),
         supportingText = supportingText,

@@ -3,7 +3,7 @@
 //  PacketTunnelCore
 //
 //  Created by pronebird on 09/02/2022.
-//  Copyright © 2022 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -122,10 +122,9 @@ public final class TunnelMonitor: TunnelMonitorProtocol {
         stopConnectivityCheckTimer()
     }
 
-    public func handleNetworkPathUpdate(_ networkPath: NetworkPath) {
+    public func handleNetworkPathUpdate(_ networkPath: Network.NWPath.Status) {
         nslock.withLock {
-            let pathStatus = networkPath.status
-            let isReachable = pathStatus == .satisfiable || pathStatus == .satisfied
+            let isReachable = networkPath == .satisfied || networkPath == .requiresConnection
 
             switch state.connectionState {
             case .pendingStart:

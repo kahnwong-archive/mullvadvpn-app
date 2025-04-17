@@ -3,13 +3,13 @@
 //  MullvadREST
 //
 //  Created by Jon Petersson on 2024-02-05.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadSettings
 import MullvadTypes
 
-public class IPOverrideWrapper: RelayCacheProtocol {
+public final class IPOverrideWrapper: RelayCacheProtocol {
     private let relayCache: RelayCacheProtocol
     private let ipOverrideRepository: any IPOverrideRepositoryProtocol
 

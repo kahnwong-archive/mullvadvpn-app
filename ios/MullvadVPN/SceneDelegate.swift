@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 20/05/2022.
-//  Copyright © 2022 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadLogging
@@ -13,7 +13,7 @@ import MullvadTypes
 import Operations
 import UIKit
 
-class SceneDelegate: UIResponder, UIWindowSceneDelegate, SettingsMigrationUIHandler {
+class SceneDelegate: UIResponder, UIWindowSceneDelegate, @preconcurrency SettingsMigrationUIHandler {
     private let logger = Logger(label: "SceneDelegate")
 
     var window: UIWindow?
@@ -78,10 +78,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate, SettingsMigrationUIHand
                     hostname: ApplicationConfiguration.hostName
                 )
             ),
-            appPreferences: AppPreferences(),
+            appPreferences: appDelegate.appPreferences,
             accessMethodRepository: accessMethodRepository,
             transportProvider: appDelegate.configuredTransportProvider,
-            ipOverrideRepository: appDelegate.ipOverrideRepository
+            ipOverrideRepository: appDelegate.ipOverrideRepository,
+            relaySelectorWrapper: appDelegate.relaySelector
         )
 
         appCoordinator?.onShowSettings = { [weak self] in

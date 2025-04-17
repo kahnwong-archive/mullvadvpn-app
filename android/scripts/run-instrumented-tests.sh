@@ -10,7 +10,7 @@ AUTO_FETCH_TEST_HELPER_APKS=${AUTO_FETCH_TEST_HELPER_APKS:-"false"}
 APK_BASE_DIR=${APK_BASE_DIR:-"$SCRIPT_DIR/.."}
 LOG_SUCCESS_REGEX="OK \([1-9][0-9]* tests\)"
 
-ORCHESTRATOR_URL=https://dl.google.com/android/maven2/androidx/test/orchestrator/1.5.0/orchestrator-1.5.0.apk
+ORCHESTRATOR_URL=https://dl.google.com/android/maven2/androidx/test/orchestrator/1.5.1/orchestrator-1.5.1.apk
 TEST_SERVICES_URL=https://dl.google.com/android/maven2/androidx/test/services/test-services/1.5.0/test-services-1.5.0.apk
 
 PARTNER_AUTH="${PARTNER_AUTH:-}"
@@ -156,12 +156,12 @@ INSTRUMENTATION_LOG_FILE_PATH="$REPORT_DIR/instrumentation-log.txt"
 LOGCAT_FILE_PATH="$REPORT_DIR/logcat.txt"
 LOCAL_SCREENSHOT_PATH="$REPORT_DIR/screenshots"
 DEVICE_SCREENSHOT_PATH="/sdcard/Pictures/mullvad-$TEST_TYPE"
+LOCAL_TEST_ATTACHMENTS_PATH="$REPORT_DIR/test-attachments"
 DEVICE_TEST_ATTACHMENTS_PATH="/sdcard/Download/test-attachments"
 
 echo ""
 echo "### Ensure clean report structure ###"
 rm -rf "${REPORT_DIR:?}/*"
-adb logcat --clear
 adb shell rm -rf "$DEVICE_SCREENSHOT_PATH"
 adb shell rm -rf "$DEVICE_TEST_ATTACHMENTS_PATH"
 echo ""
@@ -208,6 +208,11 @@ if [[ "$USE_ORCHESTRATOR" == "true" ]]; then
 fi
 echo ""
 
+echo "### Start logging ###"
+adb logcat --clear
+adb logcat > "$LOGCAT_FILE_PATH" &
+running_pid=$!
+
 echo "### Run instrumented test command ###"
 if [[ "$USE_ORCHESTRATOR" == "true" ]]; then
     INSTRUMENTATION_COMMAND="\
@@ -227,6 +232,9 @@ fi
 adb shell "$GRADLE_ENVIRONMENT_VARIABLES $INSTRUMENTATION_COMMAND" | tee "$INSTRUMENTATION_LOG_FILE_PATH"
 echo ""
 
+echo "### Stop logging ###"
+kill $running_pid
+
 echo "### Ensure that packages are uninstalled ###"
 adb uninstall "$PACKAGE_NAME" || echo "App package not installed"
 adb uninstall "$TEST_PACKAGE_NAME" || echo "Test package not installed"
@@ -241,7 +249,7 @@ else
     echo "One or more tests failed, see logs for more details."
     echo "Collecting report..."
     adb pull "$DEVICE_SCREENSHOT_PATH" "$LOCAL_SCREENSHOT_PATH" || echo "No screenshots"
-    adb logcat -d > "$LOGCAT_FILE_PATH"
+    adb pull "$DEVICE_TEST_ATTACHMENTS_PATH" "$LOCAL_TEST_ATTACHMENTS_PATH" || echo "No test attachments"
     exit 1
 fi
 

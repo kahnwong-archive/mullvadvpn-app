@@ -1,12 +1,14 @@
 import { useCallback, useEffect } from 'react';
 
-import { links } from '../../config.json';
 import { formatDate, hasExpired } from '../../shared/account-expiry';
+import { urls } from '../../shared/constants';
 import { messages } from '../../shared/gettext';
 import { useAppContext } from '../context';
+import { Flex, Icon } from '../lib/components';
 import { useHistory } from '../lib/history';
 import { useEffectEvent } from '../lib/utility-hooks';
 import { useSelector } from '../redux/store';
+import { AppNavigationHeader } from './';
 import AccountNumberLabel from './AccountNumberLabel';
 import {
   AccountContainer,
@@ -16,25 +18,23 @@ import {
   AccountRows,
   AccountRowValue,
   DeviceRowValue,
-  StyledDeviceNameRow,
 } from './AccountStyles';
 import * as AppButton from './AppButton';
 import { AriaDescribed, AriaDescription, AriaDescriptionGroup } from './AriaGroup';
 import DeviceInfoButton from './DeviceInfoButton';
 import { BackAction } from './KeyboardNavigation';
 import { Footer, Layout, SettingsContainer } from './Layout';
-import { NavigationBar, NavigationItems, TitleBarItem } from './NavigationBar';
 import { RedeemVoucherButton } from './RedeemVoucher';
 import SettingsHeader, { HeaderTitle } from './SettingsHeader';
 
 export default function Account() {
   const history = useHistory();
   const isOffline = useSelector((state) => state.connection.isBlocked);
-  const { updateAccountData, openLinkWithAuth, logout } = useAppContext();
+  const { updateAccountData, openUrlWithAuth, logout } = useAppContext();
 
   const onBuyMore = useCallback(async () => {
-    await openLinkWithAuth(links.purchase);
-  }, [openLinkWithAuth]);
+    await openUrlWithAuth(urls.purchase);
+  }, [openUrlWithAuth]);
 
   const onMount = useEffectEvent(() => updateAccountData());
   useEffect(() => onMount(), []);
@@ -49,16 +49,12 @@ export default function Account() {
     <BackAction action={history.pop}>
       <Layout>
         <SettingsContainer>
-          <NavigationBar>
-            <NavigationItems>
-              <TitleBarItem>
-                {
-                  // TRANSLATORS: Title label in navigation bar
-                  messages.pgettext('account-view', 'Account')
-                }
-              </TitleBarItem>
-            </NavigationItems>
-          </NavigationBar>
+          <AppNavigationHeader
+            title={
+              // TRANSLATORS: Title label in navigation bar
+              messages.pgettext('account-view', 'Account')
+            }
+          />
 
           <AccountContainer>
             <SettingsHeader>
@@ -94,10 +90,8 @@ export default function Account() {
                       <AppButton.GreenButton>
                         <AppButton.Label>{messages.gettext('Buy more credit')}</AppButton.Label>
                         <AriaDescription>
-                          <AppButton.Icon
-                            source="icon-extLink"
-                            height={16}
-                            width={16}
+                          <Icon
+                            icon="external"
                             aria-label={messages.pgettext('accessibility', 'Opens externally')}
                           />
                         </AriaDescription>
@@ -123,10 +117,10 @@ export default function Account() {
 function DeviceNameRow() {
   const deviceName = useSelector((state) => state.account.deviceName);
   return (
-    <StyledDeviceNameRow>
+    <Flex $gap="small" $alignItems="center">
       <DeviceRowValue>{deviceName}</DeviceRowValue>
       <DeviceInfoButton />
-    </StyledDeviceNameRow>
+    </Flex>
   );
 }
 

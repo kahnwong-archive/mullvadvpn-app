@@ -3,13 +3,13 @@
 //  MullvadRustRuntime
 //
 //  Created by Emils on 24/09/2024.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import MullvadRustRuntimeProxy
 
-enum EncryptedDnsProxyError: Error {
+public enum EncryptedDnsProxyError: Error {
     case start(err: Int32)
 }
 

@@ -12,9 +12,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Check
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,7 +27,7 @@ import net.mullvad.mullvadvpn.compose.component.SpacedColumn
 import net.mullvad.mullvadvpn.lib.model.Port
 import net.mullvad.mullvadvpn.lib.theme.AppTheme
 import net.mullvad.mullvadvpn.lib.theme.Dimens
-import net.mullvad.mullvadvpn.lib.theme.color.AlphaInvisible
+import net.mullvad.mullvadvpn.lib.theme.color.AlphaDisabled
 import net.mullvad.mullvadvpn.lib.theme.color.AlphaVisible
 import net.mullvad.mullvadvpn.lib.theme.color.onSelected
 import net.mullvad.mullvadvpn.lib.theme.color.selected
@@ -63,21 +60,23 @@ fun CustomPortCell(
     title: String,
     isSelected: Boolean,
     port: Port?,
+    modifier: Modifier = Modifier,
     mainTestTag: String = "",
     numberTestTag: String = "",
+    isEnabled: Boolean = true,
     onMainCellClicked: () -> Unit,
     onPortCellClicked: () -> Unit,
 ) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.Start,
-        modifier = Modifier.height(Dimens.cellHeight).fillMaxWidth(),
+        modifier = modifier.height(Dimens.cellHeight).fillMaxWidth(),
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.Start,
             modifier =
-                Modifier.clickable { onMainCellClicked() }
+                Modifier.clickable(enabled = isEnabled) { onMainCellClicked() }
                     .height(Dimens.cellHeight)
                     .weight(1f)
                     .background(
@@ -90,13 +89,10 @@ fun CustomPortCell(
                     .padding(start = Dimens.cellStartPadding)
                     .testTag(mainTestTag),
         ) {
-            Icon(
-                imageVector = Icons.Default.Check,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSelected,
-                modifier =
-                    Modifier.padding(end = Dimens.selectableCellTextMargin)
-                        .alpha(if (isSelected) AlphaVisible else AlphaInvisible),
+            SelectableIcon(
+                isSelected = isSelected,
+                iconContentDescription = null,
+                isEnabled = isEnabled,
             )
             BaseCellTitle(
                 title = title,
@@ -104,16 +100,17 @@ fun CustomPortCell(
                 textAlign = TextAlign.Start,
                 textColor =
                     if (isSelected) {
-                        MaterialTheme.colorScheme.onSelected
-                    } else {
-                        MaterialTheme.colorScheme.onSurface
-                    },
+                            MaterialTheme.colorScheme.onSelected
+                        } else {
+                            MaterialTheme.colorScheme.onSurface
+                        }
+                        .copy(alpha = if (isEnabled) AlphaVisible else AlphaDisabled),
             )
         }
         Spacer(modifier = Modifier.width(Dimens.verticalSpacer))
         Box(
             modifier =
-                Modifier.clickable { onPortCellClicked() }
+                Modifier.clickable(enabled = isEnabled) { onPortCellClicked() }
                     .height(Dimens.cellHeight)
                     .wrapContentWidth()
                     .defaultMinSize(minWidth = Dimens.customPortBoxMinWidth)
@@ -122,7 +119,15 @@ fun CustomPortCell(
         ) {
             Text(
                 text = port?.value?.toString() ?: stringResource(id = R.string.port),
-                color = MaterialTheme.colorScheme.onPrimary,
+                color =
+                    MaterialTheme.colorScheme.onPrimary.copy(
+                        alpha =
+                            if (isEnabled) {
+                                AlphaVisible
+                            } else {
+                                AlphaDisabled
+                            }
+                    ),
                 modifier = Modifier.align(Alignment.Center),
             )
         }

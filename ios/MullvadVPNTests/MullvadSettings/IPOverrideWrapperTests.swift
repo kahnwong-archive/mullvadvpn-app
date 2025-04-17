@@ -3,7 +3,7 @@
 //  MullvadVPNTests
 //
 //  Created by Jon Petersson on 2024-02-05.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 @testable import MullvadREST
@@ -77,7 +77,7 @@ extension IPOverrideWrapperTests {
             hostname: "",
             active: true,
             owned: true,
-            location: "",
+            location: "xx-yyy",
             provider: "",
             weight: 0,
             ipv4AddrIn: .any,
@@ -94,7 +94,7 @@ extension IPOverrideWrapperTests {
             hostname: "",
             active: true,
             owned: true,
-            location: "",
+            location: "xx-yyy",
             provider: "",
             ipv4AddrIn: .any,
             weight: 0,

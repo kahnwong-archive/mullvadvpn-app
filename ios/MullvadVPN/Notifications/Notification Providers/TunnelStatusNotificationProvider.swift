@@ -3,13 +3,13 @@
 //  TunnelStatusNotificationProvider
 //
 //  Created by pronebird on 20/08/2021.
-//  Copyright © 2021 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import PacketTunnelCore
 
-final class TunnelStatusNotificationProvider: NotificationProvider, InAppNotificationProvider {
+final class TunnelStatusNotificationProvider: NotificationProvider, InAppNotificationProvider, @unchecked Sendable {
     private var isWaitingForConnectivity = false
     private var noNetwork = false
     private var packetTunnelError: BlockedStateReason?
@@ -18,6 +18,10 @@ final class TunnelStatusNotificationProvider: NotificationProvider, InAppNotific
 
     override var identifier: NotificationProviderIdentifier {
         .tunnelStatusNotificationProvider
+    }
+
+    override var priority: NotificationPriority {
+        .critical
     }
 
     var notificationDescriptor: InAppNotificationDescriptor? {

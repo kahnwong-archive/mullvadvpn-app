@@ -3,13 +3,13 @@
 //  MullvadTypes
 //
 //  Created by pronebird on 24/05/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
-import WireGuardKitTypes
+@preconcurrency import WireGuardKitTypes
 
-public struct Account: Codable, Equatable {
+public struct Account: Codable, Equatable, Sendable {
     public let id: String
     public let expiry: Date
     public let maxDevices: Int
@@ -23,7 +23,7 @@ public struct Account: Codable, Equatable {
     }
 }
 
-public struct Device: Codable, Equatable {
+public struct Device: Codable, Equatable, Sendable {
     public let id: String
     public let name: String
     public let pubkey: PublicKey
@@ -53,5 +53,19 @@ public struct Device: Codable, Equatable {
         self.created = created
         self.ipv4Address = ipv4Address
         self.ipv6Address = ipv6Address
+    }
+}
+
+public struct ProblemReportRequest: Codable, Sendable {
+    public let address: String
+    public let message: String
+    public let log: String
+    public let metadata: [String: String]
+
+    public init(address: String, message: String, log: String, metadata: [String: String]) {
+        self.address = address
+        self.message = message
+        self.log = log
+        self.metadata = metadata
     }
 }

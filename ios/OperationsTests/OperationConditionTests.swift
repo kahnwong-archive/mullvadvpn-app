@@ -3,13 +3,14 @@
 //  MullvadVPNTests
 //
 //  Created by pronebird on 02/06/2022.
-//  Copyright © 2022 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 @testable import MullvadMockData
 import Operations
 import XCTest
 
+@MainActor
 class OperationConditionTests: XCTestCase {
     func testTrueCondition() {
         let expectConditionEvaluation = expectation(description: "Expect condition evaluation")

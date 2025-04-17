@@ -3,7 +3,7 @@
 //  PacketTunnel
 //
 //  Created by Marco Nikic on 2024-02-16.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -11,7 +11,6 @@ import MullvadTypes
 import NetworkExtension
 import WireGuardKitTypes
 
-// swiftlint:disable function_parameter_count
 public protocol EphemeralPeerNegotiating {
     func startNegotiation(
         devicePublicKey: PublicKey,
@@ -70,5 +69,3 @@ public class EphemeralPeerNegotiator: EphemeralPeerNegotiating {
         drop_ephemeral_peer_exchange_token(cancelToken)
     }
 }
-
-// swiftlint:enable function_parameter_count

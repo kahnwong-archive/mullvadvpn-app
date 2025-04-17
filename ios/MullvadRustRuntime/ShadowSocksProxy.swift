@@ -3,7 +3,7 @@
 //  MullvadREST
 //
 //  Created by Emils on 19/04/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -11,7 +11,7 @@ import MullvadRustRuntimeProxy
 import Network
 
 /// A Swift wrapper around a Rust implementation of Shadowsocks proxy instance
-public class ShadowsocksProxy {
+public class ShadowsocksProxy: @unchecked Sendable {
     private var proxyConfig: ProxyHandle
     private let forwardAddress: IPAddress
     private let forwardPort: UInt16

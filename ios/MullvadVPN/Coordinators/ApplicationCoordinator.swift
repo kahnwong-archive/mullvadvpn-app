@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 13/01/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Combine
@@ -16,14 +16,15 @@ import UIKit
 /**
  Application coordinator managing split view and two navigation contexts.
  */
-final class ApplicationCoordinator: Coordinator, Presenting, RootContainerViewControllerDelegate,
-    UISplitViewControllerDelegate, ApplicationRouterDelegate, NotificationManagerDelegate {
+final class ApplicationCoordinator: Coordinator, Presenting, @preconcurrency RootContainerViewControllerDelegate,
+    UISplitViewControllerDelegate, @preconcurrency ApplicationRouterDelegate,
+    @preconcurrency NotificationManagerDelegate {
     typealias RouteType = AppRoute
 
     /**
      Application router.
      */
-    private(set) var router: ApplicationRouter<AppRoute>!
+    nonisolated(unsafe) private(set) var router: ApplicationRouter<AppRoute>!
 
     /**
      Navigation container.
@@ -53,6 +54,7 @@ final class ApplicationCoordinator: Coordinator, Presenting, RootContainerViewCo
     private var accessMethodRepository: AccessMethodRepositoryProtocol
     private let configuredTransportProvider: ProxyConfigurationTransportProvider
     private let ipOverrideRepository: IPOverrideRepository
+    private let relaySelectorWrapper: RelaySelectorWrapper
 
     private var outOfTimeTimer: Timer?
 
@@ -71,7 +73,8 @@ final class ApplicationCoordinator: Coordinator, Presenting, RootContainerViewCo
         appPreferences: AppPreferencesDataSource,
         accessMethodRepository: AccessMethodRepositoryProtocol,
         transportProvider: ProxyConfigurationTransportProvider,
-        ipOverrideRepository: IPOverrideRepository
+        ipOverrideRepository: IPOverrideRepository,
+        relaySelectorWrapper: RelaySelectorWrapper
 
     ) {
         self.tunnelManager = tunnelManager
@@ -85,6 +88,7 @@ final class ApplicationCoordinator: Coordinator, Presenting, RootContainerViewCo
         self.accessMethodRepository = accessMethodRepository
         self.configuredTransportProvider = transportProvider
         self.ipOverrideRepository = ipOverrideRepository
+        self.relaySelectorWrapper = relaySelectorWrapper
 
         super.init()
 
@@ -109,7 +113,7 @@ final class ApplicationCoordinator: Coordinator, Presenting, RootContainerViewCo
         _ router: ApplicationRouter<RouteType>,
         presentWithContext context: RoutePresentationContext<RouteType>,
         animated: Bool,
-        completion: @escaping (Coordinator) -> Void
+        completion: @escaping @Sendable (Coordinator) -> Void
     ) {
         switch context.route {
         case .account:
@@ -117,6 +121,9 @@ final class ApplicationCoordinator: Coordinator, Presenting, RootContainerViewCo
 
         case let .settings(subRoute):
             presentSettings(route: subRoute, animated: animated, completion: completion)
+
+        case .daita:
+            presentDAITA(animated: animated, completion: completion)
 
         case .selectLocation:
             presentSelectLocation(animated: animated, completion: completion)
@@ -150,7 +157,7 @@ final class ApplicationCoordinator: Coordinator, Presenting, RootContainerViewCo
     func applicationRouter(
         _ router: ApplicationRouter<RouteType>,
         dismissWithContext context: RouteDismissalContext<RouteType>,
-        completion: @escaping () -> Void
+        completion: @escaping @Sendable () -> Void
     ) {
         let dismissedRoute = context.dismissedRoutes.first!
 
@@ -230,7 +237,7 @@ final class ApplicationCoordinator: Coordinator, Presenting, RootContainerViewCo
     func applicationRouter(
         _ router: ApplicationRouter<RouteType>,
         handleSubNavigationWithContext context: RouteSubnavigationContext<RouteType>,
-        completion: @escaping () -> Void
+        completion: @escaping @Sendable @MainActor () -> Void
     ) {
         switch context.route {
         case let .settings(subRoute):
@@ -292,11 +299,6 @@ final class ApplicationCoordinator: Coordinator, Presenting, RootContainerViewCo
             }
         }
 
-        // Change log can be presented simultaneously with other routes.
-        if !appPreferences.hasSeenLastChanges {
-            routes.append(.changelog)
-        }
-
         return routes
     }
 
@@ -331,14 +333,17 @@ final class ApplicationCoordinator: Coordinator, Presenting, RootContainerViewCo
     }
 
     private func presentChangeLog(animated: Bool, completion: @escaping (Coordinator) -> Void) {
-        let coordinator = ChangeLogCoordinator(interactor: ChangeLogInteractor())
+        let coordinator = ChangeLogCoordinator(
+            route: .changelog,
+            navigationController: CustomNavigationController(),
+            viewModel: ChangeLogViewModel(changeLogReader: ChangeLogReader())
+        )
 
         coordinator.didFinish = { [weak self] _ in
-            self?.appPreferences.markChangeLogSeen()
-            self?.router.dismiss(.changelog)
+            self?.router.dismiss(.changelog, animated: animated)
         }
 
-        coordinator.start()
+        coordinator.start(animated: false)
 
         presentChild(coordinator, animated: animated) {
             completion(coordinator)
@@ -385,9 +390,11 @@ final class ApplicationCoordinator: Coordinator, Presenting, RootContainerViewCo
         coordinator.didFinishPayment = { [weak self] _ in
             guard let self = self else { return }
 
-            if shouldDismissOutOfTime() {
-                router.dismiss(.outOfTime, animated: true)
-                continueFlow(animated: true)
+            Task { @MainActor in
+                if shouldDismissOutOfTime() {
+                    router.dismiss(.outOfTime, animated: true)
+                    continueFlow(animated: true)
+                }
             }
         }
 
@@ -398,6 +405,8 @@ final class ApplicationCoordinator: Coordinator, Presenting, RootContainerViewCo
     }
 
     private func presentWelcome(animated: Bool, completion: @escaping (Coordinator) -> Void) {
+        appPreferences.isShownOnboarding = true
+
         let coordinator = WelcomeCoordinator(
             navigationController: navigationContainer,
             storePaymentManager: storePaymentManager,
@@ -406,7 +415,6 @@ final class ApplicationCoordinator: Coordinator, Presenting, RootContainerViewCo
         )
         coordinator.didFinish = { [weak self] in
             guard let self else { return }
-            appPreferences.isShownOnboarding = true
             router.dismiss(.welcome, animated: false)
             continueFlow(animated: false)
         }
@@ -486,7 +494,8 @@ final class ApplicationCoordinator: Coordinator, Presenting, RootContainerViewCo
     private func makeTunnelCoordinator() -> TunnelCoordinator {
         let tunnelCoordinator = TunnelCoordinator(
             tunnelManager: tunnelManager,
-            outgoingConnectionService: outgoingConnectionService
+            outgoingConnectionService: outgoingConnectionService,
+            ipOverrideRepository: ipOverrideRepository
         )
 
         tunnelCoordinator.showSelectLocationPicker = { [weak self] in
@@ -504,7 +513,7 @@ final class ApplicationCoordinator: Coordinator, Presenting, RootContainerViewCo
         let locationCoordinator = LocationCoordinator(
             navigationController: navigationController,
             tunnelManager: tunnelManager,
-            relayCacheTracker: relayCacheTracker,
+            relaySelectorWrapper: relaySelectorWrapper,
             customListRepository: CustomListRepository()
         )
 
@@ -519,14 +528,15 @@ final class ApplicationCoordinator: Coordinator, Presenting, RootContainerViewCo
 
     private func presentAccount(animated: Bool, completion: @escaping (Coordinator) -> Void) {
         let accountInteractor = AccountInteractor(
-            storePaymentManager: storePaymentManager,
             tunnelManager: tunnelManager,
-            accountsProxy: accountsProxy
+            accountsProxy: accountsProxy,
+            apiProxy: apiProxy
         )
 
         let coordinator = AccountCoordinator(
             navigationController: CustomNavigationController(),
-            interactor: accountInteractor
+            interactor: accountInteractor,
+            storePaymentManager: storePaymentManager
         )
 
         coordinator.didFinish = { [weak self] _, reason in
@@ -548,10 +558,9 @@ final class ApplicationCoordinator: Coordinator, Presenting, RootContainerViewCo
     private func presentSettings(
         route: SettingsNavigationRoute?,
         animated: Bool,
-        completion: @escaping (Coordinator) -> Void
+        completion: @escaping @Sendable (Coordinator) -> Void
     ) {
         let interactorFactory = SettingsInteractorFactory(
-            storePaymentManager: storePaymentManager,
             tunnelManager: tunnelManager,
             apiProxy: apiProxy,
             relayCacheTracker: relayCacheTracker,
@@ -572,7 +581,9 @@ final class ApplicationCoordinator: Coordinator, Presenting, RootContainerViewCo
         )
 
         coordinator.didFinish = { [weak self] _ in
-            self?.router.dismissAll(.settings, animated: true)
+            Task { @MainActor in
+                self?.router.dismissAll(.settings, animated: true)
+            }
         }
 
         coordinator.willNavigate = { [weak self] _, _, to in
@@ -587,6 +598,25 @@ final class ApplicationCoordinator: Coordinator, Presenting, RootContainerViewCo
             coordinator,
             animated: animated
         ) {
+            completion(coordinator)
+        }
+    }
+
+    private func presentDAITA(animated: Bool, completion: @escaping @Sendable (Coordinator) -> Void) {
+        let viewModel = DAITATunnelSettingsViewModel(tunnelManager: tunnelManager)
+        let coordinator = DAITASettingsCoordinator(
+            navigationController: CustomNavigationController(),
+            route: .daita,
+            viewModel: viewModel
+        )
+
+        coordinator.didFinish = { [weak self] _ in
+            self?.router.dismiss(.daita, animated: true)
+        }
+
+        coordinator.start(animated: animated)
+
+        presentChild(coordinator, animated: animated) {
             completion(coordinator)
         }
     }
@@ -661,7 +691,9 @@ final class ApplicationCoordinator: Coordinator, Presenting, RootContainerViewCo
         guard !accountData.isExpired else { return }
 
         let timer = Timer(fire: accountData.expiry, interval: 0, repeats: false, block: { [weak self] _ in
-            self?.router.present(.outOfTime, animated: true)
+            Task { @MainActor in
+                self?.router.present(.outOfTime, animated: true)
+            }
         })
 
         RunLoop.main.add(timer, forMode: .common)
@@ -790,6 +822,8 @@ final class ApplicationCoordinator: Coordinator, Presenting, RootContainerViewCo
         case .accountExpiryInAppNotification:
             isPresentingAccountExpiryBanner = false
             updateDeviceInfo(deviceState: tunnelManager.deviceState)
+        case .latestChangesInAppNotificationProvider:
+            router.present(.changelog)
         default: return
         }
     }
@@ -805,17 +839,4 @@ extension DeviceState {
     var splitViewMode: UISplitViewController.DisplayMode {
         isLoggedIn ? UISplitViewController.DisplayMode.oneBesideSecondary : .secondaryOnly
     }
-}
-
-fileprivate extension AppPreferencesDataSource {
-    var hasSeenLastChanges: Bool {
-        !ChangeLogInteractor().hasNewChanges ||
-            (lastSeenChangeLogVersion == Bundle.main.shortVersion)
-    }
-
-    mutating func markChangeLogSeen() {
-        lastSeenChangeLogVersion = Bundle.main.shortVersion
-    }
-
-    // swiftlint:disable:next file_length
-}
+} // swiftlint:disable:this file_length

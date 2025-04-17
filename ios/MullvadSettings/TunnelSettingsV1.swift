@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 19/06/2019.
-//  Copyright © 2019 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -22,7 +22,7 @@ public struct TunnelSettingsV1: Codable, Equatable, TunnelSettings {
 }
 
 /// A struct that holds a tun interface configuration.
-public struct InterfaceSettings: Codable, Equatable {
+public struct InterfaceSettings: Codable, Equatable, @unchecked Sendable {
     public var privateKey: PrivateKeyWithMetadata
     public var nextPrivateKey: PrivateKeyWithMetadata?
 

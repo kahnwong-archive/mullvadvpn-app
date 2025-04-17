@@ -63,7 +63,6 @@ dependencies {
     implementation(projects.lib.model)
     implementation(projects.lib.talpid)
 
-    implementation(libs.jodatime)
     implementation(libs.kermit)
     implementation(libs.kotlin.stdlib)
     implementation(libs.kotlinx.coroutines)
@@ -71,6 +70,7 @@ dependencies {
 
     implementation(libs.grpc.okhttp)
     implementation(libs.grpc.android)
+    implementation(libs.grpc.stub)
     implementation(libs.grpc.kotlin.stub)
     implementation(libs.grpc.protobuf.lite)
     implementation(libs.protobuf.kotlin.lite)

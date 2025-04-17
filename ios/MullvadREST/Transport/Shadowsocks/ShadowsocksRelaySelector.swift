@@ -3,14 +3,14 @@
 //  MullvadREST
 //
 //  Created by Mojgan on 2024-05-23.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import MullvadSettings
 import MullvadTypes
 
-public protocol ShadowsocksRelaySelectorProtocol {
+public protocol ShadowsocksRelaySelectorProtocol: Sendable {
     func selectRelay(with settings: LatestTunnelSettings) throws -> REST.BridgeRelay?
 
     func getBridges() throws -> REST.ServerShadowsocks?

@@ -3,14 +3,14 @@
 //  MullvadTransport
 //
 //  Created by Marco Nikic on 2023-06-05.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import MullvadTypes
 import Network
 
-public struct ShadowsocksConfiguration: Codable, Equatable {
+public struct ShadowsocksConfiguration: Codable, Equatable, Sendable {
     public let address: AnyIPAddress
     public let port: UInt16
     public let password: String

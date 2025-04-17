@@ -3,20 +3,20 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 10/03/2020.
-//  Copyright © 2020 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadLogging
 import MullvadREST
 import MullvadTypes
 import Operations
-import StoreKit
+@preconcurrency import StoreKit
 import UIKit
 
 /// Manager responsible for handling AppStore payments and passing StoreKit receipts to the backend.
 ///
 /// - Warning: only interact with this object on the main queue.
-final class StorePaymentManager: NSObject, SKPaymentTransactionObserver {
+final class StorePaymentManager: NSObject, SKPaymentTransactionObserver, @unchecked Sendable {
     private enum OperationCategory {
         static let sendStoreReceipt = "StorePaymentManager.sendStoreReceipt"
         static let productsRequest = "StorePaymentManager.productsRequest"
@@ -114,7 +114,7 @@ final class StorePaymentManager: NSObject, SKPaymentTransactionObserver {
     /// - Returns: the request cancellation token
     func requestProducts(
         with productIdentifiers: Set<StoreSubscription>,
-        completionHandler: @escaping (Result<SKProductsResponse, Error>) -> Void
+        completionHandler: @escaping @Sendable (Result<SKProductsResponse, Error>) -> Void
     ) -> Cancellable {
         let productIdentifiers = productIdentifiers.productIdentifiersSet
         let operation = ProductsRequestOperation(
@@ -172,7 +172,7 @@ final class StorePaymentManager: NSObject, SKPaymentTransactionObserver {
     /// - Returns: the request cancellation token.
     func restorePurchases(
         for accountNumber: String,
-        completionHandler: @escaping (Result<REST.CreateApplePaymentResponse, Error>) -> Void
+        completionHandler: @escaping @Sendable (Result<REST.CreateApplePaymentResponse, Error>) -> Void
     ) -> Cancellable {
         logger.debug("Restore purchases.")
 
@@ -222,13 +222,10 @@ final class StorePaymentManager: NSObject, SKPaymentTransactionObserver {
     ///   - completionHandler: completion handler invoked on main queue. The completion block Receives `nil` upon success, otherwise an error.
     private func validateAccount(
         accountNumber: String,
-        completionHandler: @escaping (StorePaymentManagerError?) -> Void
+        completionHandler: @escaping @Sendable (StorePaymentManagerError?) -> Void
     ) {
         let accountOperation = ResultBlockOperation<Account>(dispatchQueue: .main) { finish in
-            self.accountsProxy.getAccountData(accountNumber: accountNumber).execute(
-                retryStrategy: .default,
-                completionHandler: finish
-            )
+            self.accountsProxy.getAccountData(accountNumber: accountNumber, retryStrategy: .default, completion: finish)
         }
 
         accountOperation.addObserver(BackgroundObserver(
@@ -255,7 +252,7 @@ final class StorePaymentManager: NSObject, SKPaymentTransactionObserver {
     private func sendStoreReceipt(
         accountNumber: String,
         forceRefresh: Bool,
-        completionHandler: @escaping (Result<REST.CreateApplePaymentResponse, Error>) -> Void
+        completionHandler: @escaping @Sendable (Result<REST.CreateApplePaymentResponse, Error>) -> Void
     ) -> Cancellable {
         let operation = SendStoreReceiptOperation(
             apiProxy: apiProxy,

@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 08/11/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Combine
@@ -81,7 +81,7 @@ class AddAccessMethodCoordinator: Coordinator, Presentable, Presenting {
     }
 }
 
-extension AddAccessMethodCoordinator: MethodSettingsViewControllerDelegate {
+extension AddAccessMethodCoordinator: @preconcurrency MethodSettingsViewControllerDelegate {
     func accessMethodDidSave(_ accessMethod: PersistentAccessMethod) {
         dismiss(animated: true)
     }

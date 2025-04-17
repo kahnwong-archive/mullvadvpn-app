@@ -3,7 +3,7 @@
 //  MullvadVPNScreenshots
 //
 //  Created by Jon Petersson on 2024-05-28.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import XCTest
@@ -50,7 +50,7 @@ class ScreenshotTests: LoggedInWithTimeUITestCase {
             .tapLocationCell(withName: "Sweden")
 
         TunnelControlPage(app)
-            .waitForSecureConnectionLabel()
+            .waitForConnectedLabel()
 
         snapshot("QuantumConnectionSecured")
     }

@@ -1,15 +1,14 @@
 use clap::Parser;
-use std::{path::PathBuf, process, str::FromStr, sync::LazyLock, time::Duration};
-
-use mullvad_api::{proxy::ApiConnectionMode, DEVICE_NOT_FOUND};
+use mullvad_api::{proxy::ApiConnectionMode, ApiEndpoint, DEVICE_NOT_FOUND};
 use mullvad_management_interface::MullvadProxyClient;
-use mullvad_types::version::ParsedAppVersion;
+use mullvad_version::Version;
+use std::{path::PathBuf, process, str::FromStr, sync::LazyLock, time::Duration};
 use talpid_core::firewall::{self, Firewall};
 use talpid_future::retry::{retry_future, ConstantInterval};
 use talpid_types::ErrorExt;
 
-static APP_VERSION: LazyLock<ParsedAppVersion> =
-    LazyLock::new(|| ParsedAppVersion::from_str(mullvad_version::VERSION).unwrap());
+static APP_VERSION: LazyLock<Version> =
+    LazyLock::new(|| Version::from_str(mullvad_version::VERSION).unwrap());
 
 const DEVICE_REMOVAL_STRATEGY: ConstantInterval = ConstantInterval::new(Duration::ZERO, Some(5));
 
@@ -114,9 +113,9 @@ async fn main() {
 
 fn is_older_version(old_version: &str) -> Result<ExitStatus, Error> {
     let parsed_version =
-        ParsedAppVersion::from_str(old_version).map_err(|_| Error::ParseVersionStringError)?;
+        Version::from_str(old_version).map_err(|_| Error::ParseVersionStringError)?;
 
-    Ok(if parsed_version < *APP_VERSION {
+    Ok(if *APP_VERSION > parsed_version {
         ExitStatus::Ok
     } else {
         ExitStatus::VersionNotOlder
@@ -152,9 +151,10 @@ async fn remove_device() -> Result<(), Error> {
         .await
         .map_err(Error::ReadDeviceCacheError)?;
     if let Some(device) = state.into_device() {
-        let api_runtime = mullvad_api::Runtime::with_cache(&cache_path, false)
-            .await
-            .map_err(Error::RpcInitializationError)?;
+        let api_runtime =
+            mullvad_api::Runtime::with_cache(&ApiEndpoint::from_env_vars(), &cache_path, false)
+                .await
+                .map_err(Error::RpcInitializationError)?;
 
         let connection_mode = ApiConnectionMode::try_from_cache(&cache_path).await;
         let proxy = mullvad_api::DevicesProxy::new(

@@ -3,19 +3,19 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 24/05/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import MullvadSettings
 import MullvadTypes
-import WireGuardKitTypes
+@preconcurrency import WireGuardKitTypes
 
 /**
  Implements manipulations related to marking the beginning and the completion of key rotation, private key creation and other tasks relevant to handling the state of
  key rotation.
  */
-struct WgKeyRotation {
+struct WgKeyRotation: Sendable {
     /// Private key rotation interval counted from the time when the key was successfully pushed
     /// to the backend.
     public static let rotationInterval: Duration = .days(30)

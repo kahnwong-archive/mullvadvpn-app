@@ -1,4 +1,7 @@
 #![cfg(target_os = "ios")]
+#![allow(clippy::undocumented_unsafe_blocks)]
+
+mod api_client;
 mod encrypted_dns_proxy;
 mod ephemeral_peer_proxy;
 mod shadowsocks_proxy;
@@ -10,7 +13,7 @@ pub struct ProxyHandle {
     pub port: u16,
 }
 
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub static CONFIG_SERVICE_PORT: u16 = talpid_tunnel_config_client::CONFIG_SERVICE_PORT;
 
 mod ios {

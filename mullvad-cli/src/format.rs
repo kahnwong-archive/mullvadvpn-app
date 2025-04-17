@@ -12,13 +12,13 @@ use talpid_types::{
 
 #[macro_export]
 macro_rules! print_option {
-    ($value:expr $(,)?) => {{
+    ($value:expr_2021 $(,)?) => {{
         println!("{:<4}{:<24}{}", "", "", $value,)
     }};
-    ($option:literal, $value:expr $(,)?) => {{
+    ($option:literal, $value:expr_2021 $(,)?) => {{
         println!("{:<4}{:<24}{}", "", concat!($option, ":"), $value,)
     }};
-    ($option:expr, $value:expr $(,)?) => {{
+    ($option:expr_2021, $value:expr_2021 $(,)?) => {{
         println!("{:<4}{:<24}{}", "", format!("{}:", $option), $value,)
     }};
 }
@@ -194,7 +194,7 @@ fn print_connection_info(
     for (name, value) in current_info
         .into_iter()
         // Hack that puts important items first, e.g. "Relay"
-        .sorted_by_key(|(name, _)| name.len())
+        .sorted_by_key(|(name, _)| ( name.len(), name.to_owned() ))
     {
         let previous_value = previous_info.get(name).and_then(|i| i.clone());
         match (value, previous_value) {

@@ -3,7 +3,7 @@
 //  MullvadREST
 //
 //  Created by Jon Petersson on 2024-06-14.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -90,11 +90,6 @@ struct OneToMany: MultihopDecisionFlow {
                 exitCandidates: exitCandidates,
                 daitaAutomaticRouting: daitaAutomaticRouting
             )
-        }
-
-        guard !daitaAutomaticRouting else {
-            return try ManyToOne(next: next, relayPicker: relayPicker)
-                .pick(entryCandidates: entryCandidates, exitCandidates: exitCandidates, daitaAutomaticRouting: true)
         }
 
         let entryMatch = try multihopPicker.findBestMatch(from: entryCandidates, useObfuscatedPortIfAvailable: true)

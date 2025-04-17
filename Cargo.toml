@@ -3,87 +3,61 @@ authors = ["Mullvad VPN"]
 repository = "https://github.com/mullvad/mullvadvpn-app/"
 license = "GPL-3.0"
 edition = "2021"
-rust-version = "1.80.0"
+# Must be less than or equal to `channel` in `rust-toolchain.toml`
+rust-version = "1.83.0"
 
 [workspace]
 resolver = "2"
+exclude = [ "ci/ios/test-router/raas" ]
 members = [
-    "android/translations-converter",
-    "desktop/packages/nseventforwarder",
-    "mullvad-api",
-    "mullvad-cli",
-    "mullvad-daemon",
-    "mullvad-exclude",
-    "mullvad-fs",
-    "mullvad-ios",
-    "mullvad-jni",
-    "mullvad-management-interface",
-    "mullvad-nsis",
-    "mullvad-encrypted-dns-proxy",
-    "mullvad-paths",
-    "mullvad-problem-report",
-    "mullvad-relay-selector",
-    "mullvad-setup",
-    "mullvad-types",
-    "mullvad-types/intersection-derive",
-    "mullvad-version",
-    "talpid-core",
-    "talpid-dbus",
-    "talpid-future",
-    "talpid-macos",
-    "talpid-net",
-    "talpid-openvpn",
-    "talpid-openvpn-plugin",
-    "talpid-platform-metadata",
-    "talpid-routing",
-    "talpid-time",
-    "talpid-tunnel",
-    "talpid-tunnel-config-client",
-    "talpid-windows",
-    "talpid-wireguard",
-    "tunnel-obfuscation",
-    "wireguard-go-rs",
-    "windows-installer",
+  "android/translations-converter",
+  "desktop/packages/nseventforwarder",
+  "desktop/packages/windows-utils",
+  "mullvad-api",
+  "mullvad-cli",
+  "mullvad-daemon",
+  "mullvad-encrypted-dns-proxy",
+  "mullvad-exclude",
+  "mullvad-fs",
+  "mullvad-ios",
+  "mullvad-jni",
+  "mullvad-leak-checker",
+  "mullvad-management-interface",
+  "mullvad-masque-proxy",
+  "mullvad-nsis",
+  "mullvad-paths",
+  "mullvad-problem-report",
+  "mullvad-relay-selector",
+  "mullvad-setup",
+  "mullvad-types",
+  "mullvad-types/intersection-derive",
+  "mullvad-update",
+  "mullvad-update/mullvad-release",
+  "mullvad-version",
+  "talpid-core",
+  "talpid-dbus",
+  "talpid-future",
+  "talpid-macos",
+  "talpid-net",
+  "talpid-openvpn",
+  "talpid-openvpn-plugin",
+  "talpid-platform-metadata",
+  "talpid-routing",
+  "talpid-time",
+  "talpid-tunnel",
+  "talpid-tunnel-config-client",
+  "talpid-windows",
+  "talpid-wireguard",
+  "tunnel-obfuscation",
+  "wireguard-go-rs",
+  "windows-installer",
+  "installer-downloader",
 ]
-# The default members may exclude packages that cannot be built for all targets, or that do not always
-# need to be built
-default-members = [
-    "android/translations-converter",
-    "desktop/packages/nseventforwarder",
-    "mullvad-api",
-    "mullvad-cli",
-    "mullvad-daemon",
-    "mullvad-exclude",
-    "mullvad-fs",
-    "mullvad-ios",
-    "mullvad-jni",
-    "mullvad-management-interface",
-    "mullvad-nsis",
-    "mullvad-encrypted-dns-proxy",
-    "mullvad-paths",
-    "mullvad-problem-report",
-    "mullvad-relay-selector",
-    "mullvad-setup",
-    "mullvad-types",
-    "mullvad-types/intersection-derive",
-    "mullvad-version",
-    "talpid-core",
-    "talpid-dbus",
-    "talpid-future",
-    "talpid-macos",
-    "talpid-net",
-    "talpid-openvpn",
-    "talpid-openvpn-plugin",
-    "talpid-platform-metadata",
-    "talpid-routing",
-    "talpid-time",
-    "talpid-tunnel",
-    "talpid-tunnel-config-client",
-    "talpid-windows",
-    "talpid-wireguard",
-    "tunnel-obfuscation",
-    "wireguard-go-rs",
-]
+# Default members dictate what is built when running `cargo build` in the root directory.
+# This is set to a minimal set of packages to speed up the build process and avoid building
+# crates which might not compile without additional input, such as the `windows-installer` crate.
+# To build or test everything, add `--workspace` to your cargo commands.
+default-members = ["mullvad-cli", "mullvad-daemon", "mullvad-version", "mullvad-problem-report"]
 
 # Keep all lints in sync with `test/Cargo.toml`
 [workspace.lints.rust]
@@ -105,25 +79,35 @@ single_use_lifetimes = "warn"
 
 [workspace.lints.clippy]
 unused_async = "deny"
+undocumented_unsafe_blocks = "warn"
+implicit_clone = "warn"
 
 [workspace.dependencies]
-hickory-proto = "0.24.2"
-hickory-resolver = "0.24.2"
-hickory-server = { version = "0.24.2", features = ["resolver"] }
-tokio = { version = "1.42" }
+hickory-proto = "0.24.3"
+hickory-resolver = "0.24.3"
+hickory-server = { version = "0.24.3", features = ["resolver"] }
+tokio = { version = "1.44" }
 parity-tokio-ipc = "0.9"
 futures = "0.3.15"
+
 # Tonic and related crates
 tonic = "0.12.3"
 tonic-build = { version = "0.10.0", default-features = false }
 tower = { version = "0.5.1", features = ["util"] }
 prost = "0.13.3"
 prost-types = "0.13.3"
-hyper-util = {version = "0.1.8", features = ["client", "client-legacy", "http2", "http1"]}
+hyper-util = { version = "0.1.8", features = [
+  "client",
+  "client-legacy",
+  "http2",
+  "http1",
+] }
 
-env_logger = "0.10.0"
-thiserror = "1.0.57"
+env_logger = "0.11.7"
+thiserror = "2.0"
+anyhow = "1.0"
 log = "0.4"
+fern = { version = "0.6", default-features = false }
 
 shadowsocks = "1.20.3"
 shadowsocks-service = "1.20.3"
@@ -136,10 +120,16 @@ once_cell = "1.16"
 serde = "1.0.204"
 serde_json = "1.0.122"
 
+pnet_packet = "0.35.0"
 ipnetwork = "0.20"
+tun = { version = "0.5.5", features = ["async"] }
+socket2 = "0.5.7"
+
+vec1 = "1.12"
 
 # Test dependencies
 proptest = "1.4"
+insta = { version = "1.42", features = ["yaml"] }
 
 [profile.release]
 opt-level = "s"

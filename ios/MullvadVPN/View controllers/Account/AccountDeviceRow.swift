@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by Mojgan on 2023-08-28.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import UIKit
@@ -41,9 +41,12 @@ class AccountDeviceRow: UIView {
 
     private let infoButton: UIButton = {
         let button = IncreasedHitButton(type: .system)
+        button.isExclusiveTouch = true
         button.setAccessibilityIdentifier(.infoButton)
         button.tintColor = .white
-        button.setImage(UIImage(named: "IconInfo"), for: .normal)
+        button.setBackgroundImage(UIImage.Buttons.info, for: .normal)
+        button.heightAnchor.constraint(equalToConstant: UIMetrics.Button.accountInfoSize).isActive = true
+        button.widthAnchor.constraint(equalTo: button.heightAnchor, multiplier: 1).isActive = true
         return button
     }()
 

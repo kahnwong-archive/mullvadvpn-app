@@ -3,7 +3,7 @@
 //  MullvadREST
 //
 //  Created by Mojgan on 2023-12-08.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -34,7 +34,7 @@ struct Transformer<Inner: IteratorProtocol>: IteratorProtocol {
     private var inner: Inner
     private let transformer: (Inner.Element?) -> Inner.Element?
 
-    init(inner: Inner, transform: @escaping (Inner.Element?) -> Inner.Element?) {
+    init(inner: Inner, transform: @escaping @Sendable (Inner.Element?) -> Inner.Element?) {
         self.inner = inner
         self.transformer = transform
     }

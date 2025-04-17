@@ -16,14 +16,14 @@ import {
 } from '../../shared/notifications';
 import { useAppContext } from '../context';
 import useActions from '../lib/actionsHook';
-import { Link } from '../lib/components';
-import { Colors } from '../lib/foundations';
 import { transitions, useHistory } from '../lib/history';
-import { formatHtml } from '../lib/html-formatter';
 import {
   NewDeviceNotificationProvider,
   NewVersionNotificationProvider,
+  NoOpenVpnServerAvailableNotificationProvider,
+  OpenVpnSupportEndingNotificationProvider,
 } from '../lib/notifications';
+import { useTunnelProtocol } from '../lib/relay-settings-hooks';
 import { RoutePath } from '../lib/routes';
 import accountActions from '../redux/account/actions';
 import { IReduxState, useSelector } from '../redux/store';
@@ -36,22 +36,26 @@ import {
   NotificationContent,
   NotificationIndicator,
   NotificationOpenLinkAction,
-  NotificationSubtitle,
   NotificationTitle,
   NotificationTroubleshootDialogAction,
 } from './NotificationBanner';
+import { NotificationSubtitle } from './NotificationSubtitle';
 
 interface IProps {
   className?: string;
 }
 
 export default function NotificationArea(props: IProps) {
-  const { showFullDiskAccessSettings, reconnectTunnel } = useAppContext();
+  const { showFullDiskAccessSettings } = useAppContext();
 
   const account = useSelector((state: IReduxState) => state.account);
   const locale = useSelector((state: IReduxState) => state.userInterface.locale);
   const tunnelState = useSelector((state: IReduxState) => state.connection.status);
   const version = useSelector((state: IReduxState) => state.version);
+  const tunnelProtocol = useTunnelProtocol();
+  const reduxConnection = useSelector((state) => state.connection);
+  const fullRelayList = useSelector((state) => state.settings.relayLocations);
+
   const blockWhenDisconnected = useSelector(
     (state: IReduxState) => state.settings.blockWhenDisconnected,
   );
@@ -80,8 +84,7 @@ export default function NotificationArea(props: IProps) {
   const disableSplitTunneling = useCallback(async () => {
     setIsModalOpen(false);
     await setSplitTunnelingState(false);
-    await reconnectTunnel();
-  }, [reconnectTunnel, setSplitTunnelingState]);
+  }, [setSplitTunnelingState]);
 
   const notificationProviders: InAppNotificationProvider[] = [
     new ConnectingNotificationProvider({ tunnelState }),
@@ -91,7 +94,11 @@ export default function NotificationArea(props: IProps) {
       blockWhenDisconnected,
       hasExcludedApps,
     }),
-
+    new NoOpenVpnServerAvailableNotificationProvider({
+      tunnelProtocol,
+      tunnelState: reduxConnection.status,
+      relayLocations: fullRelayList,
+    }),
     new ErrorNotificationProvider({
       tunnelState,
       hasExcludedApps,
@@ -121,6 +128,7 @@ export default function NotificationArea(props: IProps) {
       close,
     }),
     new UpdateAvailableNotificationProvider(version),
+    new OpenVpnSupportEndingNotificationProvider({ tunnelProtocol }),
   );
 
   const notificationProvider = notificationProviders.find((notification) =>
@@ -141,18 +149,10 @@ export default function NotificationArea(props: IProps) {
             <NotificationTitle data-testid="notificationTitle">
               {notification.title}
             </NotificationTitle>
-            <NotificationSubtitle data-testid="notificationSubTitle">
-              {notification.subtitleAction?.type === 'navigate' ? (
-                <Link
-                  variant="labelTiny"
-                  color={Colors.white60}
-                  {...notification.subtitleAction.link}>
-                  {formatHtml(notification.subtitle ?? '')}
-                </Link>
-              ) : (
-                formatHtml(notification.subtitle ?? '')
-              )}
-            </NotificationSubtitle>
+            <NotificationSubtitle
+              data-testid="notificationSubTitle"
+              subtitle={notification.subtitle}
+            />
           </NotificationContent>
           {notification.action && (
             <NotificationActionWrapper
@@ -185,7 +185,7 @@ function NotificationActionWrapper({
   setIsModalOpen,
 }: NotificationActionWrapperProps) {
   const { push } = useHistory();
-  const { openLinkWithAuth, openUrl } = useAppContext();
+  const { openUrlWithAuth, openUrl } = useAppContext();
 
   const closeTroubleshootModal = useCallback(() => setIsModalOpen(false), [setIsModalOpen]);
 
@@ -194,7 +194,7 @@ function NotificationActionWrapper({
       switch (action.type) {
         case 'open-url':
           if (action.withAuth) {
-            return openLinkWithAuth(action.url);
+            return openUrlWithAuth(action.url);
           } else {
             return openUrl(action.url);
           }
@@ -208,7 +208,7 @@ function NotificationActionWrapper({
     }
 
     return Promise.resolve();
-  }, [action, setIsModalOpen, openLinkWithAuth, openUrl]);
+  }, [action, setIsModalOpen, openUrlWithAuth, openUrl]);
 
   const goToProblemReport = useCallback(() => {
     closeTroubleshootModal();

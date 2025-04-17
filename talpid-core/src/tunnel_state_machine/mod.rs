@@ -25,6 +25,8 @@ use talpid_routing::RouteManagerHandle;
 #[cfg(target_os = "macos")]
 use talpid_tunnel::TunnelMetadata;
 use talpid_tunnel::{tun_provider::TunProvider, TunnelEvent};
+#[cfg(not(target_os = "android"))]
+use talpid_tunnel_config_client::classic_mceliece::spawn_keypair_generator;
 #[cfg(target_os = "macos")]
 use talpid_types::ErrorExt;
 
@@ -45,7 +47,7 @@ use std::{
 #[cfg(target_os = "android")]
 use talpid_types::{android::AndroidContext, ErrorExt};
 use talpid_types::{
-    net::{AllowedEndpoint, Connectivity, TunnelParameters},
+    net::{AllowedEndpoint, Connectivity, IpAvailability, TunnelParameters},
     tunnel::{ErrorStateCause, ParameterGenerationError, TunnelStateTransition},
 };
 
@@ -130,6 +132,7 @@ pub async fn spawn(
     resource_dir: PathBuf,
     state_change_listener: impl Sender<TunnelStateTransition> + Send + 'static,
     offline_state_listener: mpsc::UnboundedSender<Connectivity>,
+    route_manager: RouteManagerHandle,
     #[cfg(target_os = "windows")] volume_update_rx: mpsc::UnboundedReceiver<()>,
     #[cfg(target_os = "android")] android_context: AndroidContext,
     #[cfg(target_os = "android")] connectivity_listener: ConnectivityListener,
@@ -157,6 +160,7 @@ pub async fn spawn(
         log_dir,
         resource_dir,
         commands_rx: command_rx,
+        route_manager,
         #[cfg(target_os = "windows")]
         volume_update_rx,
         #[cfg(target_os = "android")]
@@ -176,6 +180,13 @@ pub async fn spawn(
             log::error!("Can't send shutdown completion to daemon");
         }
     });
+
+    // Spawn a worker that pre-computes McEliece key pairs for PQ tunnels
+    //
+    // On Android we have a different lifecycle of the daemon and creating new keys on start up
+    // comes at a high cost, thus we let the generator be created lazily.
+    #[cfg(not(target_os = "android"))]
+    spawn_keypair_generator();
 
     Ok(TunnelStateMachineHandle {
         command_tx,
@@ -254,6 +265,7 @@ struct TunnelStateMachineInitArgs<G: TunnelParametersGenerator> {
     log_dir: Option<PathBuf>,
     resource_dir: PathBuf,
     commands_rx: mpsc::UnboundedReceiver<TunnelCommand>,
+    route_manager: RouteManagerHandle,
     #[cfg(target_os = "windows")]
     volume_update_rx: mpsc::UnboundedReceiver<()>,
     #[cfg(target_os = "android")]
@@ -276,28 +288,19 @@ impl TunnelStateMachine {
         #[cfg(target_os = "macos")]
         let filtering_resolver = crate::resolver::start_resolver().await?;
 
-        let route_manager = RouteManagerHandle::spawn(
-            #[cfg(target_os = "linux")]
-            args.linux_ids.fwmark,
-            #[cfg(target_os = "linux")]
-            args.linux_ids.table_id,
-        )
-        .await
-        .map_err(Error::InitRouteManagerError)?;
-
         #[cfg(windows)]
         let split_tunnel = split_tunnel::SplitTunnel::new(
             runtime.clone(),
             args.resource_dir.clone(),
             args.command_tx.clone(),
             volume_update_rx,
-            route_manager.clone(),
+            args.route_manager.clone(),
         )
         .map_err(Error::InitSplitTunneling)?;
 
         #[cfg(target_os = "macos")]
         let split_tunnel =
-            split_tunnel::SplitTunnel::spawn(args.command_tx.clone(), route_manager.clone());
+            split_tunnel::SplitTunnel::spawn(args.command_tx.clone(), args.route_manager.clone());
 
         let fw_args = FirewallArguments {
             #[cfg(not(target_os = "android"))]
@@ -322,7 +325,7 @@ impl TunnelStateMachine {
             #[cfg(target_os = "linux")]
             runtime.clone(),
             #[cfg(target_os = "linux")]
-            route_manager.clone(),
+            args.route_manager.clone(),
         )
         .map_err(Error::InitDnsMonitorError)?;
 
@@ -341,7 +344,7 @@ impl TunnelStateMachine {
         let offline_monitor = offline::spawn_monitor(
             offline_tx,
             #[cfg(not(target_os = "android"))]
-            route_manager.clone(),
+            args.route_manager.clone(),
             #[cfg(target_os = "linux")]
             Some(args.linux_ids.fwmark),
             #[cfg(target_os = "android")]
@@ -381,7 +384,7 @@ impl TunnelStateMachine {
             runtime,
             firewall,
             dns_monitor,
-            route_manager,
+            route_manager: args.route_manager,
             _offline_monitor: offline_monitor,
             allow_lan: args.settings.allow_lan,
             #[cfg(not(target_os = "android"))]
@@ -454,7 +457,7 @@ pub trait TunnelParametersGenerator: Send + 'static {
     fn generate(
         &mut self,
         retry_attempt: u32,
-        ipv6: bool,
+        ip_availability: IpAvailability,
     ) -> Pin<Box<dyn Future<Output = Result<TunnelParameters, ParameterGenerationError>>>>;
 }
 

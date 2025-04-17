@@ -7,19 +7,21 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.Error
-import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.tooling.preview.PreviewParameter
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.compose.dropUnlessResumed
 import com.ramcosta.composedestinations.annotation.Destination
@@ -31,13 +33,34 @@ import net.mullvad.mullvadvpn.compose.cell.NavigationComposeCell
 import net.mullvad.mullvadvpn.compose.cell.TwoRowCell
 import net.mullvad.mullvadvpn.compose.component.NavigateBackIconButton
 import net.mullvad.mullvadvpn.compose.component.ScaffoldWithMediumTopBar
+import net.mullvad.mullvadvpn.compose.extensions.safeOpenUri
+import net.mullvad.mullvadvpn.compose.preview.AppInfoUiStatePreviewParameterProvider
 import net.mullvad.mullvadvpn.compose.transitions.SlideInFromRightTransition
 import net.mullvad.mullvadvpn.compose.util.CollectSideEffectWithLifecycle
+import net.mullvad.mullvadvpn.compose.util.showSnackbarImmediately
+import net.mullvad.mullvadvpn.lib.theme.AppTheme
 import net.mullvad.mullvadvpn.lib.theme.Dimens
 import net.mullvad.mullvadvpn.viewmodel.AppInfoSideEffect
 import net.mullvad.mullvadvpn.viewmodel.AppInfoUiState
 import net.mullvad.mullvadvpn.viewmodel.AppInfoViewModel
 import org.koin.androidx.compose.koinViewModel
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Preview("Initial|Unsupported")
+@Composable
+private fun PreviewAppInfoScreen(
+    @PreviewParameter(AppInfoUiStatePreviewParameterProvider::class) state: AppInfoUiState
+) {
+    AppTheme {
+        AppInfo(
+            state = state,
+            snackbarHostState = SnackbarHostState(),
+            onBackClick = {},
+            navigateToChangelog = {},
+            openAppListing = {},
+        )
+    }
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Destination<RootGraph>(style = SlideInFromRightTransition::class)
@@ -47,17 +70,24 @@ fun AppInfo(navigator: DestinationsNavigator) {
     val state by vm.uiState.collectAsStateWithLifecycle()
 
     val uriHandler = LocalUriHandler.current
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    CollectSideEffectWithLifecycle(vm.uiSideEffect) {
-        when (it) {
-            is AppInfoSideEffect.OpenUri -> uriHandler.openUri(it.uri.toString())
+    CollectSideEffectWithLifecycle(vm.uiSideEffect) { sideEffect ->
+        when (sideEffect) {
+            is AppInfoSideEffect.OpenUri -> {
+                uriHandler.safeOpenUri(sideEffect.uri.toString()).onLeft {
+                    snackbarHostState.showSnackbarImmediately(message = sideEffect.errorMessage)
+                }
+            }
         }
     }
 
     AppInfo(
         state = state,
+        snackbarHostState = snackbarHostState,
         onBackClick = dropUnlessResumed { navigator.navigateUp() },
-        navigateToChangelog = dropUnlessResumed { navigator.navigate(ChangelogDestination) },
+        navigateToChangelog =
+            dropUnlessResumed { navigator.navigate(ChangelogDestination(ChangelogNavArgs())) },
         openAppListing = dropUnlessResumed { vm.openAppListing() },
     )
 }
@@ -66,6 +96,7 @@ fun AppInfo(navigator: DestinationsNavigator) {
 @Composable
 fun AppInfo(
     state: AppInfoUiState,
+    snackbarHostState: SnackbarHostState,
     onBackClick: () -> Unit,
     navigateToChangelog: () -> Unit,
     openAppListing: () -> Unit,
@@ -73,6 +104,7 @@ fun AppInfo(
     ScaffoldWithMediumTopBar(
         appBarTitle = stringResource(id = R.string.app_info),
         navigationIcon = { NavigateBackIconButton(onNavigateBack = onBackClick) },
+        snackbarHostState = snackbarHostState,
     ) { modifier ->
         Column(horizontalAlignment = Alignment.Start, modifier = modifier.animateContentSize()) {
             AppInfoContent(state, navigateToChangelog, openAppListing)
@@ -87,9 +119,9 @@ fun AppInfoContent(
     openAppListing: () -> Unit,
 ) {
     Column(modifier = Modifier.padding(bottom = Dimens.smallPadding).animateContentSize()) {
-        AppVersionRow(state, openAppListing)
-
         ChangelogRow(navigateToChangelog)
+        HorizontalDivider()
+        AppVersionRow(state, openAppListing)
     }
 }
 
@@ -133,8 +165,6 @@ private fun AppVersionRow(state: AppInfoUiState, openAppListing: () -> Unit) {
                             bottom = Dimens.mediumPadding,
                         ),
             )
-        } else {
-            HorizontalDivider(color = Color.Transparent)
         }
     }
 }
@@ -144,12 +174,5 @@ private fun ChangelogRow(navigateToChangelog: () -> Unit) {
     NavigationComposeCell(
         title = stringResource(R.string.changelog_title),
         onClick = navigateToChangelog,
-        bodyView = {
-            Icon(
-                imageVector = Icons.Default.Info,
-                contentDescription = stringResource(R.string.changelog_title),
-                tint = MaterialTheme.colorScheme.onPrimary,
-            )
-        },
     )
 }

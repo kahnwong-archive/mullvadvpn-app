@@ -3,12 +3,12 @@
 //  MullvadTypes
 //
 //  Created by Marco Nikic on 2024-11-12.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 
-public struct DaitaV2Parameters: Equatable {
+public struct DaitaV2Parameters: Equatable, Sendable {
     public let machines: String
     public let maximumEvents: UInt32
     public let maximumActions: UInt32

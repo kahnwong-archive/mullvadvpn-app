@@ -3,10 +3,11 @@
 //  MullvadVPNTests
 //
 //  Created by Marco Nikic on 2023-10-03.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
+import MullvadMockData
 @testable import MullvadREST
 @testable import MullvadTypes
 
@@ -15,7 +16,7 @@ struct RelayCacheTrackerStub: RelayCacheTrackerProtocol {
 
     func stopPeriodicUpdates() {}
 
-    func updateRelays(completionHandler: ((Result<RelaysFetchResult, Error>) -> Void)?) -> Cancellable {
+    func updateRelays(completionHandler: ((sending Result<RelaysFetchResult, Error>) -> Void)?) -> Cancellable {
         AnyCancellable()
     }
 

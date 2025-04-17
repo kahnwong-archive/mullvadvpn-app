@@ -2,14 +2,15 @@ import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } 
 import ReactDOM from 'react-dom';
 import styled from 'styled-components';
 
-import { colors } from '../../config.json';
 import log from '../../shared/logging';
+import { Icon, IconProps, Spinner } from '../lib/components';
+import { Colors } from '../lib/foundations';
+import { IconBadge } from '../lib/icon-badge';
 import { useEffectEvent } from '../lib/utility-hooks';
 import { useWillExit } from '../lib/will-exit';
 import * as AppButton from './AppButton';
 import { measurements, normalText, tinyText } from './common-styles';
 import CustomScrollbars from './CustomScrollbars';
-import ImageView from './ImageView';
 import { BackAction } from './KeyboardNavigation';
 import { SmallButtonGrid } from './SmallButton';
 
@@ -128,7 +129,7 @@ const StyledModalAlert = styled.div<{ $visible: boolean; $closing: boolean }>((p
   return {
     display: 'flex',
     flexDirection: 'column',
-    backgroundColor: colors.darkBlue,
+    backgroundColor: Colors.darkBlue,
     borderRadius: '11px',
     padding: '16px 0 16px 16px',
     maxHeight: '80vh',
@@ -315,36 +316,30 @@ class ModalAlertImpl extends React.Component<IModalAlertImplProps, IModalAlertSt
   };
 
   private renderTypeIcon(type: ModalAlertType) {
-    let source = '';
+    let source: IconProps['icon'] | undefined = undefined;
     let color = undefined;
     switch (type) {
       case ModalAlertType.info:
-        source = 'icon-info';
-        color = colors.white;
+        source = 'info-circle';
+        color = Colors.white;
         break;
       case ModalAlertType.caution:
-        source = 'icon-alert';
-        color = colors.white;
+        source = 'alert-circle';
+        color = Colors.white;
         break;
       case ModalAlertType.warning:
-        source = 'icon-alert';
-        color = colors.red;
+        source = 'alert-circle';
+        color = Colors.red;
         break;
-
       case ModalAlertType.loading:
-        source = 'icon-spinner';
-        break;
+        return <Spinner size="big" />;
       case ModalAlertType.success:
-        source = 'icon-success';
-        break;
+        return <IconBadge state="positive" />;
       case ModalAlertType.failure:
-        source = 'icon-fail';
-        break;
+        return <IconBadge state="negative" />;
     }
 
-    return (
-      <ImageView height={44} width={44} source={source} tintColor={this.props.iconColor ?? color} />
-    );
+    return <Icon size="big" icon={source} color={color} />;
   }
 
   private onTransitionEnd = (event: React.TransitionEvent<HTMLDivElement>) => {
@@ -355,13 +350,13 @@ class ModalAlertImpl extends React.Component<IModalAlertImplProps, IModalAlertSt
 }
 
 const ModalTitle = styled.h1(normalText, {
-  color: colors.white,
+  color: Colors.white,
   fontWeight: 600,
   margin: '18px 0 0 0',
 });
 
 export const ModalMessage = styled.span(tinyText, {
-  color: colors.white80,
+  color: Colors.white80,
   marginTop: '16px',
 
   [`${ModalTitle} ~ &&`]: {
@@ -372,5 +367,5 @@ export const ModalMessage = styled.span(tinyText, {
 export const ModalMessageList = styled.ul({
   listStyle: 'disc outside',
   paddingLeft: '20px',
-  color: colors.white80,
+  color: Colors.white80,
 });

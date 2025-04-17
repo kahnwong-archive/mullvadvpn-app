@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by Jon Petersson on 2023-06-05.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import UIKit
@@ -17,7 +17,7 @@ class CheckboxView: UIView {
     }()
 
     private let checkmarkView: UIImageView = {
-        let imageView = UIImageView(image: UIImage(named: "IconTick"))
+        let imageView = UIImageView(image: UIImage.tick)
         imageView.tintColor = .successColor
         imageView.contentMode = .scaleAspectFit
         imageView.alpha = 0

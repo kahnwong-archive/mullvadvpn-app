@@ -3,12 +3,12 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 10/02/2020.
-//  Copyright © 2020 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 #if targetEnvironment(simulator)
 
-import Foundation
+@preconcurrency import Foundation
 import MullvadLogging
 import MullvadREST
 import MullvadSettings
@@ -16,26 +16,35 @@ import MullvadTypes
 import NetworkExtension
 import PacketTunnelCore
 
-final class SimulatorTunnelProviderHost: SimulatorTunnelProviderDelegate {
+final class SimulatorTunnelProviderHost: SimulatorTunnelProviderDelegate, @unchecked Sendable {
     private var observedState: ObservedState = .disconnected
     private var selectedRelays: SelectedRelays?
     private let urlRequestProxy: URLRequestProxy
+    private let apiRequestProxy: APIRequestProxy
     private let relaySelector: RelaySelectorProtocol
 
     private let providerLogger = Logger(label: "SimulatorTunnelProviderHost")
     private let dispatchQueue = DispatchQueue(label: "SimulatorTunnelProviderHostQueue")
 
-    init(relaySelector: RelaySelectorProtocol, transportProvider: TransportProvider) {
+    init(
+        relaySelector: RelaySelectorProtocol,
+        transportProvider: TransportProvider,
+        apiTransportProvider: APITransportProvider
+    ) {
         self.relaySelector = relaySelector
         self.urlRequestProxy = URLRequestProxy(
             dispatchQueue: dispatchQueue,
             transportProvider: transportProvider
         )
+        self.apiRequestProxy = APIRequestProxy(
+            dispatchQueue: dispatchQueue,
+            transportProvider: apiTransportProvider
+        )
     }
 
     override func startTunnel(
         options: [String: NSObject]?,
-        completionHandler: @escaping (Error?) -> Void
+        completionHandler: @escaping @Sendable (Error?) -> Void
     ) {
         dispatchQueue.async { [weak self] in
             guard let self else {
@@ -75,7 +84,7 @@ final class SimulatorTunnelProviderHost: SimulatorTunnelProviderDelegate {
         }
     }
 
-    override func stopTunnel(with reason: NEProviderStopReason, completionHandler: @escaping () -> Void) {
+    override func stopTunnel(with reason: NEProviderStopReason, completionHandler: @escaping @Sendable () -> Void) {
         dispatchQueue.async { [weak self] in
             self?.selectedRelays = nil
             self?.observedState = .disconnected
@@ -85,7 +94,7 @@ final class SimulatorTunnelProviderHost: SimulatorTunnelProviderDelegate {
     }
 
     override func handleAppMessage(_ messageData: Data, completionHandler: ((Data?) -> Void)?) {
-        dispatchQueue.async {
+        dispatchQueue.sync {
             do {
                 let message = try TunnelProviderMessage(messageData: messageData)
 
@@ -101,7 +110,11 @@ final class SimulatorTunnelProviderHost: SimulatorTunnelProviderDelegate {
         }
     }
 
-    private func handleProviderMessage(_ message: TunnelProviderMessage, completionHandler: ((Data?) -> Void)?) {
+    private func handleProviderMessage(
+        _ message: TunnelProviderMessage,
+        completionHandler: ((Data?) -> Void)?
+    ) {
+        nonisolated(unsafe) let handler = completionHandler
         switch message {
         case .getTunnelStatus:
             var reply: Data?
@@ -114,7 +127,7 @@ final class SimulatorTunnelProviderHost: SimulatorTunnelProviderDelegate {
                 )
             }
 
-            completionHandler?(reply)
+            handler?(reply)
 
         case let .reconnectTunnel(nextRelay):
             reasserting = true
@@ -146,11 +159,30 @@ final class SimulatorTunnelProviderHost: SimulatorTunnelProviderDelegate {
                         message: "Failed to encode ProxyURLResponse."
                     )
                 }
-                completionHandler?(reply)
+                handler?(reply)
+            }
+
+        case let .sendAPIRequest(proxyRequest):
+            apiRequestProxy.sendRequest(proxyRequest) { response in
+                var reply: Data?
+                do {
+                    reply = try TunnelProviderReply(response).encode()
+                } catch {
+                    self.providerLogger.error(
+                        error: error,
+                        message: "Failed to encode ProxyURLResponse."
+                    )
+                }
+                handler?(reply)
             }
 
         case let .cancelURLRequest(listId):
             urlRequestProxy.cancelRequest(identifier: listId)
+
+            completionHandler?(nil)
+
+        case let .cancelAPIRequest(listId):
+            apiRequestProxy.cancelRequest(identifier: listId)
 
             completionHandler?(nil)
 

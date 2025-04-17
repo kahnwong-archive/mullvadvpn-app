@@ -1,8 +1,8 @@
 package net.mullvad.mullvadvpn.compose.state
 
 import net.mullvad.mullvadvpn.lib.model.GeoIpLocation
+import net.mullvad.mullvadvpn.lib.model.InAppNotification
 import net.mullvad.mullvadvpn.lib.model.TunnelState
-import net.mullvad.mullvadvpn.repository.InAppNotification
 
 data class ConnectUiState(
     val location: GeoIpLocation?,
@@ -11,7 +11,7 @@ data class ConnectUiState(
     val showLocation: Boolean,
     val inAppNotification: InAppNotification?,
     val deviceName: String?,
-    val daysLeftUntilExpiry: Int?,
+    val daysLeftUntilExpiry: Long?,
     val isPlayBuild: Boolean,
 ) {
 

@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 05/07/2022.
-//  Copyright © 2022 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -25,7 +25,7 @@ protocol TunnelInteractor {
     // MARK: - Tunnel status
 
     var tunnelStatus: TunnelStatus { get }
-    @discardableResult func updateTunnelStatus(_ block: (inout TunnelStatus) -> Void) -> TunnelStatus
+    @discardableResult func updateTunnelStatus(_ block: @Sendable (inout TunnelStatus) -> Void) -> TunnelStatus
 
     // MARK: - Configuration
 

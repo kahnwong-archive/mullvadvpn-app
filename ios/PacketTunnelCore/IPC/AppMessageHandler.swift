@@ -3,11 +3,12 @@
 //  PacketTunnel
 //
 //  Created by pronebird on 19/09/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import MullvadLogging
+import MullvadREST
 
 /**
  Actor handling packet tunnel IPC (app) messages and patching them through to the right facility.
@@ -16,10 +17,16 @@ public struct AppMessageHandler {
     private let logger = Logger(label: "AppMessageHandler")
     private let packetTunnelActor: PacketTunnelActorProtocol
     private let urlRequestProxy: URLRequestProxyProtocol
+    private let apiRequestProxy: APIRequestProxyProtocol
 
-    public init(packetTunnelActor: PacketTunnelActorProtocol, urlRequestProxy: URLRequestProxyProtocol) {
+    public init(
+        packetTunnelActor: PacketTunnelActorProtocol,
+        urlRequestProxy: URLRequestProxyProtocol,
+        apiRequestProxy: APIRequestProxyProtocol
+    ) {
         self.packetTunnelActor = packetTunnelActor
         self.urlRequestProxy = urlRequestProxy
+        self.apiRequestProxy = apiRequestProxy
     }
 
     /**
@@ -42,8 +49,15 @@ public struct AppMessageHandler {
         case let .sendURLRequest(request):
             return await encodeReply(urlRequestProxy.sendRequest(request))
 
+        case let .sendAPIRequest(request):
+            return await encodeReply(apiRequestProxy.sendRequest(request))
+
         case let .cancelURLRequest(id):
             urlRequestProxy.cancelRequest(identifier: id)
+            return nil
+
+        case let .cancelAPIRequest(id):
+            apiRequestProxy.cancelRequest(identifier: id)
             return nil
 
         case .getTunnelStatus:

@@ -3,14 +3,14 @@
 //  MullvadVPN
 //
 //  Created by Sajad Vishkai on 2022-11-22.
-//  Copyright © 2022 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import MullvadTypes
 import Security
 
-public class KeychainSettingsStore: SettingsStore {
+final public class KeychainSettingsStore: SettingsStore, Sendable {
     public let serviceName: String
     public let accessGroup: String
 

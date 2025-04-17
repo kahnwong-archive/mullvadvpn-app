@@ -290,7 +290,9 @@ impl ManagementService for ManagementServiceImpl {
     async fn set_block_when_disconnected(&self, request: Request<bool>) -> ServiceResult<()> {
         let block_when_disconnected = request.into_inner();
         log::debug!("set_block_when_disconnected({})", block_when_disconnected);
-        Err(Status::unimplemented("Setting Lockdown mode on Android is not supported - this is handled by the OS, not the daemon"))
+        Err(Status::unimplemented(
+            "Setting Lockdown mode on Android is not supported - this is handled by the OS, not the daemon",
+        ))
     }
 
     async fn set_auto_connect(&self, request: Request<bool>) -> ServiceResult<()> {
@@ -1093,6 +1095,26 @@ impl ManagementService for ManagementServiceImpl {
 
         Ok(Response::new(feature_indicators))
     }
+
+    // Debug features
+
+    async fn disable_relay(&self, relay: Request<String>) -> ServiceResult<()> {
+        log::debug!("disable_relay");
+        let (tx, rx) = oneshot::channel();
+        let relay = relay.into_inner();
+        self.send_command_to_daemon(DaemonCommand::DisableRelay { relay, tx })?;
+        self.wait_for_result(rx).await?;
+        Ok(Response::new(()))
+    }
+
+    async fn enable_relay(&self, relay: Request<String>) -> ServiceResult<()> {
+        log::debug!("enable_relay");
+        let (tx, rx) = oneshot::channel();
+        let relay = relay.into_inner();
+        self.send_command_to_daemon(DaemonCommand::EnableRelay { relay, tx })?;
+        self.wait_for_result(rx).await?;
+        Ok(Response::new(()))
+    }
 }
 
 impl ManagementServiceImpl {
@@ -1138,7 +1160,7 @@ impl ManagementInterfaceServer {
         let rpc_server_join_handle = mullvad_management_interface::spawn_rpc_server(
             server,
             async move {
-                server_abort_rx.into_future().await;
+                StreamExt::into_future(server_abort_rx).await;
             },
             &rpc_socket_path,
         )
@@ -1353,9 +1375,7 @@ fn map_device_error(error: &device::Error) -> Status {
         }
         device::Error::InvalidVoucher => Status::new(Code::NotFound, INVALID_VOUCHER_MESSAGE),
         device::Error::UsedVoucher => Status::new(Code::ResourceExhausted, USED_VOUCHER_MESSAGE),
-        device::Error::DeviceIoError(ref _error) => {
-            Status::new(Code::Unavailable, error.to_string())
-        }
+        device::Error::DeviceIoError(_error) => Status::new(Code::Unavailable, error.to_string()),
         device::Error::OtherRestError(error) => map_rest_error(error),
         _ => Status::new(Code::Unknown, error.to_string()),
     }

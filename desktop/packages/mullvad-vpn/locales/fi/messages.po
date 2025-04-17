@@ -10,7 +10,7 @@ msgstr ""
 "Project-Id-Version: mullvad-app\n"
 "Language-Team: Finnish\n"
 "Language: fi_FI\n"
-"PO-Revision-Date: 2024-10-23 06:33\n"
+"PO-Revision-Date: 2025-04-11 07:48\n"
 
 msgid "%(amount)d more..."
 msgstr "%(amount)d lisää..."
@@ -165,6 +165,10 @@ msgstr "Ota käyttöön"
 msgid "Enable anyway"
 msgstr "Ota silti käyttöön"
 
+#. A toggle that refers to the setting "Direct only".
+msgid "Enable direct only"
+msgstr "Salli vain suora"
+
 msgid "FAILED TO SECURE CONNECTION"
 msgstr "YHTEYDEN SUOJAAMINEN EPÄONNISTUI"
 
@@ -174,7 +178,6 @@ msgstr "Suodatin"
 msgid "Go to System Settings"
 msgstr "Siirry järjestelmäasetuksiin"
 
-#. This is a button which closes a dialog.
 msgid "Got it!"
 msgstr "Selvä!"
 
@@ -267,8 +270,6 @@ msgstr "TCP"
 msgid "Test"
 msgstr "Testaa"
 
-#. Warning shown in dialog to users when they enable setting that increases
-#. network latency (decreases performance).
 msgid "This setting increases latency. Use only if needed."
 msgstr "Tämä asetus lisää viivettä. Käytä vain tarvittaessa."
 
@@ -326,9 +327,23 @@ msgctxt "accessibility"
 msgid "Expand %(location)s"
 msgstr "Näytä enemmän: %(location)s"
 
+#. This is used by screenreaders to communicate the "x" button next to a saved account number.
+#. Available placeholders:
+#. %(accountNumber)s - the account number to the left of the button
 msgctxt "accessibility"
-msgid "Forget %(accountNumber)s"
-msgstr "Unohda %(accountNumber)s"
+msgid "Forget account number %(accountNumber)s"
+msgstr "Pyyhi tilin numero %(accountNumber)s"
+
+#. Accessibility label for link to blog post about OpenVPN support ending.
+msgctxt "accessibility"
+msgid "Go to blog post to read more, opens externally"
+msgstr "Lue lisää blogiartikkelista (avautuu toiselle sivustolle)"
+
+#. Accessibility label for link to VPN settings where
+#. the user can change tunnel protocol.
+msgctxt "accessibility"
+msgid "Go to VPN settings to change tunnel protocol"
+msgstr "Vaihda tunneliprotokolla VPN-asetuksissa"
 
 #. Provided to accessibility tools such as screenreaders to describe
 #. the button which obscures the account number.
@@ -345,9 +360,20 @@ msgctxt "accessibility"
 msgid "Login"
 msgstr "Kirjaudu sisään"
 
+#. This is used by screenreaders to communicate logging in with a saved account number.
+#. Available placeholders:
+#. %(accountNumber)s - the saved account number
+msgctxt "accessibility"
+msgid "Login with account number %(accountNumber)s"
+msgstr "Kirjaudu sisään tilille numero %(accountNumber)s"
+
 msgctxt "accessibility"
 msgid "More information"
 msgstr "Lisätietoja"
+
+msgctxt "accessibility"
+msgid "New version installed, click here to see the changelog"
+msgstr "Uusi versio on asennettu. Voit tarkastella muutoslokia napsauttamalla tästä."
 
 msgctxt "accessibility"
 msgid "Opens externally"
@@ -474,6 +500,10 @@ msgid "Enter port"
 msgstr "Anna portti"
 
 msgctxt "api-access-methods-view"
+msgid "If you are not connected to our VPN, then the Encrypted DNS proxy will use your own non-VPN IP when connecting. The DoH servers are hosted by one of the following providers: Quad9 or CloudFlare."
+msgstr "Jos et ole yhteydessä VPN-verkkoomme, salattu DNS-välityspalvelin käyttää yhdistämiseen omaa, ei-VPN-pohjaista IP-osoitettasi. DoH-palvelimia isännöi joko Quad9 tai CloudFlare."
+
+msgctxt "api-access-methods-view"
 msgid "In use"
 msgstr "Käytössä"
 
@@ -574,8 +604,28 @@ msgid "With the “Direct” method, the app communicates with a Mullvad API ser
 msgstr "Nk. suora menetelmä sallii sovelluksen kommunikoida Mullvadin ohjelmointirajapinnan palvelimen kanssa suoraan ilman välityspalvelimia."
 
 msgctxt "api-access-methods-view"
+msgid "With the “Encrypted DNS proxy” method, the app will communicate with our Mullvad API through a proxy address. It does this by retrieving an address from a DNS over HTTPS (DoH) server and then using that to reach our API servers."
+msgstr "Sovellus kommunikoi Mullvad API:n kanssa välityspalvelinosoitteen kautta \"Salattu DNS-välityspalvelin\" -menetelmällä, joka toimii niin, että sovellus hakee osoitteen DNS over HTTPS (DoH) -palvelimelta ja käyttää sitä API-palvelimillemme pääsemiseen."
+
+msgctxt "api-access-methods-view"
 msgid "With the “Mullvad bridges” method, the app communicates with a Mullvad API server via a Mullvad bridge server. It does this by sending the traffic obfuscated by Shadowsocks."
 msgstr "Kun käytössä on Mullvadin siltausmenetelmä, sovellus kommunikoi Mullvadin ohjelmointirajapinnan palvelimen kanssa Mullvadin siltauspalvelimen kautta. Se tekee tämän lähettämällä liikenteen Shadowsocksin peittämänä."
+
+msgctxt "app-info-view"
+msgid "App info"
+msgstr "Sovelluksen tiedot"
+
+msgctxt "app-info-view"
+msgid "App is out of sync. Please quit and restart."
+msgstr "Sovellusta ei ole synkronoitu. Sulje sovellus ja käynnistä se uudelleen."
+
+msgctxt "app-info-view"
+msgid "App version"
+msgstr "Sovelluksen versio"
+
+msgctxt "app-info-view"
+msgid "Update available. Install the latest app version to stay up to date."
+msgstr "Päivitys on saatavilla. Pysy ajan tasalla asentamalla sovelluksen uusin versio."
 
 msgctxt "auth-failure"
 msgid "Blocking internet: account is out of time"
@@ -593,9 +643,13 @@ msgctxt "auth-failure"
 msgid "You are logged in with an invalid account number. Please log out and try another one."
 msgstr "Olet kirjautunut sisään virheellisellä tilinumerolla. Kirjaudu ulos ja kokeile toista."
 
-msgctxt "changelog"
-msgid "Changes in this version:"
-msgstr "Muutokset tässä versiossa:"
+msgctxt "changelog-view"
+msgid "No updates or changes were made in this release for this platform."
+msgstr "Versioon ei sisälly alustan ​​päivityksiä tai muutoksia."
+
+msgctxt "changelog-view"
+msgid "What’s new"
+msgstr "Uutta"
 
 #. The selected location label displayed on the main view, when a user selected a specific host to connect to.
 #. Example: Malmö (se-mma-001)
@@ -867,6 +921,29 @@ msgctxt "in-app-notifications"
 msgid "%(duration)s. Buy more credit."
 msgstr "%(duration)s. Osta lisää käyttöaikaa."
 
+#. First part of notification subtitle when there are no openVPN servers available.
+#. Will be followed by a link to VPN settings.
+#. Available placeholders:
+#. %(openVpn)s - Will be replaced with OpenVPN
+msgctxt "in-app-notifications"
+msgid "%(openVpn)s support has ended. Please update the app or"
+msgstr "%(openVpn)s:n tuki on päättynyt. Päivitä sovellus tai"
+
+#. Notification title indicating that OpenVPN support is ending.
+#. Available placeholders:
+#. %(openVpn)s - Will be replaced with OPENVPN
+msgctxt "in-app-notifications"
+msgid "%(openVpn)s SUPPORT IS ENDING"
+msgstr "%(openVpn)s:N TUKI PÄÄTTYY"
+
+#. First part of notification subtitle when there are no openVPN servers
+#. matching current settings. Will be followed by a link to VPN settings.
+#. Available placeholders:
+#. %(openVpn)s - Will be replaced with OpenVPN
+msgctxt "in-app-notifications"
+msgid "%(openVpn)s support is ending. Switch location or"
+msgstr "%(openVpn)s:n tuki päättyy. Vaihda sijainti tai"
+
 msgctxt "in-app-notifications"
 msgid "ACCOUNT CREDIT EXPIRES SOON"
 msgstr "TILIN KÄYTTÖAIKA PÄÄTTYY PIAN"
@@ -883,6 +960,18 @@ msgctxt "in-app-notifications"
 msgid "BLOCKING INTERNET"
 msgstr "VERKKOYHTEYS ESTETTY"
 
+#. Link following the first part of the notification subtitle.
+#. Will navigate the user to the VPN settings.
+#. Available placeholders:
+#. %(wireGuard)s - Will be replaced with WireGuard
+msgctxt "in-app-notifications"
+msgid "change tunnel protocol to %(wireGuard)s."
+msgstr "vaihda tunneliprotokolla %(wireGuard)siin."
+
+msgctxt "in-app-notifications"
+msgid "Click here to see what’s new."
+msgstr "Katso uudet ominaisuudet napsauttamalla tästä."
+
 #. The in-app banner displayed to the user when the app update is available.
 msgctxt "in-app-notifications"
 msgid "Install the latest app version to stay up to date."
@@ -897,8 +986,39 @@ msgid "NEW DEVICE CREATED"
 msgstr "UUSI LAITE LUOTIIN"
 
 msgctxt "in-app-notifications"
+msgid "NEW VERSION INSTALLED"
+msgstr "UUSI VERSIO ASENNETTIIN"
+
+#. Notification title when there are no openVPN servers
+#. matching current settings.
+#. Available placeholders:
+#. %(openVpn)s - Will be replaced with OPENVPN
+msgctxt "in-app-notifications"
+msgid "NO %(openVpn)s SERVER AVAILABLE"
+msgstr "%(openVpn)s-PALVELINTA EI OLE KÄYTETTÄVISSÄ"
+
+#. Notification title when there are no openVPN servers available.
+#. Available placeholders:
+#. %(openVpn)s - Will be replaced with OPENVPN
+msgctxt "in-app-notifications"
+msgid "NO %(openVpn)s SERVERS AVAILABLE"
+msgstr "%(openVpn)s-PALVELIMIA EI OLE KÄYTETTÄVISSÄ"
+
+#. Notification subtitle indicating that OpenVPN support is ending.
+#. Available placeholders:
+#. %(wireGuard)s - Will be replaced with WireGuard
+msgctxt "in-app-notifications"
+msgid "Please change tunnel protocol to %(wireGuard)s."
+msgstr "Vaihda tunneliprotokolla %(wireGuard)siin."
+
+msgctxt "in-app-notifications"
 msgid "Please quit and restart the app."
 msgstr "Sammuta sovellus ja käynnistä se uudelleen."
+
+#. Link in notication to a blog post about OpenVPN support ending.
+msgctxt "in-app-notifications"
+msgid "Read more"
+msgstr "Lue lisää"
 
 msgctxt "in-app-notifications"
 msgid "Send problem report"
@@ -927,6 +1047,10 @@ msgstr "Tervetuloa! Tämän laitteen nimi on nyt <b>%(deviceName)s</b>. Katso li
 msgctxt "launch-view"
 msgid "Connecting to Mullvad system service..."
 msgstr "Yhdistetään Mullvad-järjestelmäpalveluun..."
+
+msgctxt "launch-view"
+msgid "Disable third party antivirus software."
+msgstr "Poista kolmannen osapuolen virustorjuntaohjelmisto käytöstä."
 
 msgctxt "launch-view"
 msgid "If these steps do not work please send a problem report."
@@ -1242,10 +1366,6 @@ msgctxt "openvpn-settings-view"
 msgid "Bridge mode"
 msgstr "Siltaus"
 
-msgctxt "openvpn-settings-view"
-msgid "Enable bridge mode?"
-msgstr "Otetaanko siltaustila käyttöön?"
-
 #. This is used as a description for the bridge mode
 #. setting.
 #. Available placeholders:
@@ -1271,8 +1391,8 @@ msgstr "Aseta %(openvpn)s MSS -arvo asteikolla %(min)d–%(max)d."
 #. available.
 #. Available placeholders:
 #. %(transportProtocol)s - the name of the transport protocol setting
-#. %(automat)s - the translation of "Automatic"
-#. %(openvpn)s - will be replaced with OpenVPN
+#. %(automatic)s - the translation of "Automatic"
+#. %(tcp)s - the translation of "TCP"
 msgctxt "openvpn-settings-view"
 msgid "To activate Bridge mode, change <b>%(transportProtocol)s</b> to <b>%(automatic)s</b> or <b>%(tcp)s</b>."
 msgstr "Aktivoi siltaustila muuttamalla <b>%(transportProtocol)s</b>-asetukseksi <b>%(automatic)s</b> tai <b>%(tcp)s</b>."
@@ -1421,6 +1541,10 @@ msgid "Name is already taken."
 msgstr "Nimi on jo olemassa."
 
 msgctxt "select-location-view"
+msgid "Open %(daita)s settings"
+msgstr "Avaa %(daita)s-asetukset"
+
+msgctxt "select-location-view"
 msgid "Providers: %(numberOfProviders)d"
 msgstr "Palveluntarjoajat: %(numberOfProviders)d"
 
@@ -1437,12 +1561,8 @@ msgid "The app selects a random bridge server, but servers have a higher probabi
 msgstr "Sovellus valitsee satunnaisen siltauspalvelimen, mutta palvelimen valinnan todennäköisyys on sitä suurempi, mitä lähempänä palvelin on sinua."
 
 msgctxt "select-location-view"
-msgid "While connected, your traffic will be routed through two secure locations, the entry point (a bridge server) and the exit point (a VPN server)."
-msgstr "Kun yhteys on muodostettu, liikenteesi ohjataan kahden turvallisen siajinnin kautta: tulopisteen (siltauspalvelin) ja poistumispisteen (VPN-palvelin)."
-
-msgctxt "select-location-view"
-msgid "While connected, your traffic will be routed through two secure locations, the entry point and the exit point (needs to be two different VPN servers)."
-msgstr "Kun yhteys on muodostettu, liikenteesi ohjataan kahden turvallisen siajinnin kautta: tulopisteen ja poistumispisteen (näiden on oltava kaksi erillistä VPN-palvelinta)."
+msgid "The entry server for %(multihop)s is currently overridden by %(daita)s. To select an entry server, please first enable “%(directOnly)s” or disable \"%(daita)s\" in the settings."
+msgstr "%(daita)s ohittaa tällä hetkellä %(multihop)sin tulopalvelimen. Jos haluat valita tulopalvelimen, ota ensin käyttöön \"%(directOnly)s\" tai poista \"%(daita)s\" käytöstä asetuksista."
 
 msgctxt "settings-import"
 msgid "Clear all overrides"
@@ -1521,12 +1641,8 @@ msgid "API access"
 msgstr "Ohjelmointirajapinnan käyttö"
 
 msgctxt "settings-view"
-msgid "App is out of sync. Please quit and restart."
-msgstr "Sovellus ei ole synkronoitu. Sulje se ja käynnistä uudelleen."
-
-msgctxt "settings-view"
-msgid "App version"
-msgstr "Sovelluksen versio"
+msgid "App info"
+msgstr "Sovelluksen tiedot"
 
 msgctxt "settings-view"
 msgid "Multihop"
@@ -1535,10 +1651,6 @@ msgstr "Multihop"
 msgctxt "settings-view"
 msgid "Support"
 msgstr "Tuki"
-
-msgctxt "settings-view"
-msgid "Update available. Install the latest app version to stay up to date."
-msgstr "Päivitys saatavilla. Pysy ajan tasalla asentamalla sovelluksen uusin versio."
 
 #. Navigation button to the 'User interface settings' view
 msgctxt "settings-view"
@@ -1549,6 +1661,10 @@ msgstr "Käyttöliittymän asetukset"
 msgctxt "settings-view"
 msgid "VPN settings"
 msgstr "VPN-asetukset"
+
+msgctxt "settings-view"
+msgid "What’s new"
+msgstr "Uutta"
 
 msgctxt "split-tunneling-view"
 msgid "%(applicationName)s is problematic and can’t be excluded from the VPN tunnel."
@@ -1571,6 +1687,10 @@ msgid "Click on an app to launch it. Its traffic will bypass the VPN tunnel unti
 msgstr "Napsauta sovellusta käynnistääksesi sen. Sen liikenne ohittaa VPN-tunnelin, kunnes suljet sen."
 
 msgctxt "split-tunneling-view"
+msgid "Enabled \"Full disk access\" and still having issues?"
+msgstr "Oletko sallinut koko levyn käytön, mutta kohtaat edelleen ongelmia?"
+
+msgctxt "split-tunneling-view"
 msgid "Excluded apps"
 msgstr "Poissuljetut sovellukset"
 
@@ -1586,6 +1706,10 @@ msgctxt "split-tunneling-view"
 msgid "Launch"
 msgstr "Käynnistä"
 
+msgctxt "split-tunneling-view"
+msgid "Open System Settings"
+msgstr "Avaa järjestelmäasetukset"
+
 #. This error message is shown if the user tries to launch a Linux desktop
 #. entry file that doesn't contain the required 'Exec' value.
 msgctxt "split-tunneling-view"
@@ -1598,6 +1722,14 @@ msgstr "Lähetä ongelmaraportti."
 msgctxt "split-tunneling-view"
 msgid "Please try again or send a problem report."
 msgstr "Yritä uudelleen tai lähetä ongelmaraportti."
+
+msgctxt "split-tunneling-view"
+msgid "Restart Mullvad Service"
+msgstr "Käynnistä Mullvad Service uudelleen"
+
+msgctxt "split-tunneling-view"
+msgid "To use split tunneling please enable “Full disk access” for “Mullvad VPN” in the macOS system settings."
+msgstr "Jos haluat käyttää sovelluskohtaista yhdistämistä, salli koko levyn käyttö \"Mullvad VPN\" -kohdassa macOS-järjestelmäasetuksissa."
 
 #. Error message showed in a dialog when an application fails to launch.
 msgctxt "split-tunneling-view"
@@ -1730,6 +1862,10 @@ msgstr "Yhdistetty. %(location)s"
 msgctxt "tray-icon-tooltip"
 msgid "Connecting. %(location)s"
 msgstr "Yhdistetään. %(location)s"
+
+msgctxt "troubleshoot"
+msgid "Disable split tunneling"
+msgstr "Poista split tunneling käytöstä"
 
 msgctxt "troubleshoot"
 msgid "Enable “Full Disk Access” for “Mullvad VPN” in the macOS system settings."
@@ -1889,6 +2025,13 @@ msgctxt "vpn-settings-view"
 msgid "Attention: this setting cannot be used in combination with <b>%(customDnsFeatureName)s</b>"
 msgstr "Huomio: <b>%(customDnsFeatureName)s</b> ja tämä asetus eivät voi olla käytössä samanaikaisesti."
 
+#. Footer text for tunnel protocol selector when OpenVPN is selected.
+#. Available placeholders:
+#. %(openvpn)s - Will be replaced with OpenVPN
+msgctxt "vpn-settings-view"
+msgid "Attention: We are removing support for %(openVpn)s."
+msgstr "Huomio: poistamme %(openVpn)s:n tuen."
+
 msgctxt "vpn-settings-view"
 msgid "Auto-connect"
 msgstr "Automaattinen yhteys"
@@ -1963,6 +2106,12 @@ msgctxt "vpn-settings-view"
 msgid "Malware"
 msgstr "Haittaohjelmat"
 
+#. Link in tunnel protocol selector footer to blog post
+#. about OpenVPN support ending.
+msgctxt "vpn-settings-view"
+msgid "Read more"
+msgstr "Lue lisää"
+
 msgctxt "vpn-settings-view"
 msgid "Server IP override"
 msgstr "Palvelimen IP-osoitteen ohitus"
@@ -1987,13 +2136,6 @@ msgstr "Tappokytkin eroaa lukitustilasta siten, että se estää vuotoja tapahtu
 msgctxt "vpn-settings-view"
 msgid "The DNS server you want to add is a private IP. You must ensure that your network interfaces are configured to use it."
 msgstr "DNS-palvelin, jonka haluat lisätä, on yksityinen IP-osoite. Varmista, että verkkoliittymäsi määritykset mahdollistavat palvelimen käytön."
-
-#. Available placeholders:
-#. %(tunnelProtocol)s - the name of the tunnel protocol setting
-#. %(wireguard)s - will be replaced with "WireGuard"
-msgctxt "vpn-settings-view"
-msgid "The DNS server you want to add is public and will only work with %(wireguard)s. To ensure that it always works, set the \"%(tunnelProtocol)s\" (in Advanced settings) to %(wireguard)s."
-msgstr "Lisättävä DNS-palvelin on julkinen ja toimii vain %(wireguard)sin kanssa. Varmista, että se on aina toiminnassa asettamalla \"%(tunnelProtocol)s\"-asetukseksi %(wireguard)s (lisäasetuksissa)."
 
 msgctxt "vpn-settings-view"
 msgid "This built-in feature prevents your traffic from leaking outside of the VPN tunnel if your network suddenly stops working or if the tunnel fails, it does this by blocking your traffic until your connection is reestablished."
@@ -2077,8 +2219,8 @@ msgid "%(wireguard)s settings"
 msgstr "%(wireguard)s-asetukset"
 
 msgctxt "wireguard-settings-view"
-msgid "Attention: Be cautious if you have a limited data plan as this feature will increase your network traffic. This feature can only be used with %(wireguard)s."
-msgstr "Huomio: Ole varovainen, jos sinulla on rajoitettu datasopimus, koska tämä ominaisuus kasvattaa verkkoliikennettäsi. Tätä ominaisuutta voidaan käyttää vain %(wireguard)sin kanssa."
+msgid "Attention: This increases network traffic and will also negatively affect speed, latency, and battery usage. Use with caution on limited plans. Only works with %(wireguard)s."
+msgstr "Huomio: Toiminto kasvattaa verkkoliikennettä ja vaikuttaa sen vuoksi negatiivisesti sekä nopeuteen, viiveeseen että akun kulumiseen. Käytä harkiten, kun datasopimuksesi on rajoitettu. Toimii vain %(wireguard)sin kanssa."
 
 msgctxt "wireguard-settings-view"
 msgid "By enabling “%(directOnly)s” you will have to manually select a server that is %(daita)s-enabled. This can cause you to end up in a blocked state until you have selected a compatible server in the “Select location” view."
@@ -2129,8 +2271,10 @@ msgctxt "wireguard-settings-view"
 msgid "Obfuscation"
 msgstr "Hämäysteknologia"
 
+#. Describes what WireGuard obfuscation does, how it works and when
+#. it would be useful to enable it.
 msgctxt "wireguard-settings-view"
-msgid "Obfuscation hides the WireGuard traffic inside another protocol. It can be used to help circumvent censorship and other types of filtering, where a plain WireGuard connect would be blocked."
+msgid "Obfuscation hides the WireGuard traffic inside another protocol. It can be used to help circumvent censorship and other types of filtering, where a plain WireGuard connection would be blocked."
 msgstr "Hämäysteknologian käyttäminen piilottaa WireGuard-liikenteen toisen protokollan sisään. Sitä voidaan käyttää kiertämään sensuuria ja muita suodatuksia niissä tapauksissa, kun tavallinen WireGuard-yhteys muutoin estettäisi."
 
 msgctxt "wireguard-settings-view"
@@ -2165,8 +2309,8 @@ msgid "Shadowsocks"
 msgstr "Shadowsocks"
 
 msgctxt "wireguard-settings-view"
-msgid "Switch to “%(wireguard)s” or “%(automatic)s” in Settings > %(tunnelProtocol)s to make %(setting)s available."
-msgstr "Vaihda arvoon \"%(wireguard)s\" tai \"%(automatic)s\" kohdasta Asetukset > %(tunnelProtocol)s saadaksesi asetuksen %(setting)s käyttöön."
+msgid "Switch to “%(wireguard)s” in Settings > %(tunnelProtocol)s to make %(setting)s available."
+msgstr "Ota %(setting)s käyttöön vaihtamalla arvoon \"%(wireguard)s\" kohdassa Asetukset > %(tunnelProtocol)s."
 
 msgctxt "wireguard-settings-view"
 msgid "The automatic setting will randomly choose from the valid port ranges shown below."
@@ -2204,14 +2348,23 @@ msgctxt "wireguard-settings-view"
 msgid "Which TCP port the UDP-over-TCP obfuscation protocol should connect to on the VPN server."
 msgstr "Määrittää, mihin VPN-palvelimen TCP-porttiin \"UDP TCP:n kautta\" -hämäysteknologia-protokollan tulee muodostaa yhteys."
 
-msgid "%s (%s) hides patterns in your encrypted VPN traffic. If anyone is monitoring your connection, this makes it significantly harder for them to identify what websites you are visiting. It does this by carefully adding network noise and making all network packets the same size."
-msgstr "%s (%s) piilottaa kuviot salatusta VPN-liikenteestäsi. Jos joku tarkkailee yhteyttäsi, hänen on huomattavasti vaikeampi tunnistaa, millä verkkosivustoilla vierailet. Se tekee tämän lisäämällä varovasti verkkokohinaa ja tekemällä kaikista verkkopaketeista samankokoisia."
+msgid "%s (Entry)"
+msgstr "%s (tulo)"
+
+msgid "%s (Exit)"
+msgstr "%s (lähtö)"
 
 msgid "%s (added)"
 msgstr "%s (lisätty)"
 
-msgid "%s using %s"
-msgstr "%s, käytössä %s"
+msgid "%s (removed)"
+msgstr "%s (poistettu)"
+
+msgid "%s custom port"
+msgstr "Mukautettu %s-portti"
+
+msgid "%s more..."
+msgstr "%s lisää..."
 
 msgid "%s was added to \"%s\""
 msgstr "%s lisättiin luetteloon\"%s\""
@@ -2222,14 +2375,14 @@ msgstr "%s lisättiin tilillesi."
 msgid "%s was removed from \"%s\""
 msgstr "%s poistettiin kohteesta \"%s\""
 
-msgid "1. After clicking on the <b>Go to VPN settings</b> button below, click on the cogwheel next to the <b>Mullvad VPN</b> name."
-msgstr "1. Napsautettuasi alla olevaa <b>Siirry VPN-asetuksiin</b> -painiketta napsauta <b>Mullvad VPN:n</b> nimen vierestä löytyvää hammaspyöräkuvaketta."
+msgid "1. After clicking on the \"Go to VPN settings\" button below, click on the cogwheel next to the \"Mullvad VPN\" name."
+msgstr "1. Napsautettuasi alla olevaa \"Siirry VPN-asetuksiin\" -painiketta napsauta Mullvad VPN:n nimen vierestä löytyvää hammaspyöräkuvaketta."
 
-msgid "2. To enable Auto-connect, click on the toggle next to <b>Always-on VPN</b>."
-msgstr "2. Ota automaattinen yhteyden muodostus käyttöön napsauttamalla \"<b>Aina päällä oleva VPN</b>\" -kohdan vieressä olevaa valintapainiketta."
+msgid "2. To enable Auto-connect, click on the toggle next to \"Always-on VPN\"."
+msgstr "2. Ota automaattinen yhteyden muodostus käyttöön napsauttamalla \"Aina päällä oleva VPN\" -kohdan vieressä olevaa valintapainiketta."
 
-msgid "3. To enable Lockdown mode, click on the toggle next to <b>Block connections without VPN</b>.<br /><br /><b>Warning: This setting blocks split apps and the Local Network Sharing feature.</b>"
-msgstr "3. Ota lukitustila käyttöön napsauttamalla kohdan \"<b>Estä yhteydet ilman VPN:ää</b>\" vieressä olevaa kytkintä.<br /><br /><b>Varoitus: Tämä asetus estää jaetut sovellukset ja paikallisen verkon jakamisominaisuuden.</b>"
+msgid "3. To enable Lockdown mode, click on the toggle next to \"Block connections without VPN\".<br /><br /><b>Warning: This setting blocks split apps and the Local Network Sharing feature.</b>"
+msgstr "3. Ota lukitustila käyttöön napsauttamalla kohdan \"Estä yhteydet ilman VPN:ää\" vieressä olevaa kytkintä.<br /><br /><b>Varoitus: Tämä asetus estää jaetut sovellukset ja paikallisen verkon jakamisominaisuuden.</b>"
 
 msgid "30 days was added to your account."
 msgstr "Tilillesi lisättiin 30 päivää käyttöaikaa."
@@ -2276,44 +2429,56 @@ msgstr "Kaikki sovellukset"
 msgid "All overrides will be reset and servers IP addresses, in the Select location view, will go back to default."
 msgstr "Kaikki ohitukset nollataan ja palvelinten IP-osoitteet palautuvat oletusarvoihin sijainnin valintanäkymässä."
 
-msgid "Allows access to other devices on the same network for sharing, printing etc."
-msgstr "Sallii jakamisen, tulostuksen ym. saman verkon muille laitteille."
+msgid "Always-on VPN assigned to %s"
+msgstr "%s on määritetty aina päällä olevan VPN:n asetukseksi"
 
-msgid "Always-on VPN assigned to other app"
-msgstr "Aina päällä oleva VPN on määritetty toiselle sovellukselle"
-
-msgid "Always-on VPN might be enabled for another app"
-msgstr "Aina päällä oleva VPN on mahdollisesti otettu käyttöön toiselle sovellukselle"
+msgid "Always-on VPN assigned to other VPN"
+msgstr "Aina päällä oleva VPN on määritetty toiselle VPN:lle"
 
 msgid "At least one method needs to be enabled"
 msgstr "Vähintään yhden menetelmän on oltava käytössä"
 
+msgid "Attention: If \"Block connections without VPN\" is enabled, \"Local network sharing\" will not work."
+msgstr "Huomio: jos yhteyksien estäminen ilman VPN:ää on sallittu, paikallisen verkon jakaminen ei toimi."
+
 msgid "Attention: If \"Block connections without VPN\" is enabled, split apps will not have Internet. Always keep in mind that split tunneling is a privacy risk."
 msgstr "Huomio: Jos \"Estä yhteydet ilman VPN:ää\" -vaihtoehto on käytössä, sovelluskohtaisesti yhdistettävillä sovelluksilla ei ole pääsyä internetiin. Muista aina, että sovelluskohtainen yhdistäminen on tietosuojariski."
 
-msgid "Attention: Since this increases your total network traffic, be cautious if you have a limited data plan. It can also negatively impact your network speed and battery usage."
-msgstr "Huomioithan, että ominaisuuden käyttöönotto kasvattaa verkkoliikennettäsi kokonaisuudessaan ja voi myös vaikuttaa negatiivisesti verkon nopeuteen ja akun kestoon. Ominaisuuden käyttöönottoa kannattaa harkita tarkkaan, mikäli datapakettisi tiedonsiirtomäärä on rajoitettu."
+msgid "Attention: Shadowsocks can increase battery consumption depending on data usage, such as streaming a video."
+msgstr "Huomio: Shadowsocksin käyttö voi kasvattaa akun kulutusta riippuen tiedonsiirtomääristä (esimerkiksi suoratoistettaessa videoita)."
 
-msgid "Attention: this setting cannot be used in combination with <b>Use custom DNS server</b>."
-msgstr "Huomio: asetusta ei voi käyttää yhdessä \"<b>Käytä mukautettua DNS-palvelinta</b>\" -asetuksen kanssa."
+msgid "Attention: This increases network traffic and will also negatively affect speed, latency, and battery usage. Use with caution on limited plans."
+msgstr "Huomio: Toiminto kasvattaa verkkoliikennettä ja vaikuttaa sen vuoksi negatiivisesti sekä nopeuteen, viiveeseen että akun kulumiseen. Käytä harkiten, kun datasopimuksesi on rajoitettu."
+
+msgid "Attention: this setting cannot be used in combination with \"Use custom DNS server\"."
+msgstr "Huomio: asetusta ei voi käyttää yhdessä \"Käytä mukautettua DNS-palvelinta\" -asetuksen kanssa."
 
 msgid "Auto-connect & Lockdown mode"
 msgstr "Automaattinen yhdistäminen ja lukitustila"
 
-msgid "Auto-connect (legacy)"
-msgstr "Autom. yhdistäminen (vanha järjestelmä)"
-
 msgid "Auto-connect is called Always-on VPN in the Android system settings and it makes sure you are constantly connected to the VPN tunnel and auto connects after restart."
 msgstr "Automaattista yhdistämistä kutsutaan aina päällä olevaksi VPN-yhteydeksi Androidin järjestelmäasetuksissa. Se varmistaa, että olet jatkuvasti yhteydessä VPN-tunneliin, sekä muodostaa yhteyden automaattisesti aina uudelleenkäynnistyksen jälkeen."
 
-msgid "Automatically connect when the app launches. This setting will be replaced with a new connect on device start-up feature in a future update."
-msgstr "Yhdistä automaattisesti, kun sovellus käynnistyy. Tämä asetus korvataan tulevassa päivityksessä uudella ominaisuudella; yhteyden muodostamisella laitteen käynnistyessä."
+msgid "Automatically connect on device start-up. Only works if the app has been granted the VPN permission."
+msgstr "Muodosta yhteys automaattisesti laitteen käynnistyksen yhteydessä. Tämä toimii ainoastaan kun sovellukselle on myönnetty VPN:n käyttöoikeus."
 
 msgid "Blocking internet (device offline)"
 msgstr "Internetyhteys on estetty (laite on offline-tilassa)"
 
+msgid "Blocking..."
+msgstr "Estetään..."
+
 msgid "Changes to DNS related settings might not go into effect immediately due to cached results."
 msgstr "DNS-asetuksiin tehdyt muutokset eivät välttämättä astu voimaan välittömästi välimuistissa olevien tulosten vuoksi."
+
+msgid "Clear input"
+msgstr "Tyhjennä syöte"
+
+msgid "Collapse"
+msgstr "Näytä vähemmän"
+
+msgid "Connect on device start-up"
+msgstr "Luo yhteys, kun laite käynnistyy"
 
 msgid "Connecting..."
 msgstr "Yhdistetään..."
@@ -2324,11 +2489,14 @@ msgstr "Mullvad-tilin numero kopioitu leikepöydälle"
 msgid "Copied logs to clipboard"
 msgstr "Lokit kopioitu leikepöydälle"
 
-msgid "Copied to clipboard"
-msgstr "Kopioitu leikepöydälle"
+msgid "Copy"
+msgstr "Kopioi"
 
 msgid "Create"
 msgstr "Luo"
+
+msgid "Create new account"
+msgstr "Luo uusi tili"
 
 msgid "Create new list"
 msgstr "Luo uusi luettelo"
@@ -2354,8 +2522,14 @@ msgstr "Poista menetelmä"
 msgid "Delete method?"
 msgstr "Poista menetelmä?"
 
-msgid "Disable all <b>%s</b> above to activate this setting."
-msgstr "Ota tämä asetus käyttöön poistamalla kaikki <b>%s</b> käytöstä yllä."
+msgid "Device IP version"
+msgstr "Laitteen IP-versio"
+
+msgid "Disable \"%s\" below to activate these settings."
+msgstr "Ota nämä asetukset käyttöön poistamalla \"%s\" käytöstä alta."
+
+msgid "Disable all \"%s\" above to activate this setting."
+msgstr "Ota tämä asetus käyttöön poistamalla kaikki %s käytöstä yllä."
 
 msgid "Discard"
 msgstr "Hylkää"
@@ -2363,8 +2537,17 @@ msgstr "Hylkää"
 msgid "Discard changes?"
 msgstr "Hylätäänkö muokkaukset?"
 
+msgid "Disconnected (No VPN permission)"
+msgstr "Yhteys katkaistu (ei VPN-käyttöoikeutta)"
+
+msgid "Disconnecting..."
+msgstr "Katkaistaan yhteyttä..."
+
 msgid "Dismiss"
 msgstr "Jätä huomiotta"
+
+msgid "Do you want to create a new account?"
+msgstr "Haluatko luoda uuden tilin?"
 
 msgid "Edit custom lists"
 msgstr "Muokkaa mukautettuja luetteloita"
@@ -2381,6 +2564,9 @@ msgstr "Muokkaa sijainteja"
 msgid "Edit name"
 msgstr "Muokkaa nimeä"
 
+msgid "Enable %s"
+msgstr "Ota %s käyttöön"
+
 msgid "Enable method"
 msgstr "Ota menetelmä käyttöön"
 
@@ -2389,6 +2575,12 @@ msgstr "Syötä MTU"
 
 msgid "Excluded applications"
 msgstr "Poissuljetut sovellukset"
+
+msgid "Expand"
+msgstr "Näytä enemmän"
+
+msgid "FAILED TO CONNECT"
+msgstr "YHDISTÄMINEN EPÄONNISTUI"
 
 msgid "Failed to apply patch"
 msgstr "Muutostiedoston käyttöönotto ei onnistunut"
@@ -2401,6 +2593,9 @@ msgstr "Nykyisen asetus epäonnistui – Tuntematon syy"
 
 msgid "File"
 msgstr "Tiedosto"
+
+msgid "Filters:"
+msgstr "Suodattimet:"
 
 msgid "Go to VPN settings"
 msgstr "Siirry VPN-asetuksiin"
@@ -2426,6 +2621,9 @@ msgstr "Tuonti onnistui ja ohituksia on käytössä"
 msgid "Importing new overrides might replace some previously imported overrides."
 msgstr "Uusien ohitusten tuonti saattaa korvata joitain aiemmin tuotuja ohituksia."
 
+msgid "In-tunnel IPv6"
+msgstr "Tunnelin IPv6"
+
 msgid "Invalid or missing value \"%s\""
 msgstr "Arvo \"%s\" puuttuu tai on virheellinen"
 
@@ -2450,9 +2648,6 @@ msgstr "Varmistaa, että laite on aina yhteydessä VPN-tunnelin kautta."
 msgid "Manage account"
 msgstr "Tilin hallinta"
 
-msgid "Mullvad account number"
-msgstr "Mullvad-tilin numero"
-
 msgid "Mullvad services unavailable"
 msgstr "Mullvad-palvelut eivät ole käytettävissä"
 
@@ -2461,6 +2656,15 @@ msgstr "Nimeksi vaihdettiin \"%s\""
 
 msgid "New list"
 msgstr "Uusi luettelo"
+
+msgid "No Android app store installed, could not open link"
+msgstr "Androidin sovelluskauppaa ei ole asennettu, joten linkin avaaminen ei onnistu"
+
+msgid "No browser app installed, could not open link"
+msgstr "Selainsovellusta ei ole asennettu, joten linkin avaaminen ei onnistu"
+
+msgid "No changelog was added for this version"
+msgstr "Tälle versiolle ei lisätty muutoslokia"
 
 msgid "No custom lists available"
 msgstr "Mukautettuja luetteloita ei löytynyt"
@@ -2471,11 +2675,11 @@ msgstr "Ei verkkoyhteyttä"
 msgid "No locations found"
 msgstr "Sijainteja ei löytynyt"
 
+msgid "No result for \"%s\", please try a different search"
+msgstr "Haulle \"%s\" ei löytynyt tuloksia. Kokeile toista hakua."
+
 msgid "Not found"
 msgstr "Ei löydy"
-
-msgid "On (UDP-over-TCP)"
-msgstr "Käytössä (UDP TCP:n kautta)"
 
 msgid "Overrides active"
 msgstr "Ohituksia on käytössä"
@@ -2501,11 +2705,8 @@ msgstr "Anna kelvollinen IPv4- tai IPv6-osoite"
 msgid "Please enter a valid remote server port"
 msgstr "Anna kelvollinen etäpalvelimen portti"
 
-msgid "Please use the <b>Always-on</b> system setting instead by following the guide in <b>%s</b> above."
-msgstr "Käytä tämän asemesta <b>aina käytössä</b> -järjestelmäasetusta noudattamalla edellisestä kohdasta löytyvää opasta aiheesta <b>%s</b>."
-
-msgid "Preferences"
-msgstr "Asetukset"
+msgid "Please press connect to request VPN permission"
+msgstr "Pyydä VPN:n käyttölupa yhteydenluontipainiketta painamalla"
 
 msgid "Privacy"
 msgstr "Tietosuoja"
@@ -2537,17 +2738,20 @@ msgstr "Nollaa ohitukset"
 msgid "Reset to default"
 msgstr "Palauta oletusarvo"
 
-msgid "Secure my connection"
-msgstr "Suojaa yhteys"
+msgid "Search"
+msgstr "Haku"
 
-msgid "Secured"
-msgstr "Suojattu"
+msgid "Set %s obfuscation to \"Automatic\" or \"Off\" below to activate this setting."
+msgstr "Jotta voit käyttää tätä asetusta, poista %s-hämäysteknologia käytöstä tai säädä sen asetukseksi \"Automaattinen\" alta."
 
 msgid "Set WireGuard MTU value. Valid range: %d - %d."
 msgstr "Aseta WireGuardin MTU-arvo väliltä %d–%d."
 
 msgid "Set port"
 msgstr "Määritä portti"
+
+msgid "Share…"
+msgstr "Jaa…"
 
 msgid "Show system apps"
 msgstr "Näytä järjestelmäsovellukset"
@@ -2573,23 +2777,23 @@ msgstr "Teksti"
 msgid "The Auto-connect and Lockdown mode settings can be found in the Android system settings, follow this guide to enable one or both."
 msgstr "Automaattisen yhdistämisen ja lukitustilan asetukset löytyvät Androidin järjestelmäasetuksista. Voit ottaa jommankumman tai molemmat käyttöön tämän oppaan ohjeilla."
 
-msgid "The Lockdown mode is called <b>Block connections without VPN</b> in the Android system settings. It helps minimize leaks, however it has some known limitations which you can read more about"
-msgstr "Lukitustila löytyy Android-järjestelmäasetuksista nimellä \"<b>Estä yhteydet ilman VPN:ää</b>\". Lukitustila auttaa minimoimaan vuodot, mutta siihen liittyy myös muutamia tunnettuja rajoituksia. Voit lukea niistä lisää"
+msgid "The IPv6 DNS server will not work unless you enable \"IPv6\" under VPN settings."
+msgstr "IPv6-DNS-palvelin ei toimi, ellet ota IPv6:ta käyttöön VPN-asetuksista."
+
+msgid "The Lockdown mode is called \"Block connections without VPN\" in the Android system settings. It helps minimize leaks, however it has some known limitations which you can read more about"
+msgstr "Lukitustila löytyy Android-järjestelmäasetuksista nimellä \"Estä yhteydet ilman VPN:ää\". Lukitustila auttaa minimoimaan vuodot, mutta siihen liittyy myös muutamia tunnettuja rajoituksia. Voit lukea niistä lisää"
 
 msgid "The \"Current\" method represent which method the app is using to reach the API."
 msgstr "\"Nykyinen\" menetelmä edustaa sitä, mitä menetelmää sovellus käyttää APIn tavoittamiseen."
 
-msgid "The local DNS server will not work unless you enable \"Local Network Sharing\" under Preferences."
-msgstr "Paikallinen DNS-palvelin ei toimi, ellet ota paikallisen verkon jakamisasetusta käyttöön asetuksissa."
-
-msgid "There is no VPN settings on your device"
-msgstr "Laitteessasi ei ole VPN-asetuksia"
+msgid "The local DNS server will not work unless you enable \"Local Network Sharing\" under VPN settings."
+msgstr "Paikallinen DNS-palvelin ei toimi, ellet ota paikallisen verkon jakamista käyttöön VPN-asetuksista."
 
 msgid "This address has already been entered."
 msgstr "Tämä osoite on annettu jo."
 
-msgid "This feature isn’t available on all servers. You might need to change location after enabling."
-msgstr "Ominaisuus ei ole käytettävissä kaikilla palvelimilla, joten saatat joutua vaihtamaan sijaintia otettuasi sen käyttöön."
+msgid "This allows access to WireGuard for devices that only support IPv6."
+msgstr "Tämä mahdollistaa pääsyn WireGuardiin laitteille, jotka tukevat vain IPv6-protokollaa."
 
 msgid "This field is required"
 msgstr "Tämä kenttä on pakollinen"
@@ -2609,11 +2813,17 @@ msgstr "Sovellus suorittaa versiotarkistuksia automaattisesti varmistaakseen, et
 msgid "Toggle VPN"
 msgstr "Vaihda VPN:ää"
 
+msgid "Type at least 2 characters to start searching."
+msgstr "Aloita haku kirjoittamalla vähintään 2 merkkiä."
+
 msgid "Unable to apply firewall rules. Please troubleshoot or send a problem report."
 msgstr "Palomuurisääntöjä ei voida käyttää. Suorita vianetsintä tai lähetä ongelmaraportti."
 
 msgid "Unable to parse patch"
 msgstr "Muutostiedoston jäsentäminen ei onnistu"
+
+msgid "Unable to start tunnel connection. Please disable Always-on VPN before using Mullvad VPN."
+msgstr "Tunneliyhteyden käynnistäminen ei onnistu. Poista aina päällä oleva VPN käytöstä ennen Mullvad VPN:n käyttämistä."
 
 msgid "Unable to start tunnel connection. Please disable Always-on VPN for <b>%s</b> before using Mullvad VPN."
 msgstr "Tunneliyhteyden käynnistäminen ei onnistu. Poista aina päällä oleva VPN käytöstä sovellukselle <b>%s</b> ennen Mullvad VPN:n käyttämistä."
@@ -2624,17 +2834,8 @@ msgstr "Kumoa"
 msgid "Unknown or prohibited key \"%s\""
 msgstr "Tuntematon tai kielletty avain \"%s\""
 
-msgid "Unsecured"
-msgstr "Suojaamaton"
-
-msgid "Unsecured (No VPN permission)"
-msgstr "Suojaamaton (ei VPN-käyttöoikeutta)"
-
 msgid "Update DNS server"
 msgstr "Päivitä DNS-palvelin"
-
-msgid "Update available, download to remain safe."
-msgstr "Päivitys saatavilla. Lataa se pysyäksesi suojattuna."
 
 msgid "Update list name"
 msgstr "Päivitä luettelon nimi"
@@ -2645,8 +2846,8 @@ msgstr "Käytä menetelmä"
 msgid "VPN permission error"
 msgstr "VPN-lupavirhe"
 
-msgid "VPN permission was denied when creating the tunnel. Please try connecting again."
-msgstr "VPN-lupa evättiin tunnelia luotaessa. Yritä muodostaa yhteys uudelleen."
+msgid "VPN permission was denied or another app has \"Always-on VPN\" enabled"
+msgstr "VPN:n käyttöoikeus evättiin tai toisella sovelluksella on aina päällä oleva VPN käytössä"
 
 msgid "VPN tunnel status"
 msgstr "VPN-tunnelin tila"
@@ -2669,8 +2870,8 @@ msgstr "Ostosta vahvistetaan..."
 msgid "Verifying voucher…"
 msgstr "Kuponkia vahvistetaan…"
 
-msgid "Virtual adapter error"
-msgstr "Virtuaalisovittimen virhe"
+msgid "Version"
+msgstr "Versio"
 
 msgid "We are currently verifying your purchase, this might take some time. Your time will be added if the verification is successful."
 msgstr "Vahvistamme ostostasi parhaillaan. Siinä saattaa vierähtää jonkin aikaa. Tilillesi lisätään käyttöaikaa, kunhan ostoksen vahvistus onnistuu."
@@ -2681,14 +2882,8 @@ msgstr "Emme pystyneet aloittamaan maksun käsittelyä. Varmista, että käytät
 msgid "We were unable to start the payment process, please try again later."
 msgstr "Emme pystyneet aloittamaan maksun käsittelyä. Yritä myöhemmin uudelleen."
 
-msgid "While connected, your real location is masked with a private and secure location in the selected region."
-msgstr "Kun yhteys on muodostettu, yksityinen ja suojattu sijainti valitulta alueelta naamioi todellisen sijaintisi."
-
 msgid "WireGuard MTU"
 msgstr "WireGuard MTU"
-
-msgid "WireGuard custom port"
-msgstr "Mukautettu WireGuard-portti"
 
 msgid "WireGuard obfuscation"
 msgstr "WireGuard-obfuskointi"
@@ -2696,11 +2891,8 @@ msgstr "WireGuard-obfuskointi"
 msgid "WireGuard port"
 msgstr "WireGuard-portti"
 
-msgid "YOU MIGHT BE LEAKING NETWORK TRAFFIC"
-msgstr "VERKKOLIIKENTEESI SAATTAA VUOTAA"
-
-msgid "You are running an unsupported app version."
-msgstr "Sovellusversiotasi ei tueta."
+msgid "You already have a saved account number, by creating a new account the saved account number will be removed from this device. This cannot be undone."
+msgstr "Laitteellesi on jo tallennettu tilinumero, ja jos luot uuden tilin, numero poistetaan laitteelta. Toimintoa ei voi kumota."
 
 msgid "\"%s\" was created"
 msgstr "\"%s\" luotiin"
@@ -2710,9 +2902,6 @@ msgstr "\"%s\" poistettiin"
 
 msgid "here"
 msgstr "täältä"
-
-msgid "less than a minute ago"
-msgstr "alle minuutti sitten"
 
 msgid "less than one day"
 msgstr "alle vuorokausi"
@@ -2741,29 +2930,4 @@ msgid "Account credit expires in an hour"
 msgid_plural "Account credit expires in %d hours"
 msgstr[0] "Tilin käyttöaika päättyy tunnin kuluttua"
 msgstr[1] "Tilin käyttöaika päättyy %d tunnin kuluttua"
-
-msgid "a day ago"
-msgid_plural "%d days ago"
-msgstr[0] "1 päivä sitten"
-msgstr[1] "%d päivää sitten"
-
-msgid "a minute ago"
-msgid_plural "%d minutes ago"
-msgstr[0] "minuutti sitten"
-msgstr[1] "%d minuuttia sitten"
-
-msgid "a month ago"
-msgid_plural "%d months ago"
-msgstr[0] "kuukausi sitten"
-msgstr[1] "%d kuukautta sitten"
-
-msgid "a year ago"
-msgid_plural "%d years ago"
-msgstr[0] "vuosi sitten"
-msgstr[1] "%d vuotta sitten"
-
-msgid "an hour ago"
-msgid_plural "%d hours ago"
-msgstr[0] "tunti sitten"
-msgstr[1] "%d tuntia sitten"
 

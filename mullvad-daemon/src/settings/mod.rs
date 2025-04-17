@@ -107,11 +107,7 @@ impl SettingsPersister {
             mut should_save,
         } = Self::load_inner(|| Self::load_from_file(&path)).await;
 
-        // Force IPv6 to be enabled on Android
         if cfg!(target_os = "android") {
-            should_save |= !settings.tunnel_options.generic.enable_ipv6;
-            settings.tunnel_options.generic.enable_ipv6 = true;
-
             // Auto-connect is managed by Android itself.
             settings.auto_connect = false;
         }
@@ -246,6 +242,10 @@ impl SettingsPersister {
         self.notify_listeners();
 
         Ok(())
+    }
+
+    pub const fn settings(&self) -> &Settings {
+        &self.settings
     }
 
     pub fn to_settings(&self) -> Settings {
@@ -500,10 +500,9 @@ impl Display for SettingsSummary<'_> {
 
 impl SettingsSummary<'_> {
     fn fmt_option<T: Display>(f: &mut fmt::Formatter<'_>, val: Option<T>) -> fmt::Result {
-        if let Some(inner) = &val {
-            inner.fmt(f)
-        } else {
-            f.write_str("unset")
+        match &val {
+            Some(inner) => inner.fmt(f),
+            _ => f.write_str("unset"),
         }
     }
 }
@@ -551,9 +550,7 @@ mod test {
                       }
                     }
                   },
-                  "tunnel_protocol": {
-                    "only": "wireguard"
-                  },
+                  "tunnel_protocol": "wireguard",
                   "wireguard_constraints": {
                     "port": "any"
                   },

@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 02/05/2019.
-//  Copyright © 2019 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadREST
@@ -29,6 +29,7 @@ final class LocationViewController: UIViewController {
     private var filter = RelayFilter()
     private var selectedRelays: RelaySelection
     private var shouldFilterDaita: Bool
+    private var shouldFilterObfuscation: Bool
     weak var delegate: LocationViewControllerDelegate?
     var customListRepository: CustomListRepositoryProtocol
 
@@ -39,11 +40,13 @@ final class LocationViewController: UIViewController {
     init(
         customListRepository: CustomListRepositoryProtocol,
         selectedRelays: RelaySelection,
-        shouldFilterDaita: Bool
+        shouldFilterDaita: Bool,
+        shouldFilterObfuscation: Bool
     ) {
         self.customListRepository = customListRepository
         self.selectedRelays = selectedRelays
         self.shouldFilterDaita = shouldFilterDaita
+        self.shouldFilterObfuscation = shouldFilterObfuscation
 
         super.init(nibName: nil, bundle: nil)
     }
@@ -86,9 +89,14 @@ final class LocationViewController: UIViewController {
         dataSource?.setRelays(relaysWithLocation, selectedRelays: selectedRelays)
     }
 
-    func setShouldFilterDaita(_ shouldFilterDaita: Bool) {
-        self.shouldFilterDaita = shouldFilterDaita
-        filterView.setDaita(shouldFilterDaita)
+    func setDaitaChip(_ isEnabled: Bool) {
+        self.shouldFilterDaita = isEnabled
+        filterView.setDaita(isEnabled)
+    }
+
+    func setObfuscationChip(_ isEnabled: Bool) {
+        self.shouldFilterObfuscation = isEnabled
+        filterView.setObfuscation(isEnabled)
     }
 
     func refreshCustomLists() {
@@ -100,7 +108,16 @@ final class LocationViewController: UIViewController {
         dataSource?.setSelectedRelays(selectedRelays)
     }
 
-    func enableDaitaAutomaticRouting() {
+    func toggleDaitaAutomaticRouting(isEnabled: Bool) {
+        guard isEnabled else {
+            daitaInfoView?.removeFromSuperview()
+            daitaInfoView = nil
+
+            searchBar.searchTextField.isEnabled = true
+            UITextField.SearchTextFieldAppearance.inactive.apply(to: searchBar)
+            return
+        }
+
         guard daitaInfoView == nil else { return }
 
         let daitaInfoView = DAITAInfoView()
@@ -118,14 +135,6 @@ final class LocationViewController: UIViewController {
         searchBar.searchTextField.isEnabled = false
     }
 
-    func disableDaitaAutomaticRouting() {
-        daitaInfoView?.removeFromSuperview()
-        daitaInfoView = nil
-
-        searchBar.searchTextField.isEnabled = true
-        UITextField.SearchTextFieldAppearance.inactive.apply(to: searchBar)
-    }
-
     // MARK: - Private
 
     private func setUpDataSource() {
@@ -136,16 +145,20 @@ final class LocationViewController: UIViewController {
         )
 
         dataSource?.didSelectRelayLocations = { [weak self] relays in
-            self?.delegate?.didSelectRelays(relays: relays)
+            Task { @MainActor in
+                self?.delegate?.didSelectRelays(relays: relays)
+            }
         }
 
         dataSource?.didTapEditCustomLists = { [weak self] in
             guard let self else { return }
 
-            if let relaysWithLocation {
-                let allLocationDataSource = AllLocationDataSource()
-                allLocationDataSource.reload(relaysWithLocation)
-                delegate?.navigateToCustomLists(nodes: allLocationDataSource.nodes)
+            Task { @MainActor in
+                if let relaysWithLocation {
+                    let allLocationDataSource = AllLocationDataSource()
+                    allLocationDataSource.reload(relaysWithLocation)
+                    delegate?.navigateToCustomLists(nodes: allLocationDataSource.nodes)
+                }
             }
         }
 
@@ -170,6 +183,7 @@ final class LocationViewController: UIViewController {
         topContentView.addArrangedSubview(filterView)
         topContentView.addArrangedSubview(searchBar)
         filterView.setDaita(shouldFilterDaita)
+        filterView.setObfuscation(shouldFilterObfuscation)
 
         filterView.didUpdateFilter = { [weak self] in
             self?.delegate?.didUpdateFilter(filter: $0)

@@ -3,13 +3,13 @@
 //  MullvadTypes
 //
 //  Created by pronebird on 12/02/2020.
-//  Copyright © 2020 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import CoreLocation
 import Foundation
 
-public struct Location: Codable, Equatable {
+public struct Location: Codable, Equatable, Sendable {
     public var country: String
     public var countryCode: String
     public var city: String

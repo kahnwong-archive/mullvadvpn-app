@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by Jon Petersson on 2023-06-19.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadTypes
@@ -57,21 +57,50 @@ class RelayFilterView: UIView {
     }
 
     func setDaita(_ enabled: Bool) {
-        let text = NSLocalizedString(
-            "RELAY_FILTER_APPLIED_DAITA",
-            tableName: "RelayFilter",
-            value: "Setting: DAITA",
-            comment: ""
+        let chip = ChipConfiguration(
+            group: .settings,
+            title: NSLocalizedString(
+                "RELAY_FILTER_APPLIED_DAITA",
+                tableName: "RelayFilter",
+                value: "Setting: DAITA",
+                comment: ""
+            ),
+            accessibilityId: .daitaFilterPill,
+            didTapButton: nil
         )
-        chips.removeAll(where: { $0.title.contains(text) })
-        if enabled {
-            chips.insert(ChipConfiguration(group: .settings, title: text, didTapButton: nil), at: 0)
-        }
-        chipsView.setChips(chips)
-        hideIfNeeded()
+
+        setChip(chip, enabled: enabled)
+    }
+
+    func setObfuscation(_ enabled: Bool) {
+        let chip = ChipConfiguration(
+            group: .settings,
+            title: NSLocalizedString(
+                "RELAY_FILTER_APPLIED_OBFUSCATION",
+                tableName: "RelayFilter",
+                value: "Setting: Obfuscation",
+                comment: ""
+            ),
+            accessibilityId: .obfuscationFilterPill,
+            didTapButton: nil
+        )
+
+        setChip(chip, enabled: enabled)
     }
 
     // MARK: - Private
+
+    private func setChip(_ chip: ChipConfiguration, enabled: Bool) {
+        if enabled {
+            if !chips.contains(chip) {
+                chips.insert(chip, at: 0)
+            }
+        } else {
+            chips.removeAll { $0 == chip }
+        }
+
+        chipsView.setChips(chips)
+    }
 
     private func setUpViews() {
         let dummyView = UIView()
@@ -79,10 +108,9 @@ class RelayFilterView: UIView {
 
         let contentContainer = UIStackView(arrangedSubviews: [dummyView, chipsView])
         contentContainer.distribution = .fill
-        contentContainer.alignment = .firstBaseline
 
         collectionViewHeightConstraint = chipsView.collectionView.heightAnchor
-            .constraint(equalToConstant: 8.0)
+            .constraint(equalToConstant: 8)
         collectionViewHeightConstraint.isActive = true
 
         dummyView.addConstrainedSubviews([titleLabel]) {
@@ -90,7 +118,7 @@ class RelayFilterView: UIView {
         }
 
         addConstrainedSubviews([contentContainer]) {
-            contentContainer.pinEdgesToSuperview(PinnableEdges([.top(8.0), .bottom(8.0), .leading(4), .trailing(4)]))
+            contentContainer.pinEdgesToSuperview(PinnableEdges([.top(8), .bottom(8), .leading(4), .trailing(4)]))
         }
 
         // Add KVO for observing collectionView's contentSize changes
@@ -164,9 +192,11 @@ class RelayFilterView: UIView {
             .old,
         ]) { [weak self] _, change in
             guard let self, let newSize = change.newValue else { return }
-            let height = newSize.height == .zero ? 8 : newSize.height
-            collectionViewHeightConstraint.constant = height > 80 ? 80 : height
-            layoutIfNeeded() // Update the layout
+            Task { @MainActor in
+                let height = newSize.height == .zero ? 8 : newSize.height
+                collectionViewHeightConstraint.constant = height > 80 ? 80 : height
+                layoutIfNeeded() // Update the layout
+            }
         }
     }
 }

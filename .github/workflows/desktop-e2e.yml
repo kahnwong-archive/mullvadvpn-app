@@ -16,10 +16,10 @@ on:
         description: "Space-delimited list of targets to run tests on, e.g. `debian12 ubuntu2004`. \
           Available images:\n
           `debian11 debian12 ubuntu2004 ubuntu2204 ubuntu2404 ubuntu2410 fedora39 \
-          fedora40 fedora41 windows10 windows11 macos12 macos13 macos14 macos15`.\n
+          fedora40 fedora41 fedora42 windows10 windows11 macos12 macos13 macos14 macos15`.\n
           Default images:\n
           `debian12 ubuntu2004 ubuntu2204 ubuntu2404 ubuntu2410 fedora39 \
-          fedora40 fedora41 windows10 windows11 macos13 macos14 macos15`."
+          fedora40 fedora41 fedora42 windows10 windows11 macos13 macos14 macos15`."
         default: ''
         required: false
         type: string
@@ -41,8 +41,8 @@ jobs:
         run: |
           # A list of VMs to run the tests on. These refer to the names defined
           # in $XDG_CONFIG_DIR/mullvad-test/config.json on the runner.
-          all='["debian11","debian12","ubuntu2004","ubuntu2204","ubuntu2404","ubuntu2410","fedora39","fedora40","fedora41"]'
-          default='["debian12","ubuntu2004","ubuntu2204","ubuntu2404","ubuntu2410","fedora39","fedora40","fedora41"]'
+          all='["debian11","debian12","ubuntu2004","ubuntu2204","ubuntu2404","ubuntu2410","fedora39","fedora40","fedora41","fedora42"]'
+          default='["debian12","ubuntu2004","ubuntu2204","ubuntu2404","ubuntu2410","fedora40","fedora41","fedora42"]'
           oses="${{ github.event.inputs.oses }}"
           echo "OSES: $oses"
           if [[ -z "$oses" || "$oses" == "null" ]]; then
@@ -89,9 +89,6 @@ jobs:
   prepare-linux:
     name: Prepare Linux build container
     needs: prepare-matrices
-    if: |
-      needs.prepare-matrices.outputs.linux_matrix != '[]' &&
-      !startsWith(github.ref, 'refs/tags/') && github.ref != 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -106,12 +103,17 @@ jobs:
           echo "inner_container_image=$(cat ./building/linux-container-image.txt)" >> $GITHUB_ENV
     outputs:
       container_image: ${{ env.inner_container_image }}
-  build-linux:
-    name: Build Linux
+
+  build-linux-app:
+    name: Build Linux App
     needs: prepare-linux
     runs-on: ubuntu-latest
     container:
       image: ${{ needs.prepare-linux.outputs.container_image }}
+    if: |
+      !cancelled() &&
+      needs.prepare-matrices.outputs.linux_matrix != '[]' &&
+      needs.prepare-matrices.outputs.linux_matrix != ''
     continue-on-error: true
     steps:
       # Fix for HOME path overridden by GH runners when building in containers, see:
@@ -123,15 +125,26 @@ jobs:
       - name: Checkout submodules
         run: |
           git config --global --add safe.directory '*'
-          git submodule update --init --depth=1 dist-assets/binaries
-          git submodule update --init --recursive --depth=1 wireguard-go-rs
+          git submodule update --init --depth=1
+      - uses: actions/cache@v4
+        id: cache-app-cargo-artifacts
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+
       - name: Build app
-        env:
-          USE_MOLD: false
-        run: ./build.sh
+        run: |
+          export CARGO_TARGET_DIR=target/
+          ./build.sh --optimize
       - name: Build test executable
         run: ./desktop/packages/mullvad-vpn/scripts/build-test-executable.sh
-      - uses: actions/upload-artifact@v4
+      - name: Upload app
+        uses: actions/upload-artifact@v4
         if: '!cancelled()'
         with:
           name: linux-build
@@ -140,11 +153,101 @@ jobs:
             ./dist/*.deb
             ./dist/app-e2e-*
 
-  e2e-test-linux:
-    name: Linux end-to-end tests
-    needs: [prepare-matrices, build-linux]
+  get-app-version:
+    name: Get app version
+    needs: prepare-linux
+    runs-on: ubuntu-latest
+    outputs:
+      mullvad-version: ${{ steps.cargo-run.outputs.mullvad-version }}
+    container:
+      image: ${{ needs.prepare-linux.outputs.container_image }}
+    if: |
+      !cancelled()
+    steps:
+      # Fix for HOME path overridden by GH runners when building in containers, see:
+      # https://github.com/actions/runner/issues/863
+      - name: Fix HOME path
+        run: echo "HOME=/root" >> $GITHUB_ENV
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Run mullvad-version
+        id: cargo-run
+        run: |
+          # `mullvad-version` uses tags to compute the dev-suffix, so we must fetch them
+          git config --global --add safe.directory '*'
+          git fetch --tags --prune-tags --force > /dev/null
+          version=$(cargo run --package mullvad-version -q)
+          echo "Mullvad VPN app version: '$version'"
+          echo "mullvad-version=$version" >> "$GITHUB_OUTPUT"
+        shell: bash
+
+  # This step should always be run because the `test-manager` binary is used to compile the
+  # result matrix at the end! If that functionality is ever split out from the `test-manager`,
+  # this step may be conditionally run.
+  build-test-manager-linux:
+    name: Build Test Manager
+    needs: prepare-linux
+    # Note: libssl-dev is installed on the test server, so build test-manager there for the sake of simplicity
+    runs-on: [self-hosted, desktop-test, Linux] # app-test-linux
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Build test-manager
+        run: ./test/scripts/container-run.sh cargo build --package test-manager --release
+      - uses: actions/upload-artifact@v4
+        if: '!cancelled()'
+        with:
+          name: linux-test-manager-build
+          path: |
+            ./test/target/release/test-manager
+          if-no-files-found: error
+      - name: Clean up Cargo artifacts
+        run: |
+          cargo clean
+
+  build-test-runner-binaries-linux:
+    name: Build Test Runner Binaries
+    needs: prepare-linux
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.prepare-linux.outputs.container_image }}
     if: |
       !cancelled() &&
+      needs.prepare-matrices.outputs.linux_matrix != '[]' &&
+      needs.prepare-matrices.outputs.linux_matrix != ''
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Build binaries
+        run: |
+          # Move test runner binaries to a known location. This is needed in the coming `upload-artifact` step.
+          mkdir bin
+          test/scripts/build/test-runner.sh linux
+          mv -t ./bin/ \
+            "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/release/test-runner" \
+            "$CARGO_TARGET_DIR/x86_64-unknown-linux-gnu/release/connection-checker"
+      - uses: actions/upload-artifact@v4
+        if: '!cancelled()'
+        with:
+          name: linux-test-runner-binaries
+          path: bin/*
+          if-no-files-found: error
+
+  e2e-test-linux:
+    name: Linux end-to-end tests
+    # yamllint disable-line rule:line-length
+    needs:
+      [
+        prepare-matrices,
+        build-linux-app,
+        get-app-version,
+        build-test-manager-linux,
+        build-test-runner-binaries-linux,
+      ]
+    if: |
+      !cancelled() &&
+      needs.get-app-version.result == 'success' &&
       needs.prepare-matrices.outputs.linux_matrix != '[]' &&
       needs.prepare-matrices.outputs.linux_matrix != ''
     runs-on: [self-hosted, desktop-test, Linux] # app-test-linux
@@ -154,20 +257,49 @@ jobs:
       matrix:
         os: ${{ fromJSON(needs.prepare-matrices.outputs.linux_matrix) }}
     steps:
-      - uses: actions/download-artifact@v4
-        if: ${{ needs.build-linux.result == 'success' }}
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Create binaries directory & add to PATH
+        shell: bash -ieo pipefail {0}
+        run: |
+          # Put all binaries in a known folder: test-runner, connection-checker, mullvad-version
+          mkdir "${{ github.workspace }}/bin"
+          echo "${{ github.workspace }}/bin/" >> "$GITHUB_PATH"
+      - name: Download Test Manager
+        uses: actions/download-artifact@v4
+        if: ${{ needs.build-test-manager-linux.result == 'success' }}
+        with:
+          name: linux-test-manager-build
+          path: ${{ github.workspace }}/bin
+      - name: Download Test Runner binaries
+        uses: actions/download-artifact@v4
+        if: ${{ needs.build-test-runner-binaries-linux.result == 'success' }}
+        with:
+          name: linux-test-runner-binaries
+          path: ${{ github.workspace }}/bin
+      - name: chmod binaries
+        run: |
+          chmod +x ${{ github.workspace }}/bin/*
+        shell: bash
+      - name: Download App
+        uses: actions/download-artifact@v4
+        if: ${{ needs.build-linux-app.result == 'success' }}
         with:
           name: linux-build
           path: ~/.cache/mullvad-test/packages
-      - name: Checkout repository
-        uses: actions/checkout@v4
       - name: Run end-to-end tests
         shell: bash -ieo pipefail {0}
+        env:
+          CURRENT_VERSION: ${{needs.get-app-version.outputs.mullvad-version}}
         run: |
-          git fetch --tags --prune-tags --force
+          # A directory with all the binaries is required to run test-manager.
+          # The test scripts which runs in CI expects this folder to be available as the `TEST_DIST_DIR` variable.
+          export TEST_DIST_DIR="${{ github.workspace }}/bin/"
           export TEST_FILTERS="${{ github.event.inputs.tests }}"
-          ./test/scripts/ci-runtests.sh ${{ matrix.os }}
-      - uses: actions/upload-artifact@v4
+          ls -la "$TEST_DIST_DIR"
+          ./test/scripts/run/ci.sh ${{ matrix.os }}
+      - name: Upload test report
+        uses: actions/upload-artifact@v4
         if: '!cancelled()'
         with:
           name: ${{ matrix.os }}_report
@@ -183,8 +315,10 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        with:
-          submodules: true
+      - name: Checkout submodules
+        run: |
+          git config --global --add safe.directory '*'
+          git submodule update --init --depth=1
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
         with:
@@ -195,11 +329,11 @@ jobs:
           cache: 'npm'
           cache-dependency-path: desktop/package-lock.json
       - name: Install Rust
-        uses: actions-rs/toolchain@v1.0.6
+        run: rustup target add i686-pc-windows-msvc
+      - name: Install latest zig
+        uses: mlugg/setup-zig@v1
         with:
-          toolchain: stable
-          target: i686-pc-windows-msvc
-          default: true
+          version: 0.14.0-dev.3036+7ac110ac2
       - name: Install msbuild
         uses: microsoft/setup-msbuild@v1.0.2
         with:
@@ -226,9 +360,16 @@ jobs:
           path: .\dist\*.exe
 
   e2e-test-windows:
-    needs: [prepare-matrices, build-windows]
+    needs:
+      [
+        prepare-matrices,
+        build-windows,
+        get-app-version,
+        build-test-manager-linux,
+      ]
     if: |
       !cancelled() &&
+      needs.get-app-version.result == 'success' &&
       needs.prepare-matrices.outputs.windows_matrix != '[]' &&
       needs.prepare-matrices.outputs.windows_matrix != ''
     name: Windows end-to-end tests
@@ -239,20 +380,40 @@ jobs:
       matrix:
         os: ${{ fromJSON(needs.prepare-matrices.outputs.windows_matrix) }}
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      - name: Create binaries directory & add to PATH
+        shell: bash -ieo pipefail {0}
+        run: |
+          mkdir "${{ github.workspace }}/bin"
+          echo "${{ github.workspace }}/bin/" >> "$GITHUB_PATH"
+      - name: Download Test Manager
+        uses: actions/download-artifact@v4
+        if: ${{ needs.build-test-manager-linux.result == 'success' }}
+        with:
+          name: linux-test-manager-build
+          path: ${{ github.workspace }}/bin
+      - name: chmod binaries
+        run: |
+          chmod +x ${{ github.workspace }}/bin/*
+      - name: Download App
+        uses: actions/download-artifact@v4
         if: ${{ needs.build-windows.result == 'success' }}
         with:
           name: windows-build
           path: ~/.cache/mullvad-test/packages
-      - name: Checkout repository
-        uses: actions/checkout@v4
       - name: Run end-to-end tests
         shell: bash -ieo pipefail {0}
+        env:
+          CURRENT_VERSION: ${{needs.get-app-version.outputs.mullvad-version}}
         run: |
-          git fetch --tags --prune-tags --force
+          # A directory with all the binaries is required to run test-manager.
+          # The test scripts which runs in CI expects this folder to be available as the `TEST_DIST_DIR` variable.
+          export TEST_DIST_DIR="${{ github.workspace }}/bin/"
           export TEST_FILTERS="${{ github.event.inputs.tests }}"
-          ./test/scripts/ci-runtests.sh ${{ matrix.os }}
-      - uses: actions/upload-artifact@v4
+          ./test/scripts/run/ci.sh ${{ matrix.os }}
+      - name: Upload test report
+        uses: actions/upload-artifact@v4
         if: '!cancelled()'
         with:
           name: ${{ matrix.os }}_report
@@ -271,7 +432,7 @@ jobs:
       - name: Checkout submodules
         run: |
           git config --global --add safe.directory '*'
-          git submodule update --init --recursive --depth=1 wireguard-go-rs
+          git submodule update --init --depth=1
       - name: Install Go
         uses: actions/setup-go@v3
         with:
@@ -285,11 +446,6 @@ jobs:
           node-version-file: desktop/package.json
           cache: 'npm'
           cache-dependency-path: desktop/package-lock.json
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1.0.6
-        with:
-          toolchain: stable
-          default: true
       - name: Build app
         run: ./build.sh
       - name: Build test executable
@@ -303,9 +459,10 @@ jobs:
             ./dist/app-e2e-*
 
   e2e-test-macos:
-    needs: [prepare-matrices, build-macos]
+    needs: [prepare-matrices, build-macos, get-app-version]
     if: |
       !cancelled() &&
+      needs.get-app-version.result == 'success' &&
       needs.prepare-matrices.outputs.macos_matrix != '[]' &&
       needs.prepare-matrices.outputs.macos_matrix != ''
     name: macOS end-to-end tests
@@ -316,7 +473,8 @@ jobs:
       matrix:
         os: ${{ fromJSON(needs.prepare-matrices.outputs.macos_matrix) }}
     steps:
-      - uses: actions/download-artifact@v4
+      - name: Download App
+        uses: actions/download-artifact@v4
         if: ${{ needs.build-macos.result == 'success' }}
         with:
           name: macos-build
@@ -325,11 +483,13 @@ jobs:
         uses: actions/checkout@v4
       - name: Run end-to-end tests
         shell: bash -ieo pipefail {0}
+        env:
+          CURRENT_VERSION: ${{needs.get-app-version.outputs.mullvad-version}}
         run: |
-          git fetch --tags --prune-tags --force
           export TEST_FILTERS="${{ github.event.inputs.tests }}"
-          ./test/scripts/ci-runtests.sh ${{ matrix.os }}
-      - uses: actions/upload-artifact@v4
+          ./test/scripts/run/ci.sh ${{ matrix.os }}
+      - name: Upload test report
+        uses: actions/upload-artifact@v4
         if: '!cancelled()'
         with:
           name: ${{ matrix.os }}_report
@@ -339,25 +499,35 @@ jobs:
     name: Result matrix
     needs: [e2e-test-linux, e2e-test-windows, e2e-test-macos]
     if: '!cancelled()'
-    runs-on: [self-hosted, desktop-test, Linux]
-    timeout-minutes: 240
-    strategy:
-      fail-fast: false
+    runs-on: ubuntu-latest
+    container:
+      image: ${{ needs.prepare-linux.outputs.container_image }}
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - name: Download test report
+        uses: actions/download-artifact@v4
         with:
-          path: ./test/.ci-logs/artifacts
+          pattern: '*_report'
+          merge-multiple: true
+      - name: Create binaries directory
+        shell: bash -ieo pipefail {0}
+        run: |
+          mkdir "${{ github.workspace }}/bin"
+      - name: Download report compiler
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-test-manager-build
+          path: ${{ github.workspace }}/bin
+      - name: chmod binaries
+        run: |
+          chmod +x ${{ github.workspace }}/bin/*
+        shell: bash
       - name: Generate test result matrix
         shell: bash -ieo pipefail {0}
         run: |
-          cd test
-          # "Unpack" the downloaded report artifacts: https://github.com/actions/download-artifact/issues/141
-          cp ./.ci-logs/artifacts/*_report/*_report ./.ci-logs/
-          cargo run --bin test-manager format-test-reports ./.ci-logs/*_report \
-            | tee summary.html >> $GITHUB_STEP_SUMMARY
+          ${{ github.workspace }}/bin/test-manager \
+          format-test-reports ${{ github.workspace }}/*_report \
+          | tee summary.html >> $GITHUB_STEP_SUMMARY
       - uses: actions/upload-artifact@v4
         with:
           name: summary.html
-          path: test/summary.html
+          path: summary.html

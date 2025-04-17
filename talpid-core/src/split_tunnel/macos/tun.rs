@@ -20,7 +20,7 @@ use pnet_packet::{
     MutablePacket, Packet,
 };
 use std::{
-    ffi::{c_uint, CStr},
+    ffi::c_uint,
     io::{self, IoSlice, Write},
     net::{IpAddr, Ipv4Addr, Ipv6Addr},
 };
@@ -818,7 +818,7 @@ fn fix_ipv6_checksums(
 ///   exist, the function will not fail, but the stream will never return anything.
 fn capture_outbound_packets(
     utun_iface: &str,
-) -> Result<impl Stream<Item = Result<PktapPacket, Error>> + Send, Error> {
+) -> Result<impl Stream<Item = Result<PktapPacket, Error>> + Send + use<>, Error> {
     // We want to create a pktap "pseudo-device" and capture data on it using a bpf device.
     // This provides packet data plus a pktap header including process information.
     // libpcap will do the heavy lifting for us if we simply request a "pktap" device.
@@ -887,8 +887,14 @@ impl PacketCodec for PktapCodec {
             return None;
         }
 
-        let iface = unsafe { CStr::from_ptr(header.pth_ifname.as_ptr() as *const _) };
-        if iface.to_bytes() != self.interface.as_bytes() {
+        // cast the array from [i8] to [u8] to enable comparison with String::as_bytes
+        let iface = header.pth_ifname.map(|b| b as u8);
+        // get the interface name by splitting on the first null byte (if any)
+        let iface = iface
+            .split(|&b| b == 0)
+            .next()
+            .expect("split will yield at least one element");
+        if iface != self.interface.as_bytes() {
             return None;
         }
 

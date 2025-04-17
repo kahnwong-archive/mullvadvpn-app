@@ -1,3 +1,5 @@
+#[cfg(target_os = "android")]
+use crate::tun_provider::imp::VpnServiceConfig;
 use cfg_if::cfg_if;
 use ipnetwork::IpNetwork;
 use std::{
@@ -35,6 +37,7 @@ cfg_if! {
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct TunConfig {
     /// Interface name to use.
+    #[cfg(target_os = "linux")]
     pub name: Option<String>,
 
     /// IP addresses for the tunnel interface.
@@ -72,6 +75,16 @@ impl TunConfig {
         }
         servers
     }
+
+    /// Routes to configure for the tunnel.
+    #[cfg(target_os = "android")]
+    pub fn real_routes(&self) -> Vec<IpNetwork> {
+        VpnServiceConfig::new(self.clone())
+            .routes
+            .iter()
+            .map(IpNetwork::from)
+            .collect()
+    }
 }
 
 /// Return a tunnel configuration that routes all traffic inside the tunnel.
@@ -80,6 +93,7 @@ impl TunConfig {
 /// Android to route all traffic inside the tunnel.
 pub fn blocking_config() -> TunConfig {
     TunConfig {
+        #[cfg(target_os = "linux")]
         name: None,
         addresses: vec![IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1))],
         mtu: 1380,

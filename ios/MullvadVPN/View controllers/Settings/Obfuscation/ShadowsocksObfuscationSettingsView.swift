@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by Andrew Bulhak on 2024-11-07.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadSettings
@@ -24,6 +24,7 @@ struct ShadowsocksObfuscationSettingsView<VM>: View where VM: ShadowsocksObfusca
             title: portString,
             options: [WireGuardObfuscationShadowsocksPort.automatic],
             value: $viewModel.value,
+            tableAccessibilityIdentifier: AccessibilityIdentifier.wireGuardObfuscationShadowsocksTable.asString,
             itemDescription: { item in NSLocalizedString(
                 "SHADOWSOCKS_PORT_VALUE_\(item)",
                 tableName: "Shadowsocks",

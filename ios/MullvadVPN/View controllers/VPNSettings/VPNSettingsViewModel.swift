@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 11/10/2021.
-//  Copyright © 2021 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadSettings
@@ -103,6 +103,9 @@ struct VPNSettingsViewModel: Equatable {
     private(set) var quantumResistance: TunnelQuantumResistance
     private(set) var multihopState: MultihopState
 
+    private(set) var includeAllNetworks: Bool
+    private(set) var localNetworkSharing: Bool
+
     static let defaultWireGuardPorts: [UInt16] = [51820, 53]
 
     var enabledBlockersCount: Int {
@@ -195,6 +198,14 @@ struct VPNSettingsViewModel: Equatable {
         multihopState = newState
     }
 
+    mutating func setIncludeAllNetworks(_ newState: Bool) {
+        includeAllNetworks = newState
+    }
+
+    mutating func setLocalNetworkSharing(_ newState: Bool) {
+        localNetworkSharing = newState
+    }
+
     /// Precondition for enabling Custom DNS.
     var customDNSPrecondition: CustomDNSPrecondition {
         if blockAdvertising || blockTracking || blockMalware ||
@@ -252,6 +263,9 @@ struct VPNSettingsViewModel: Equatable {
 
         quantumResistance = tunnelSettings.tunnelQuantumResistance
         multihopState = tunnelSettings.tunnelMultihopState
+
+        includeAllNetworks = tunnelSettings.includeAllNetworks
+        localNetworkSharing = tunnelSettings.localNetworkSharing
     }
 
     /// Produce merged view model, keeping entry `identifier` for matching DNS entries and

@@ -10,27 +10,30 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.unmockkAll
 import io.mockk.verify
+import java.time.Duration
+import java.time.Instant
+import java.time.ZonedDateTime
 import net.mullvad.mullvadvpn.compose.createEdgeToEdgeComposeExtension
 import net.mullvad.mullvadvpn.compose.setContentWithTheme
 import net.mullvad.mullvadvpn.compose.state.ConnectUiState
 import net.mullvad.mullvadvpn.compose.test.CIRCULAR_PROGRESS_INDICATOR
 import net.mullvad.mullvadvpn.compose.test.CONNECT_BUTTON_TEST_TAG
 import net.mullvad.mullvadvpn.compose.test.CONNECT_CARD_HEADER_TEST_TAG
-import net.mullvad.mullvadvpn.compose.test.NOTIFICATION_BANNER_ACTION
 import net.mullvad.mullvadvpn.compose.test.RECONNECT_BUTTON_TEST_TAG
 import net.mullvad.mullvadvpn.compose.test.SELECT_LOCATION_BUTTON_TEST_TAG
 import net.mullvad.mullvadvpn.compose.test.TOP_BAR_ACCOUNT_BUTTON
 import net.mullvad.mullvadvpn.lib.model.ActionAfterDisconnect
 import net.mullvad.mullvadvpn.lib.model.ErrorState
 import net.mullvad.mullvadvpn.lib.model.ErrorStateCause
+import net.mullvad.mullvadvpn.lib.model.FeatureIndicator
 import net.mullvad.mullvadvpn.lib.model.GeoIpLocation
+import net.mullvad.mullvadvpn.lib.model.InAppNotification
 import net.mullvad.mullvadvpn.lib.model.TransportProtocol
 import net.mullvad.mullvadvpn.lib.model.TunnelEndpoint
 import net.mullvad.mullvadvpn.lib.model.TunnelState
-import net.mullvad.mullvadvpn.repository.InAppNotification
-import net.mullvad.mullvadvpn.ui.VersionInfo
-import org.joda.time.DateTime
-import org.joda.time.Duration
+import net.mullvad.mullvadvpn.lib.model.VersionInfo
+import net.mullvad.mullvadvpn.lib.ui.component.test.NOTIFICATION_BANNER_ACTION
+import net.mullvad.mullvadvpn.lib.ui.component.test.NOTIFICATION_BANNER_TEXT_ACTION
 import org.junit.jupiter.api.AfterEach
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
@@ -53,6 +56,7 @@ class ConnectScreenTest {
         unmockkAll()
     }
 
+    @Suppress("LongParameterList")
     private fun ComposeContext.initScreen(
         state: ConnectUiState = ConnectUiState.INITIAL,
         onDisconnectClick: () -> Unit = {},
@@ -65,6 +69,9 @@ class ConnectScreenTest {
         onSettingsClick: () -> Unit = {},
         onAccountClick: () -> Unit = {},
         onDismissNewDeviceClick: () -> Unit = {},
+        onChangelogClick: () -> Unit = {},
+        onDismissChangelogClick: () -> Unit = {},
+        onNavigateToFeature: (FeatureIndicator) -> Unit = {},
     ) {
         setContentWithTheme {
             ConnectScreen(
@@ -79,6 +86,9 @@ class ConnectScreenTest {
                 onSettingsClick = onSettingsClick,
                 onAccountClick = onAccountClick,
                 onDismissNewDeviceClick = onDismissNewDeviceClick,
+                onChangelogClick = onChangelogClick,
+                onDismissChangelogClick = onDismissChangelogClick,
+                onNavigateToFeature = onNavigateToFeature,
             )
         }
     }
@@ -168,7 +178,7 @@ class ConnectScreenTest {
             )
 
             // Assert
-            onNodeWithText("DISCONNECTED").assertExists()
+            onNodeWithText("DISCONNECTING...").assertExists()
             onNodeWithText(mockLocationName).assertExists()
             onNodeWithText("Disconnect").assertExists()
         }
@@ -310,7 +320,7 @@ class ConnectScreenTest {
             )
 
             // Assert
-            onNodeWithText("CONNECTED").assertExists()
+            onNodeWithText("BLOCKING...").assertExists()
             onNodeWithText(mockLocationName).assertExists()
             onNodeWithText("Disconnect").assertExists()
             onNodeWithText("BLOCKING INTERNET").assertExists()
@@ -475,6 +485,7 @@ class ConnectScreenTest {
 
             // In
             every { mockTunnelEndpoint.obfuscation } returns null
+            every { mockTunnelEndpoint.entryEndpoint } returns null
             every { mockTunnelEndpoint.endpoint.address.address.hostAddress } returns inHost
             every { mockTunnelEndpoint.endpoint.address.port } returns inPort
             every { mockTunnelEndpoint.endpoint.protocol } returns inProtocol
@@ -550,7 +561,7 @@ class ConnectScreenTest {
     fun testAccountExpiredNotification() {
         composeExtension.use {
             // Arrange
-            val expiryDate = DateTime(2020, 11, 11, 10, 10)
+            val expiryDate = ZonedDateTime.parse("2020-11-11T10:10Z")
             initScreen(
                 state =
                     ConnectUiState(
@@ -561,7 +572,9 @@ class ConnectScreenTest {
                         deviceName = "",
                         daysLeftUntilExpiry = null,
                         inAppNotification =
-                            InAppNotification.AccountExpiry(Duration(DateTime.now(), expiryDate)),
+                            InAppNotification.AccountExpiry(
+                                Duration.between(Instant.now(), expiryDate)
+                            ),
                         isPlayBuild = false,
                     )
             )
@@ -606,7 +619,7 @@ class ConnectScreenTest {
         composeExtension.use {
             // Arrange
             val mockedClickHandler: () -> Unit = mockk(relaxed = true)
-            val expiryDate = DateTime(2020, 11, 11, 10, 10)
+            val expiryDate = ZonedDateTime.parse("2020-11-11T10:10Z")
             initScreen(
                 onManageAccountClick = mockedClickHandler,
                 state =
@@ -618,13 +631,43 @@ class ConnectScreenTest {
                         deviceName = "",
                         daysLeftUntilExpiry = null,
                         inAppNotification =
-                            InAppNotification.AccountExpiry(Duration(DateTime.now(), expiryDate)),
+                            InAppNotification.AccountExpiry(
+                                Duration.between(Instant.now(), expiryDate)
+                            ),
                         isPlayBuild = false,
                     ),
             )
 
             // Act
             onNodeWithTag(NOTIFICATION_BANNER_ACTION).performClick()
+
+            // Assert
+            verify { mockedClickHandler.invoke() }
+        }
+    }
+
+    @Test
+    fun testOnNewChangelogMessageClick() {
+        composeExtension.use {
+            // Arrange
+            val mockedClickHandler: () -> Unit = mockk(relaxed = true)
+            initScreen(
+                onChangelogClick = mockedClickHandler,
+                state =
+                    ConnectUiState(
+                        location = null,
+                        selectedRelayItemTitle = null,
+                        tunnelState = TunnelState.Connecting(null, null, emptyList()),
+                        showLocation = false,
+                        deviceName = "",
+                        daysLeftUntilExpiry = null,
+                        inAppNotification = InAppNotification.NewVersionChangelog,
+                        isPlayBuild = false,
+                    ),
+            )
+
+            // Act
+            onNodeWithTag(NOTIFICATION_BANNER_TEXT_ACTION).performClick()
 
             // Assert
             verify { mockedClickHandler.invoke() }
@@ -642,6 +685,166 @@ class ConnectScreenTest {
             onNodeWithTag(TOP_BAR_ACCOUNT_BUTTON).performClick()
 
             verify(exactly = 1) { onAccountClickMockk() }
+        }
+    }
+
+    @Test
+    fun showConnectionDetailsObfuscation() {
+        composeExtension.use {
+            // Arrange
+            val mockLocation: GeoIpLocation = mockk(relaxed = true)
+            val mockTunnelEndpoint: TunnelEndpoint = mockk(relaxed = true)
+            val mockHostName = "Host-Name"
+            val inHost = "1.1.1.1"
+            val inPort = 99
+            val inProtocol = TransportProtocol.Tcp
+            every { mockLocation.hostname } returns mockHostName
+            every { mockLocation.entryHostname } returns null
+
+            // In
+            every {
+                mockTunnelEndpoint.obfuscation?.endpoint?.address?.address?.hostAddress
+            } returns inHost
+            every { mockTunnelEndpoint.obfuscation?.endpoint?.address?.port } returns inPort
+            every { mockTunnelEndpoint.obfuscation?.endpoint?.protocol } returns inProtocol
+
+            // Out Ipv4
+            val outIpv4 = "ipv4address"
+            every { mockLocation.ipv4?.hostAddress } returns outIpv4
+
+            // Out Ipv6
+            val outIpv6 = "ipv6address"
+            every { mockLocation.ipv6?.hostAddress } returns outIpv6
+
+            initScreen(
+                state =
+                    ConnectUiState(
+                        location = mockLocation,
+                        selectedRelayItemTitle = null,
+                        tunnelState =
+                            TunnelState.Connected(mockTunnelEndpoint, mockLocation, emptyList()),
+                        showLocation = false,
+                        deviceName = "",
+                        daysLeftUntilExpiry = null,
+                        inAppNotification = null,
+                        isPlayBuild = false,
+                    )
+            )
+
+            // Act
+            onNodeWithTag(CONNECT_CARD_HEADER_TEST_TAG).performClick()
+
+            // Assert
+            onNodeWithText(mockHostName).assertExists()
+            onNodeWithText("In").assertExists()
+            onNodeWithText("$inHost:$inPort TCP").assertExists()
+
+            onNodeWithText("Out IPv4").assertExists()
+            onNodeWithText(outIpv4).assertExists()
+
+            onNodeWithText("Out IPv6").assertExists()
+            onNodeWithText(outIpv6).assertExists()
+        }
+    }
+
+    @Test
+    fun showConnectionDetailsMultihop() {
+        composeExtension.use {
+            // Arrange
+            val mockLocation: GeoIpLocation = mockk(relaxed = true)
+            val mockTunnelEndpoint: TunnelEndpoint = mockk(relaxed = true)
+            val mockHostName = "Host-Name"
+            val inHost = "8.8.8.8"
+            val inPort = 55
+            val inProtocol = TransportProtocol.Udp
+            every { mockLocation.hostname } returns mockHostName
+            every { mockLocation.entryHostname } returns null
+
+            // In
+            every { mockTunnelEndpoint.obfuscation } returns null
+            every { mockTunnelEndpoint.entryEndpoint?.address?.address?.hostAddress } returns inHost
+            every { mockTunnelEndpoint.entryEndpoint?.address?.port } returns inPort
+            every { mockTunnelEndpoint.entryEndpoint?.protocol } returns inProtocol
+
+            // Out Ipv4
+            val outIpv4 = "ipv4address"
+            every { mockLocation.ipv4?.hostAddress } returns outIpv4
+
+            // Out Ipv6
+            val outIpv6 = "ipv6address"
+            every { mockLocation.ipv6?.hostAddress } returns outIpv6
+
+            initScreen(
+                state =
+                    ConnectUiState(
+                        location = mockLocation,
+                        selectedRelayItemTitle = null,
+                        tunnelState =
+                            TunnelState.Connected(mockTunnelEndpoint, mockLocation, emptyList()),
+                        showLocation = false,
+                        deviceName = "",
+                        daysLeftUntilExpiry = null,
+                        inAppNotification = null,
+                        isPlayBuild = false,
+                    )
+            )
+
+            // Act
+            onNodeWithTag(CONNECT_CARD_HEADER_TEST_TAG).performClick()
+
+            // Assert
+            onNodeWithText(mockHostName).assertExists()
+            onNodeWithText("In").assertExists()
+            onNodeWithText("$inHost:$inPort UDP").assertExists()
+
+            onNodeWithText("Out IPv4").assertExists()
+            onNodeWithText(outIpv4).assertExists()
+
+            onNodeWithText("Out IPv6").assertExists()
+            onNodeWithText(outIpv6).assertExists()
+        }
+    }
+
+    @Test
+    fun clickOnFeatureIndicator() {
+        composeExtension.use {
+            // Arrange
+            val mockLocation: GeoIpLocation = mockk(relaxed = true)
+            val mockTunnelEndpoint: TunnelEndpoint = mockk(relaxed = true)
+            val mockHostName = "Host-Name"
+            every { mockLocation.hostname } returns mockHostName
+            every { mockLocation.entryHostname } returns null
+
+            // In
+            every { mockTunnelEndpoint.obfuscation } returns null
+
+            val mockClickHandler = mockk<(FeatureIndicator) -> Unit>(relaxed = true)
+
+            initScreen(
+                state =
+                    ConnectUiState(
+                        location = mockLocation,
+                        selectedRelayItemTitle = null,
+                        tunnelState =
+                            TunnelState.Connected(
+                                mockTunnelEndpoint,
+                                mockLocation,
+                                listOf(FeatureIndicator.MULTIHOP),
+                            ),
+                        showLocation = false,
+                        deviceName = "",
+                        daysLeftUntilExpiry = null,
+                        inAppNotification = null,
+                        isPlayBuild = false,
+                    ),
+                onNavigateToFeature = mockClickHandler,
+            )
+
+            // Act
+            onNodeWithText("Multihop").performClick()
+
+            // Assert
+            verify(exactly = 1) { mockClickHandler.invoke(FeatureIndicator.MULTIHOP) }
         }
     }
 }

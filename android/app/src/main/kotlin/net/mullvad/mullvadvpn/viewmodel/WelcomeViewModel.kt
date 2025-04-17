@@ -15,6 +15,8 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import net.mullvad.mullvadvpn.compose.state.WelcomeUiState
+import net.mullvad.mullvadvpn.lib.common.util.isAfterNowInstant
+import net.mullvad.mullvadvpn.lib.model.AccountNumber
 import net.mullvad.mullvadvpn.lib.model.WebsiteAuthToken
 import net.mullvad.mullvadvpn.lib.shared.AccountRepository
 import net.mullvad.mullvadvpn.lib.shared.ConnectionProxy
@@ -38,12 +40,18 @@ class WelcomeViewModel(
     val uiState =
         combine(
                 connectionProxy.tunnelState,
-                deviceRepository.deviceState.filterNotNull(),
+                deviceRepository.deviceState.filterNotNull().onEach {
+                    viewModelScope.launch {
+                        it.accountNumber()?.let { accountNumber ->
+                            _uiSideEffect.send(UiSideEffect.StoreCredentialsRequest(accountNumber))
+                        }
+                    }
+                },
                 paymentUseCase.paymentAvailability,
             ) { tunnelState, accountState, paymentAvailability ->
                 WelcomeUiState(
                     tunnelState = tunnelState,
-                    accountNumber = accountState.token(),
+                    accountNumber = accountState.accountNumber(),
                     deviceName = accountState.displayName(),
                     showSitePayment = !isPlayBuild,
                     billingPaymentState = paymentAvailability?.toPaymentState(),
@@ -66,7 +74,7 @@ class WelcomeViewModel(
     private fun hasAddedTimeEffect() =
         accountRepository.accountData
             .filterNotNull()
-            .filter { it.expiryDate.minusHours(MIN_HOURS_PAST_ACCOUNT_EXPIRY).isAfterNow }
+            .filter { it.expiryDate.minusHours(MIN_HOURS_PAST_ACCOUNT_EXPIRY).isAfterNowInstant() }
             .onEach { paymentUseCase.resetPurchaseResult() }
             .map { UiSideEffect.OpenConnectScreen }
 
@@ -121,10 +129,12 @@ class WelcomeViewModel(
 
         data object OpenConnectScreen : UiSideEffect
 
+        data class StoreCredentialsRequest(val accountNumber: AccountNumber) : UiSideEffect
+
         data object GenericError : UiSideEffect
     }
 
     companion object {
-        private const val MIN_HOURS_PAST_ACCOUNT_EXPIRY = 20
+        private const val MIN_HOURS_PAST_ACCOUNT_EXPIRY: Long = 20
     }
 }

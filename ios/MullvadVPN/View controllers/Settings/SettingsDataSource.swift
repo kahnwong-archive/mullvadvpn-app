@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 19/10/2021.
-//  Copyright © 2021 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadSettings
@@ -11,11 +11,19 @@ import UIKit
 
 final class SettingsDataSource: UITableViewDiffableDataSource<SettingsDataSource.Section, SettingsDataSource.Item>,
     UITableViewDelegate {
-    enum CellReuseIdentifiers: String, CaseIterable {
+    enum CellReuseIdentifier: String, CaseIterable {
         case basic
+        case changelog
 
         var reusableViewClass: AnyClass {
             SettingsCell.self
+        }
+
+        var cellStyle: UITableViewCell.CellStyle {
+            switch self {
+            case .basic: .default
+            case .changelog: .subtitle
+            }
         }
     }
 
@@ -42,7 +50,7 @@ final class SettingsDataSource: UITableViewDiffableDataSource<SettingsDataSource
 
     enum Item: String {
         case vpnSettings
-        case version
+        case changelog
         case problemReport
         case faq
         case apiAccess
@@ -53,7 +61,7 @@ final class SettingsDataSource: UITableViewDiffableDataSource<SettingsDataSource
             switch self {
             case .vpnSettings:
                 return .vpnSettingsCell
-            case .version:
+            case .changelog:
                 return .versionCell
             case .problemReport:
                 return .problemReportCell
@@ -68,8 +76,11 @@ final class SettingsDataSource: UITableViewDiffableDataSource<SettingsDataSource
             }
         }
 
-        var reuseIdentifier: CellReuseIdentifiers {
-            .basic
+        var reuseIdentifier: CellReuseIdentifier {
+            switch self {
+            case .changelog: .changelog
+            default: .basic
+            }
         }
     }
 
@@ -115,12 +126,7 @@ final class SettingsDataSource: UITableViewDiffableDataSource<SettingsDataSource
     // MARK: - UITableViewDelegate
 
     func tableView(_ tableView: UITableView, shouldHighlightRowAt indexPath: IndexPath) -> Bool {
-        switch itemIdentifier(for: indexPath) {
-        case .vpnSettings, .problemReport, .faq, .apiAccess, .daita, .multihop:
-            true
-        case .version, .none:
-            false
-        }
+        true
     }
 
     func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
@@ -137,13 +143,6 @@ final class SettingsDataSource: UITableViewDiffableDataSource<SettingsDataSource
     // MARK: - Private
 
     private func registerClasses() {
-        CellReuseIdentifiers.allCases.forEach { cellIdentifier in
-            tableView?.register(
-                cellIdentifier.reusableViewClass,
-                forCellReuseIdentifier: cellIdentifier.rawValue
-            )
-        }
-
         HeaderFooterReuseIdentifier.allCases.forEach { reuseIdentifier in
             tableView?.register(
                 reuseIdentifier.headerFooterClass,
@@ -168,14 +167,14 @@ final class SettingsDataSource: UITableViewDiffableDataSource<SettingsDataSource
         snapshot.appendItems([.apiAccess], toSection: .apiAccess)
 
         snapshot.appendSections([.version, .problemReport])
-        snapshot.appendItems([.version], toSection: .version)
+        snapshot.appendItems([.changelog], toSection: .version)
         snapshot.appendItems([.problemReport, .faq], toSection: .problemReport)
 
         apply(snapshot)
     }
 }
 
-extension SettingsDataSource: SettingsCellEventHandler {
+extension SettingsDataSource: @preconcurrency SettingsCellEventHandler {
     func showInfo(for button: SettingsInfoButtonItem) {
         delegate?.showInfo(for: button)
     }

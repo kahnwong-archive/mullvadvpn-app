@@ -3,12 +3,12 @@
 //  MullvadVPN
 //
 //  Created by Jon Petersson on 2024-01-16.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Network
 
-public struct RelayOverrides: Codable {
+public struct RelayOverrides: Codable, Sendable {
     public let overrides: [IPOverride]
 
     private enum CodingKeys: String, CodingKey {
@@ -20,7 +20,7 @@ public struct IPOverrideFormatError: LocalizedError {
     public let errorDescription: String?
 }
 
-public struct IPOverride: Codable, Equatable {
+public struct IPOverride: Codable, Equatable, Sendable {
     public let hostname: String
     public var ipv4Address: IPv4Address?
     public var ipv6Address: IPv6Address?

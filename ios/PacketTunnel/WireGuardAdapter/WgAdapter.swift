@@ -3,17 +3,17 @@
 //  PacketTunnel
 //
 //  Created by pronebird on 29/08/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
-import MullvadLogging
+@preconcurrency import MullvadLogging
 import MullvadTypes
 import NetworkExtension
 import PacketTunnelCore
-import WireGuardKit
+@preconcurrency import WireGuardKit
 
-class WgAdapter: TunnelAdapterProtocol {
+class WgAdapter: TunnelAdapterProtocol, @unchecked Sendable {
     let logger = Logger(label: "WgAdapter")
     let adapter: WireGuardAdapter
 

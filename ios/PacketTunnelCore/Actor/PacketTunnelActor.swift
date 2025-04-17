@@ -3,11 +3,11 @@
 //  PacketTunnel
 //
 //  Created by pronebird on 30/06/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
-import MullvadLogging
+@preconcurrency import MullvadLogging
 import MullvadREST
 import MullvadRustRuntime
 import MullvadSettings
@@ -38,11 +38,11 @@ public actor PacketTunnelActor {
 
     @Published internal(set) public var observedState: ObservedState = .initial
 
-    nonisolated let logger = Logger(label: "PacketTunnelActor")
+    nonisolated(unsafe) let logger = Logger(label: "PacketTunnelActor")
 
     let timings: PacketTunnelActorTimings
     let tunnelAdapter: TunnelAdapterProtocol
-    nonisolated let tunnelMonitor: TunnelMonitorProtocol
+    let tunnelMonitor: TunnelMonitorProtocol
     let defaultPathObserver: DefaultPathObserverProtocol
     let blockedStateErrorMapper: BlockedStateErrorMapperProtocol
     public let relaySelector: RelaySelectorProtocol
@@ -99,6 +99,7 @@ public actor PacketTunnelActor {
         }
     }
 
+    // swiftlint:disable:next function_body_length
     func executeEffect(_ effect: Effect) async {
         switch effect {
         case .startDefaultPathObserver:
@@ -136,7 +137,6 @@ public actor PacketTunnelActor {
             state = .disconnected
         case let .configureForErrorState(reason):
             await setErrorStateInternal(with: reason)
-
         case let .cacheActiveKey(lastKeyRotation):
             cacheActiveKey(lastKeyRotation: lastKeyRotation)
         case let .reconfigureForEphemeralPeer(configuration, configurationSemaphore):
@@ -294,17 +294,10 @@ extension PacketTunnelActor {
             connectionData: connectionState
         ).make()
 
-        /*
-         Stop default path observer while updating WireGuard configuration since it will call the system method
-         `NEPacketTunnelProvider.setTunnelNetworkSettings()` which may cause active interfaces to go down making it look
-         like network connectivity is not available, but only for a brief moment.
-         */
-        stopDefaultPathObserver()
-
         defer {
             // Restart default path observer and notify the observer with the current path that might have changed while
             // path observer was paused.
-            startDefaultPathObserver(notifyObserverWithCurrentPath: true)
+            startDefaultPathObserver()
         }
 
         // Daita parameters are gotten from an ephemeral peer
@@ -342,7 +335,7 @@ extension PacketTunnelActor {
         reason: ActorReconnectReason
     ) throws -> State.ConnectionData? {
         var keyPolicy: State.KeyPolicy = .useCurrent
-        var networkReachability = defaultPathObserver.defaultPath?.networkReachability ?? .undetermined
+        var networkReachability = defaultPathObserver.currentPathStatus.networkReachability
         var lastKeyRotation: Date?
 
         let callRelaySelector = { [self] maybeCurrentRelays, connectionCount in
@@ -409,7 +402,8 @@ extension PacketTunnelActor {
                 transportLayer: .udp,
                 remotePort: connectedRelay.endpoint.ipv4Relay.port,
                 isPostQuantum: settings.quantumResistance.isEnabled,
-                isDaitaEnabled: settings.daita.daitaState.isEnabled
+                isDaitaEnabled: settings.daita.daitaState.isEnabled,
+                obfuscationMethod: .off
             )
         case .disconnecting, .disconnected:
             return nil
@@ -433,7 +427,7 @@ extension PacketTunnelActor {
         guard let connectionState = try makeConnectionState(nextRelays: nextRelays, settings: settings, reason: reason)
         else { return nil }
 
-        let obfuscatedEndpoint = protocolObfuscator.obfuscate(
+        let obfuscated = protocolObfuscator.obfuscate(
             connectionState.connectedEndpoint,
             settings: settings.tunnelSettings,
             retryAttempts: connectionState.selectedRelays.retryAttempt
@@ -448,11 +442,12 @@ extension PacketTunnelActor {
             networkReachability: connectionState.networkReachability,
             connectionAttemptCount: connectionState.connectionAttemptCount,
             lastKeyRotation: connectionState.lastKeyRotation,
-            connectedEndpoint: obfuscatedEndpoint,
+            connectedEndpoint: obfuscated.endpoint,
             transportLayer: transportLayer,
             remotePort: protocolObfuscator.remotePort,
             isPostQuantum: settings.quantumResistance.isEnabled,
-            isDaitaEnabled: settings.daita.daitaState.isEnabled
+            isDaitaEnabled: settings.daita.daitaState.isEnabled,
+            obfuscationMethod: obfuscated.method
         )
     }
 

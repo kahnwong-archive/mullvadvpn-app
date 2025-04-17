@@ -10,18 +10,26 @@ rust-version.workspace = true
 [lints]
 workspace = true
 
+[features]
+# Allow the API server to be used
+api-override = ["mullvad-api/api-override"]
+
 [target.'cfg(target_os = "ios")'.dependencies]
 libc = "0.2"
 log = { workspace = true }
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 tonic = { workspace = true }
+hyper = { version = "1.4.1", features = ["client", "http1"] }
 hyper-util = { workspace = true }
 tower = { workspace = true }
 tunnel-obfuscation = { path = "../tunnel-obfuscation" }
 oslog = "0.2"
+talpid-future = { path = "../talpid-future" }
 talpid-types = { path = "../talpid-types" }
 talpid-tunnel-config-client = { path = "../talpid-tunnel-config-client" }
 mullvad-encrypted-dns-proxy = { path = "../mullvad-encrypted-dns-proxy" }
+mullvad-api = { path = "../mullvad-api", default-features = false }
+serde_json = { workspace = true }
 
 shadowsocks-service = { workspace = true, features = [
     "local",
@@ -31,7 +39,7 @@ shadowsocks-service = { workspace = true, features = [
 ] }
 
 [target.'cfg(target_os = "macos")'.build-dependencies]
-cbindgen = { version = "0.27.0", default-features = false }
+cbindgen = { version = "0.28.0", default-features = false }
 
 [lib]
 crate-type = ["staticlib"]

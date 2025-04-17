@@ -3,13 +3,15 @@
 //  MullvadSettings
 //
 //  Created by Andrew Bulhak on 2024-02-13.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import MullvadTypes
 
-public enum TunnelSettingsUpdate {
+public enum TunnelSettingsUpdate: Sendable {
+    case localNetworkSharing(Bool)
+    case includeAllNetworks(Bool)
     case dnsSettings(DNSSettings)
     case obfuscation(WireGuardObfuscationSettings)
     case relayConstraints(RelayConstraints)
@@ -21,6 +23,10 @@ public enum TunnelSettingsUpdate {
 extension TunnelSettingsUpdate {
     public func apply(to settings: inout LatestTunnelSettings) {
         switch self {
+        case let .localNetworkSharing(enabled):
+            settings.localNetworkSharing = enabled
+        case let .includeAllNetworks(enabled):
+            settings.includeAllNetworks = enabled
         case let .dnsSettings(newDNSSettings):
             settings.dnsSettings = newDNSSettings
         case let .obfuscation(newObfuscationSettings):
@@ -38,6 +44,8 @@ extension TunnelSettingsUpdate {
 
     public var subjectName: String {
         switch self {
+        case .localNetworkSharing: "Local network sharing"
+        case .includeAllNetworks: "Include all networks"
         case .dnsSettings: "DNS settings"
         case .obfuscation: "obfuscation settings"
         case .relayConstraints: "relay constraints"

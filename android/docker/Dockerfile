@@ -8,7 +8,7 @@
 #     -v $GRADLE_CACHE_VOLUME_NAME:/root/.gradle:Z \
 #     -v $ANDROID_CREDENTIALS_DIR:/build/android/credentials:Z \
 #     -v /path/to/repository_root:/build:Z \
-#     mullvadvpn-app-build-android ./build-apk.sh --dev-build
+#     mullvadvpn-app-build-android ./android/build.sh --dev-build
 #
 # See the base image Dockerfile in the repository root (../../Dockerfile)
 # for more information.
@@ -19,7 +19,7 @@
 # patch for a given go version can be identified by checking the wireguard-android
 # repo: https://git.zx2c4.com/wireguard-android/tree/tunnel/tools/libwg-go.
 # It's also important to keep the go path in sync.
-FROM ghcr.io/mullvad/mullvadvpn-app-build:124ce3fef
+FROM ghcr.io/mullvad/mullvadvpn-app-build:85fa990a4
 
 # === Metadata ===
 LABEL org.opencontainers.image.source=https://github.com/mullvad/mullvadvpn-app
@@ -116,12 +116,5 @@ RUN patch -p1 -f -N -r- -d /usr/local/go < /tmp/goruntime-boottime-over-monotoni
 
 # Add rust targets
 RUN rustup target add x86_64-linux-android i686-linux-android aarch64-linux-android armv7-linux-androideabi
-
-# Install cbindgen to address maybenot.h (checked in) sometimes needing to be
-# re-generated due to how `make` looks at last-modifications while git neither
-# stores nor consistently sets modification metadata on file checkout.
-# This is an intermediate solution that will be further improved as part of
-# issue: DROID-1328.
-RUN cargo install --force cbindgen --version "0.26.0" && rm -rf ~/.cargo/registry
 
 WORKDIR /build

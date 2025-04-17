@@ -5,6 +5,7 @@ import java.net.InetAddress
 import net.mullvad.mullvadvpn.compose.state.ConnectUiState
 import net.mullvad.mullvadvpn.lib.model.ActionAfterDisconnect
 import net.mullvad.mullvadvpn.lib.model.GeoIpLocation
+import net.mullvad.mullvadvpn.lib.model.InAppNotification
 
 class ConnectUiStatePreviewParameterProvider : PreviewParameterProvider<ConnectUiState> {
     override val values = sequenceOf(ConnectUiState.INITIAL) + generateOtherStates()
@@ -24,9 +25,12 @@ private fun generateOtherStates(): Sequence<ConnectUiState> =
             TunnelStatePreviewData.generateDisconnectingState(
                 actionAfterDisconnect = ActionAfterDisconnect.Reconnect
             ),
+            TunnelStatePreviewData.generateDisconnectingState(
+                actionAfterDisconnect = ActionAfterDisconnect.Block
+            ),
             TunnelStatePreviewData.generateErrorState(isBlocking = true),
         )
-        .map { state ->
+        .mapIndexed { index, state ->
             ConnectUiState(
                 location =
                     GeoIpLocation(
@@ -42,7 +46,8 @@ private fun generateOtherStates(): Sequence<ConnectUiState> =
                 selectedRelayItemTitle = "Relay Title",
                 tunnelState = state,
                 showLocation = true,
-                inAppNotification = null,
+                inAppNotification =
+                    if (index == 0) InAppNotification.NewDevice("Test Device") else null,
                 deviceName = "Cool Beans",
                 daysLeftUntilExpiry = 42,
                 isPlayBuild = true,

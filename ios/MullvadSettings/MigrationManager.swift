@@ -3,14 +3,14 @@
 //  MullvadVPN
 //
 //  Created by Marco Nikic on 2023-08-08.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import MullvadLogging
 import MullvadTypes
 
-public enum SettingsMigrationResult {
+public enum SettingsMigrationResult: Sendable {
     /// Nothing to migrate.
     case nothing
 
@@ -42,7 +42,7 @@ public struct MigrationManager {
     ///   - migrationCompleted: Completion handler called with a migration result.
     public func migrateSettings(
         store: SettingsStore,
-        migrationCompleted: @escaping (SettingsMigrationResult) -> Void
+        migrationCompleted: @escaping @Sendable (SettingsMigrationResult) -> Void
     ) {
         let fileCoordinator = NSFileCoordinator(filePresenter: nil)
         var error: NSError?
@@ -79,7 +79,7 @@ public struct MigrationManager {
 
     private func upgradeSettingsToLatestVersion(
         store: SettingsStore,
-        migrationCompleted: @escaping (SettingsMigrationResult) -> Void
+        migrationCompleted: @escaping @Sendable (SettingsMigrationResult) -> Void
     ) throws {
         let parser = SettingsParser(decoder: JSONDecoder(), encoder: JSONEncoder())
         let settingsData = try store.read(key: SettingsKey.settings)

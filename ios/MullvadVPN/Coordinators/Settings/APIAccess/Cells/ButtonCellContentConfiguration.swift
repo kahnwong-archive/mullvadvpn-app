@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 17/11/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import UIKit
@@ -24,6 +24,9 @@ struct ButtonCellContentConfiguration: UIContentConfiguration, Equatable {
 
     /// The button content edge insets.
     var directionalContentEdgeInsets: NSDirectionalEdgeInsets = UIMetrics.SettingsCell.insetLayoutMargins
+
+    // Accessibility identifier.
+    var accessibilityIdentifier: AccessibilityIdentifier?
 
     func makeContentView() -> UIView & UIContentView {
         return ButtonCellContentView(configuration: self)

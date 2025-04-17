@@ -6,7 +6,6 @@ plugins {
     alias(libs.plugins.android.application) apply false
     alias(libs.plugins.android.library) apply false
     alias(libs.plugins.android.test) apply false
-    alias(libs.plugins.dependency.check) apply false
     alias(libs.plugins.ktfmt) apply false
     alias(libs.plugins.compose) apply false
     alias(libs.plugins.play.publisher) apply false
@@ -14,6 +13,7 @@ plugins {
     alias(libs.plugins.kotlin.ksp) apply false
     alias(libs.plugins.kotlin.parcelize) apply false
     alias(libs.plugins.protobuf.core) apply false
+    alias(libs.plugins.rust.android.gradle) apply false
 
     alias(libs.plugins.detekt) apply true
     alias(libs.plugins.dependency.versions) apply true
@@ -23,7 +23,6 @@ buildscript {
     repositories {
         google()
         mavenCentral()
-        maven(Repositories.GradlePlugins)
         gradlePluginPortal()
     }
     dependencies {
@@ -68,6 +67,8 @@ buildscript {
         classpath("$prebuilt:linux-x86_64@tar.gz")
         classpath("$prebuilt:macos-aarch64@tar.gz")
         classpath("$prebuilt:macos-x86_64@tar.gz")
+
+        classpath("org.mozilla.rust-android-gradle:plugin:${libs.versions.rust.android.gradle}")
     }
 }
 
@@ -97,7 +98,6 @@ tasks.withType<DetektCreateBaselineTask>().configureEach {
 }
 
 allprojects {
-    apply(plugin = rootProject.libs.plugins.dependency.check.get().pluginId)
     apply(plugin = rootProject.libs.plugins.ktfmt.get().pluginId)
 
     repositories {
@@ -105,15 +105,7 @@ allprojects {
         mavenCentral()
     }
 
-    configure<org.owasp.dependencycheck.gradle.extension.DependencyCheckExtension> {
-        failBuildOnCVSS = 0F // All severity levels
-        suppressionFiles =
-            listOf(
-                "${rootProject.projectDir}/config/dependency-check-suppression.xml",
-                "${rootProject.projectDir}/config/dependency-check-suppression-agp-fixes.xml",
-            )
-    }
-
+    // Should be the same as ktfmt config in buildSrc/build.gradle.kts
     configure<com.ncorti.ktfmt.gradle.KtfmtExtension> {
         kotlinLangStyle()
         maxWidth.set(100)

@@ -3,18 +3,19 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 10/03/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Routing
+import StoreKit
 import UIKit
 
-class OutOfTimeCoordinator: Coordinator, Presenting, OutOfTimeViewControllerDelegate, Poppable {
+class OutOfTimeCoordinator: Coordinator, Presenting, @preconcurrency OutOfTimeViewControllerDelegate, Poppable {
     let navigationController: RootContainerViewController
     let storePaymentManager: StorePaymentManager
     let tunnelManager: TunnelManager
 
-    var didFinishPayment: ((OutOfTimeCoordinator) -> Void)?
+    nonisolated(unsafe) var didFinishPayment: (@Sendable (OutOfTimeCoordinator) -> Void)?
 
     var presentedViewController: UIViewController {
         navigationController
@@ -35,7 +36,6 @@ class OutOfTimeCoordinator: Coordinator, Presenting, OutOfTimeViewControllerDele
 
     func start(animated: Bool) {
         let interactor = OutOfTimeInteractor(
-            storePaymentManager: storePaymentManager,
             tunnelManager: tunnelManager
         )
 
@@ -73,13 +73,19 @@ class OutOfTimeCoordinator: Coordinator, Presenting, OutOfTimeViewControllerDele
 
     // MARK: - OutOfTimeViewControllerDelegate
 
-    func outOfTimeViewControllerDidBeginPayment(_ controller: OutOfTimeViewController) {
-        isMakingPayment = true
-    }
-
-    func outOfTimeViewControllerDidEndPayment(_ controller: OutOfTimeViewController) {
-        isMakingPayment = false
-
-        didFinishPayment?(self)
+    func didRequestShowInAppPurchase(
+        accountNumber: String,
+        paymentAction: PaymentAction
+    ) {
+        let coordinator = InAppPurchaseCoordinator(
+            storePaymentManager: storePaymentManager,
+            accountNumber: accountNumber,
+            paymentAction: paymentAction
+        )
+        coordinator.didFinish = { coordinator in
+            coordinator.dismiss(animated: true)
+        }
+        coordinator.start()
+        presentChild(coordinator, animated: true)
     }
 }

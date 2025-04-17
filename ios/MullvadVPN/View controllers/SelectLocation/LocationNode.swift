@@ -3,13 +3,13 @@
 //  MullvadVPN
 //
 //  Created by Jon Petersson on 2024-02-21.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadSettings
 import MullvadTypes
 
-class LocationNode {
+class LocationNode: @unchecked Sendable {
     let name: String
     var code: String
     var locations: [RelayLocation]
@@ -129,18 +129,18 @@ extension LocationNode: Hashable {
 
 extension LocationNode: Comparable {
     static func < (lhs: LocationNode, rhs: LocationNode) -> Bool {
-        lhs.name < rhs.name
+        lhs.name.lowercased() < rhs.name.lowercased()
     }
 }
 
 /// Proxy class for building and/or searching node trees.
-class RootLocationNode: LocationNode {
+class RootLocationNode: LocationNode, @unchecked Sendable {
     init(name: String = "", code: String = "", children: [LocationNode] = []) {
         super.init(name: name, code: code, children: children)
     }
 }
 
-class CustomListLocationNode: LocationNode {
+class CustomListLocationNode: LocationNode, @unchecked Sendable {
     let customList: CustomList
 
     init(

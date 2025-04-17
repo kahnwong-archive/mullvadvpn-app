@@ -3,7 +3,7 @@
 //  MullvadRESTTests
 //
 //  Created by pronebird on 25/08/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 @testable import MullvadMockData
@@ -11,9 +11,10 @@
 @testable import MullvadTypes
 import XCTest
 
+@MainActor
 final class RequestExecutorTests: XCTestCase {
     let addressCache = REST.AddressCache(canWriteToCache: false, fileCache: MemoryCache())
-    var timerServerProxy: TimeServerProxy!
+    nonisolated(unsafe) var timerServerProxy: TimeServerProxy!
 
     override func setUp() {
         super.setUp()
@@ -24,8 +25,13 @@ final class RequestExecutorTests: XCTestCase {
             }
         }
 
+        let apiTransportProvider = REST.AnyAPITransportProvider {
+            APITransportStub()
+        }
+
         let proxyFactory = REST.ProxyFactory.makeProxyFactory(
             transportProvider: transportProvider,
+            apiTransportProvider: apiTransportProvider,
             addressCache: addressCache
         )
         timerServerProxy = TimeServerProxy(configuration: proxyFactory.configuration)
@@ -72,5 +78,20 @@ final class RequestExecutorTests: XCTestCase {
         cancellationToken.cancel()
 
         waitForExpectations(timeout: .UnitTest.timeout)
+    }
+}
+
+extension RequestExecutorTests {
+    final class APITransportStub: APITransportProtocol, Sendable {
+        public var name: String {
+            "app-transport-dummy"
+        }
+
+        public func sendRequest(
+            _ request: APIRequest,
+            completion: @escaping @Sendable (ProxyAPIResponse) -> Void
+        ) -> Cancellable {
+            AnyCancellable()
+        }
     }
 }

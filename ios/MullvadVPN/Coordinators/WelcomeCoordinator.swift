@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by Mojgan on 2023-06-28.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadREST
@@ -15,7 +15,6 @@ final class WelcomeCoordinator: Coordinator, Poppable, Presenting {
     private let navigationController: RootContainerViewController
     private let storePaymentManager: StorePaymentManager
     private let tunnelManager: TunnelManager
-    private let inAppPurchaseInteractor: InAppPurchaseInteractor
     private let accountsProxy: RESTAccountHandling
 
     private var viewController: WelcomeViewController?
@@ -37,24 +36,15 @@ final class WelcomeCoordinator: Coordinator, Poppable, Presenting {
         self.storePaymentManager = storePaymentManager
         self.tunnelManager = tunnelManager
         self.accountsProxy = accountsProxy
-        self.inAppPurchaseInteractor = InAppPurchaseInteractor(storePaymentManager: storePaymentManager)
     }
 
     func start(animated: Bool) {
         let interactor = WelcomeInteractor(
-            storePaymentManager: storePaymentManager,
             tunnelManager: tunnelManager
         )
 
         interactor.didAddMoreCredit = { [weak self] in
-            guard let self else { return }
-            let coordinator = SetupAccountCompletedCoordinator(navigationController: navigationController)
-            coordinator.didFinish = { [weak self] coordinator in
-                coordinator.removeFromParent()
-                self?.didFinish?()
-            }
-            addChild(coordinator)
-            coordinator.start(animated: true)
+            self?.showSetupAccountCompleted()
         }
 
         let controller = WelcomeViewController(interactor: interactor)
@@ -63,6 +53,16 @@ final class WelcomeCoordinator: Coordinator, Poppable, Presenting {
         viewController = controller
 
         navigationController.pushViewController(controller, animated: animated)
+    }
+
+    func showSetupAccountCompleted() {
+        let coordinator = SetupAccountCompletedCoordinator(navigationController: navigationController)
+        coordinator.didFinish = { [weak self] coordinator in
+            coordinator.removeFromParent()
+            self?.didFinish?()
+        }
+        addChild(coordinator)
+        coordinator.start(animated: true)
     }
 
     func popFromNavigationStack(animated: Bool, completion: (() -> Void)?) {
@@ -80,7 +80,39 @@ final class WelcomeCoordinator: Coordinator, Poppable, Presenting {
     }
 }
 
-extension WelcomeCoordinator: WelcomeViewControllerDelegate {
+extension WelcomeCoordinator: @preconcurrency WelcomeViewControllerDelegate {
+    func didRequestToShowFailToFetchProducts(controller: WelcomeViewController) {
+        let message = NSLocalizedString(
+            "WELCOME_FAILED_TO_FETCH_PRODUCTS_DIALOG",
+            tableName: "Welcome",
+            value:
+            """
+            Failed to connect to App store, please try again later.
+            """,
+            comment: ""
+        )
+
+        let presentation = AlertPresentation(
+            id: "welcome-failed-to-fetch-products-alert",
+            icon: .info,
+            message: message,
+            buttons: [
+                AlertAction(
+                    title: NSLocalizedString(
+                        "WELCOME_FAILED_TO_FETCH_PRODUCTS_OK_ACTION",
+                        tableName: "Welcome",
+                        value: "Got it!",
+                        comment: ""
+                    ),
+                    style: .default
+                ),
+            ]
+        )
+
+        let presenter = AlertPresenter(context: self)
+        presenter.showAlert(presentation: presentation, animated: true)
+    }
+
     func didRequestToShowInfo(controller: WelcomeViewController) {
         let message = NSLocalizedString(
             "WELCOME_DEVICE_CONCEPT_TEXT_DIALOG",
@@ -118,63 +150,18 @@ extension WelcomeCoordinator: WelcomeViewControllerDelegate {
         presenter.showAlert(presentation: presentation, animated: true)
     }
 
-    func didRequestToPurchaseCredit(controller: WelcomeViewController, accountNumber: String, product: SKProduct) {
-        navigationController.enableHeaderBarButtons(false)
-
+    func didRequestToViewPurchaseOptions(
+        accountNumber: String
+    ) {
         let coordinator = InAppPurchaseCoordinator(
-            navigationController: navigationController,
-            interactor: inAppPurchaseInteractor
+            storePaymentManager: storePaymentManager,
+            accountNumber: accountNumber,
+            paymentAction: .purchase
         )
-
-        inAppPurchaseInteractor.viewControllerDelegate = viewController
-
-        coordinator.didFinish = { [weak self] coordinator in
-            guard let self else { return }
-            navigationController.enableHeaderBarButtons(true)
-            coordinator.removeFromParent()
-            didFinish?()
+        coordinator.didFinish = { coordinator in
+            coordinator.dismiss(animated: true)
         }
-
-        coordinator.didCancel = { [weak self] coordinator in
-            self?.navigationController.enableHeaderBarButtons(true)
-            coordinator.removeFromParent()
-        }
-
-        addChild(coordinator)
-
-        coordinator.start(accountNumber: accountNumber, product: product)
-    }
-
-    func didRequestToRedeemVoucher(controller: WelcomeViewController) {
-        let coordinator = CreateAccountVoucherCoordinator(
-            navigationController: navigationController,
-            interactor: RedeemVoucherInteractor(
-                tunnelManager: tunnelManager,
-                accountsProxy: accountsProxy,
-                verifyVoucherAsAccount: true
-            )
-        )
-
-        coordinator.didCancel = { [weak self] coordinator in
-            guard let self = self else { return }
-            navigationController.popViewController(animated: true)
-            coordinator.removeFromParent()
-        }
-
-        coordinator.didFinish = { [weak self] coordinator in
-            guard let self else { return }
-            coordinator.removeFromParent()
-            didFinish?()
-        }
-
-        coordinator.didLogout = { [weak self] coordinator, accountNumber in
-            guard let self else { return }
-            coordinator.removeFromParent()
-            didLogout?(accountNumber)
-        }
-
-        addChild(coordinator)
-
         coordinator.start()
+        presentChild(coordinator, animated: true)
     }
 }

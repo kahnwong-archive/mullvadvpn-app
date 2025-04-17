@@ -3,7 +3,7 @@
 //  MullvadTypes
 //
 //  Created by Jon Petersson on 2023-08-18.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -12,6 +12,10 @@ import Foundation
 extension Duration {
     public var isFinite: Bool {
         return timeInterval.isFinite
+    }
+
+    public var seconds: Int64 {
+        return components.seconds
     }
 
     public var timeInterval: TimeInterval {

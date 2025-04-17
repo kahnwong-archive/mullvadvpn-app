@@ -3,12 +3,13 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 24/03/2021.
-//  Copyright © 2021 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadLogging
 import UIKit
 
+@MainActor
 class AutomaticKeyboardResponder {
     weak var targetView: UIView?
     private let handler: (UIView, CGFloat) -> Void

@@ -1,3 +1,5 @@
+#![allow(clippy::undocumented_unsafe_blocks)] // Remove me if you dare.
+
 use once_cell::sync::OnceCell;
 use std::{ffi::CStr, fmt, io, mem, os::windows::io::RawHandle, path::Path, ptr};
 use talpid_types::{win32_err, ErrorExt};
@@ -96,7 +98,7 @@ impl WintunAdapter {
 
     pub fn prepare_interface(&self) {
         if let Err(error) =
-            talpid_tunnel::network_interface::initialize_interfaces(self.luid(), None)
+            talpid_tunnel::network_interface::initialize_interfaces(self.luid(), None, None)
         {
             log::error!(
                 "{}",
@@ -106,7 +108,7 @@ impl WintunAdapter {
     }
 
     pub fn name(&self) -> U16CString {
-        self.name.to_owned()
+        self.name.clone()
     }
 
     pub fn luid(&self) -> NET_LUID_LH {
@@ -214,7 +216,7 @@ impl WintunDll {
         handle: HMODULE,
         name: &CStr,
     ) -> io::Result<unsafe extern "system" fn() -> isize> {
-        let handle = GetProcAddress(handle, name.as_ptr() as *const u8);
+        let handle = unsafe { GetProcAddress(handle, name.as_ptr() as *const u8) };
         handle.ok_or(io::Error::last_os_error())
     }
 
@@ -252,13 +254,15 @@ impl WintunDll {
     }
 
     pub unsafe fn close_adapter(&self, adapter: RawHandle) {
-        (self.func_close)(adapter);
+        unsafe { (self.func_close)(adapter) };
     }
 
     pub unsafe fn get_adapter_luid(&self, adapter: RawHandle) -> NET_LUID_LH {
         let mut luid = mem::MaybeUninit::<NET_LUID_LH>::zeroed();
-        (self.func_get_adapter_luid)(adapter, luid.as_mut_ptr());
-        luid.assume_init()
+        unsafe {
+            (self.func_get_adapter_luid)(adapter, luid.as_mut_ptr());
+            luid.assume_init()
+        }
     }
 
     pub fn activate_logging(&'static self) -> WintunLoggerHandle {
@@ -345,8 +349,11 @@ fn find_adapter_registry_key(find_guid: &str, permissions: REG_SAM_FLAGS) -> io:
 /// Obtain a string representation for a GUID object.
 fn string_from_guid(guid: &GUID) -> String {
     let mut buffer = [0u16; 40];
-    let length = unsafe { StringFromGUID2(guid, &mut buffer[0] as *mut _, buffer.len() as i32 - 1) }
-        as usize;
+
+    // SAFETY: `guid` and `buffer` are valid references.
+    let length =
+        unsafe { StringFromGUID2(guid, buffer.as_mut_ptr(), buffer.len() as i32 - 1) } as usize;
+
     // cannot fail because `buffer` is large enough
     assert!(length > 0);
     let length = length - 1;

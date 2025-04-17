@@ -109,10 +109,6 @@ function makeBrowserifyPreload(debug) {
   return browserifyPreload;
 }
 
-function buildProto(callback) {
-  exec('bash ./scripts/build-proto.sh', (err) => callback(err));
-}
-
 function buildNseventforwarder(callback) {
   if (process.platform === 'darwin') {
     exec('npm -w nseventforwarder run build-debug', (err) => callback(err));
@@ -121,14 +117,22 @@ function buildNseventforwarder(callback) {
   }
 }
 
+function buildWindowsUtils(callback) {
+  if (process.platform === 'win32') {
+    exec('npm -w windows-utils run build-debug', (err) => callback(err));
+  } else {
+    callback();
+  }
+}
+
 compileScripts.displayName = 'compile-scripts';
-buildProto.displayName = 'build-proto';
 buildNseventforwarder.displayName = 'build-nseventforwarder';
+buildWindowsUtils.displayName = 'build-windows-utils';
 
 exports.build = series(
   compileScripts,
   parallel(makeBrowserifyPreload(false), makeBrowserifyRenderer(false)),
 );
-exports.buildProto = buildProto;
 exports.buildNseventforwarder = buildNseventforwarder;
+exports.buildWindowsUtils = buildWindowsUtils;
 exports.makeWatchCompiler = makeWatchCompiler;

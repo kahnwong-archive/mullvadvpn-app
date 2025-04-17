@@ -2,90 +2,104 @@ package net.mullvad.talpid
 
 import android.net.ConnectivityManager
 import android.net.LinkProperties
-import android.net.Network
-import android.net.NetworkCapabilities
-import android.net.NetworkRequest
-import co.touchlab.kermit.Logger
 import java.net.InetAddress
+import kotlin.collections.ArrayList
 import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.FlowPreview
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.onEach
-import kotlinx.coroutines.flow.scan
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
-import net.mullvad.talpid.util.NetworkEvent
-import net.mullvad.talpid.util.defaultNetworkFlow
-import net.mullvad.talpid.util.networkFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.plus
+import kotlinx.coroutines.runBlocking
+import net.mullvad.talpid.model.Connectivity
+import net.mullvad.talpid.model.NetworkState
+import net.mullvad.talpid.util.RawNetworkState
+import net.mullvad.talpid.util.UnderlyingConnectivityStatusResolver
+import net.mullvad.talpid.util.activeRawNetworkState
+import net.mullvad.talpid.util.defaultRawNetworkStateFlow
+import net.mullvad.talpid.util.hasInternetConnectivity
+import net.mullvad.talpid.util.resolveConnectivityStatus
 
-class ConnectivityListener(val connectivityManager: ConnectivityManager) {
-    private lateinit var _isConnected: StateFlow<Boolean>
+class ConnectivityListener(
+    private val connectivityManager: ConnectivityManager,
+    private val resolver: UnderlyingConnectivityStatusResolver,
+) {
+    private lateinit var _isConnected: StateFlow<Connectivity>
     // Used by JNI
     val isConnected
         get() = _isConnected.value
 
-    private lateinit var _currentDnsServers: StateFlow<List<InetAddress>>
-    // Used by JNI
-    val currentDnsServers
-        get() = ArrayList(_currentDnsServers.value)
+    private val _mutableNetworkState = MutableStateFlow<NetworkState?>(null)
+    private val resetNetworkState: Channel<Unit> = Channel()
 
+    // Used by JNI
+    val currentDefaultNetworkState: NetworkState?
+        get() = _mutableNetworkState.value
+
+    // Used by JNI
+    val currentDnsServers: ArrayList<InetAddress>
+        get() = _mutableNetworkState.value?.dnsServers ?: ArrayList()
+
+    @OptIn(FlowPreview::class)
     fun register(scope: CoroutineScope) {
-        _currentDnsServers =
-            dnsServerChanges().stateIn(scope, SharingStarted.Eagerly, currentDnsServers())
+        // Consider implementing retry logic for the flows below, because registering a listener on
+        // the default network may fail if the network on Android 11
+        // https://issuetracker.google.com/issues/175055271?pli=1
+        scope.launch {
+            merge(
+                    connectivityManager.defaultRawNetworkStateFlow(),
+                    resetNetworkState.receiveAsFlow().map { null },
+                )
+                .map { it?.toNetworkState() }
+                .onEach { notifyDefaultNetworkChange(it) }
+                .collect(_mutableNetworkState)
+        }
 
         _isConnected =
-            hasInternetCapability()
+            connectivityManager
+                .hasInternetConnectivity(resolver)
                 .onEach { notifyConnectivityChange(it) }
-                .stateIn(scope, SharingStarted.Eagerly, false)
+                .stateIn(
+                    scope + Dispatchers.IO,
+                    SharingStarted.Eagerly,
+                    // Has to happen on IO to avoid NetworkOnMainThreadException, we actually don't
+                    // send any traffic just open a socket to detect the IP version.
+                    runBlocking(Dispatchers.IO) {
+                        resolveConnectivityStatus(
+                            connectivityManager.activeRawNetworkState(),
+                            resolver,
+                        )
+                    },
+                )
     }
 
-    private fun dnsServerChanges(): Flow<List<InetAddress>> =
-        connectivityManager
-            .defaultNetworkFlow()
-            .filterIsInstance<NetworkEvent.LinkPropertiesChanged>()
-            .onEach { Logger.d("Link properties changed") }
-            .map { it.linkProperties.dnsServersWithoutFallback() }
-
-    private fun currentDnsServers(): List<InetAddress> =
-        connectivityManager
-            .getLinkProperties(connectivityManager.activeNetwork)
-            ?.dnsServersWithoutFallback() ?: emptyList()
+    /**
+     * Invalidates the network state cache. E.g when the VPN is connected or disconnected, and we
+     * know the last known values not to be correct anymore.
+     */
+    fun invalidateNetworkStateCache() {
+        _mutableNetworkState.value = null
+    }
 
     private fun LinkProperties.dnsServersWithoutFallback(): List<InetAddress> =
         dnsServers.filter { it.hostAddress != TalpidVpnService.FALLBACK_DUMMY_DNS_SERVER }
 
-    private fun hasInternetCapability(): Flow<Boolean> {
-        val request =
-            NetworkRequest.Builder()
-                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                .addCapability(NetworkCapabilities.NET_CAPABILITY_NOT_VPN)
-                .build()
+    private fun RawNetworkState.toNetworkState(): NetworkState =
+        NetworkState(
+            network.networkHandle,
+            linkProperties?.routes,
+            linkProperties?.dnsServersWithoutFallback(),
+        )
 
-        return connectivityManager
-            .networkFlow(request)
-            .scan(setOf<Network>()) { networks, event ->
-                when (event) {
-                    is NetworkEvent.Available -> {
-                        Logger.d("Network available ${event.network}")
-                        (networks + event.network).also {
-                            Logger.d("Number of networks: ${it.size}")
-                        }
-                    }
-                    is NetworkEvent.Lost -> {
-                        Logger.d("Network lost ${event.network}")
-                        (networks - event.network).also {
-                            Logger.d("Number of networks: ${it.size}")
-                        }
-                    }
-                    else -> networks
-                }
-            }
-            .map { it.isNotEmpty() }
-            .distinctUntilChanged()
-    }
+    private external fun notifyConnectivityChange(connectivity: Connectivity)
 
-    private external fun notifyConnectivityChange(isConnected: Boolean)
+    private external fun notifyDefaultNetworkChange(networkState: NetworkState?)
 }

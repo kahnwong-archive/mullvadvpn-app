@@ -3,12 +3,12 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 28/01/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 
-public final class Promise<Success, Failure: Error> {
+public final class Promise<Success, Failure: Error>: @unchecked Sendable {
     public typealias Result = Swift.Result<Success, Failure>
 
     private let nslock = NSLock()

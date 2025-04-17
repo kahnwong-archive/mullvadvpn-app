@@ -3,13 +3,13 @@
 //  RelayCache
 //
 //  Created by pronebird on 06/09/2021.
-//  Copyright © 2021 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import MullvadTypes
 
-public protocol RelayCacheProtocol {
+public protocol RelayCacheProtocol: Sendable {
     /// Reads from a cached list,
     /// which falls back to reading from prebundled relays if there was no cache hit
     func read() throws -> StoredRelays
@@ -23,9 +23,9 @@ public protocol RelayCacheProtocol {
 
 /// - Warning: `RelayCache` should not be used directly. It should be used through `IPOverrideWrapper` to have
 /// ip overrides applied.
-public final class RelayCache: RelayCacheProtocol {
+public final class RelayCache: RelayCacheProtocol, Sendable {
     private let fileURL: URL
-    private let fileCache: any FileCacheProtocol<StoredRelays>
+    nonisolated(unsafe) private let fileCache: any FileCacheProtocol<StoredRelays>
 
     /// Designated initializer
     public init(cacheDirectory: URL) {

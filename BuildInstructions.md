@@ -9,6 +9,15 @@ on your platform please submit an issue or a pull request.
 ## All platforms
 
 - Get the latest **stable** Rust toolchain via [rustup.rs](https://rustup.rs/).
+  - Install default targets and components needed for desktop
+    ```bash
+    ./scripts/setup-rust desktop
+     ```
+  - (Optional) Run the following to install a git `post-checkout` hook that will automatically
+    run the `setup-rust` script when the Rust version specified in the `rust-toolchain.toml` file changes:
+    ```bash
+    .scripts/setup-rust install-hook
+    ```
 
 - You need Node.js and npm. You can find the exact versions in the `volta` section of
   `desktop/package.json`. The toolchain is managed by volta.
@@ -23,9 +32,8 @@ on your platform please submit an issue or a pull request.
 
     Install the `msi` hosted here: https://github.com/volta-cli/volta
 
-- (Not Windows) Install Go (ideally version `1.21`) by following the [official
-  instructions](https://golang.org/doc/install).  Newer versions may work
-  too.
+- Install Go (ideally version `1.21`) by following the [official instructions](https://golang.org/doc/install).
+  Newer versions may work too.
 
 - Install a protobuf compiler (version 3.15 and up), it can be installed on most major Linux distros
   via the package name `protobuf-compiler`, `protobuf` on macOS via Homebrew, and on Windows
@@ -96,6 +104,8 @@ The host has to have the following installed:
 - `bash` installed as well as a few base unix utilities, including `sed` and `tail`.
   You are recommended to use [Git for Windows].
 
+- `zig` installed and available in `%PATH%`. 0.14 or later is recommended: https://ziglang.org/download/.
+
 - `msbuild.exe` available in `%PATH%`. If you installed Visual Studio Community edition, the
   binary can be found under:
 
@@ -116,7 +126,7 @@ The host has to have the following installed:
 
 [Git for Windows]: https://git-scm.com/download/win
 
-### Experimental: Cross-compiling for ARM64
+### Cross-compiling for ARM64
 
 By default, the app will build for the host platform. It is also possible to cross-compile the app
 for ARM64 on x64. This requires:
@@ -153,7 +163,7 @@ In addition to the above requirements:
   the Electron app:
 
   ```
-  pushd gui
+  pushd desktop/packages/mullvad-vpn
   npm install --target_arch=x64 grpc-tools
   popd
   ```
@@ -194,11 +204,9 @@ variable to `aarch64-unknown-linux-gnu`:
 TARGETS="aarch64-unknown-linux-gnu" ./build.sh
 ```
 
-### Experimental: Windows
+### Windows
 
-ARM64 Windows is not yet fully working or supported.
-
-To cross-compile for ARM64 rather than the current architecture, set the `TARGETS` environment
+To cross-compile for ARM64 from another host architecture, set the `TARGETS` environment
 variable to `aarch64-pc-windows-msvc`:
 
 ```bash

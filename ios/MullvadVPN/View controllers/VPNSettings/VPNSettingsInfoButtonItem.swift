@@ -3,12 +3,13 @@
 //  MullvadVPN
 //
 //  Created by Jon Petersson on 2023-11-10.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 
 enum VPNSettingsInfoButtonItem: CustomStringConvertible {
+    case localNetworkSharing
     case contentBlockers
     case blockMalware
     case wireGuardPorts(String)
@@ -19,6 +20,17 @@ enum VPNSettingsInfoButtonItem: CustomStringConvertible {
 
     var description: String {
         switch self {
+        case .localNetworkSharing:
+            NSLocalizedString(
+                "VPN_SETTINGS_LOCAL_NETWORK_SHARING",
+                tableName: "LocalNetworkSharing",
+                value: """
+                This feature allows access to other devices on the local network, such as for sharing, printing, \
+                streaming, etc.
+                Attention: toggling “Local network sharing” requires restarting the VPN connection.
+                """,
+                comment: ""
+            )
         case .contentBlockers:
             NSLocalizedString(
                 "VPN_SETTINGS_CONTENT_BLOCKERS_GENERAL",
@@ -63,7 +75,7 @@ enum VPNSettingsInfoButtonItem: CustomStringConvertible {
                 value: """
                 Obfuscation hides the WireGuard traffic inside another protocol. \
                 It can be used to help circumvent censorship and other types of filtering, \
-                where a plain WireGuard connect would be blocked.
+                where a plain WireGuard connection would be blocked.
                 """,
                 comment: ""
             )

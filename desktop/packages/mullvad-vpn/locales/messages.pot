@@ -317,8 +317,22 @@ msgctxt "accessibility"
 msgid "Expand %(location)s"
 msgstr ""
 
+#. This is used by screenreaders to communicate the "x" button next to a saved account number.
+#. Available placeholders:
+#. %(accountNumber)s - the account number to the left of the button
 msgctxt "accessibility"
-msgid "Forget %(accountNumber)s"
+msgid "Forget account number %(accountNumber)s"
+msgstr ""
+
+#. Accessibility label for link to blog post about OpenVPN support ending.
+msgctxt "accessibility"
+msgid "Go to blog post to read more, opens externally"
+msgstr ""
+
+#. Accessibility label for link to VPN settings where
+#. the user can change tunnel protocol.
+msgctxt "accessibility"
+msgid "Go to VPN settings to change tunnel protocol"
 msgstr ""
 
 #. Provided to accessibility tools such as screenreaders to describe
@@ -334,6 +348,13 @@ msgstr ""
 #. This is used by screenreaders to communicate the login button.
 msgctxt "accessibility"
 msgid "Login"
+msgstr ""
+
+#. This is used by screenreaders to communicate logging in with a saved account number.
+#. Available placeholders:
+#. %(accountNumber)s - the saved account number
+msgctxt "accessibility"
+msgid "Login with account number %(accountNumber)s"
 msgstr ""
 
 msgctxt "accessibility"
@@ -469,7 +490,7 @@ msgid "Enter port"
 msgstr ""
 
 msgctxt "api-access-methods-view"
-msgid "If you are not connected to our VPN, then the Encrypted DNS proxy will use your own non-VPN IP when connecting. The DoH servers are hosted by one of the following providers: Quad 9, CloudFlare, or Google."
+msgid "If you are not connected to our VPN, then the Encrypted DNS proxy will use your own non-VPN IP when connecting. The DoH servers are hosted by one of the following providers: Quad9 or CloudFlare."
 msgstr ""
 
 msgctxt "api-access-methods-view"
@@ -612,16 +633,12 @@ msgctxt "auth-failure"
 msgid "You are logged in with an invalid account number. Please log out and try another one."
 msgstr ""
 
-msgctxt "changelog"
-msgid "See full changelog"
-msgstr ""
-
 msgctxt "changelog-view"
 msgid "No updates or changes were made in this release for this platform."
 msgstr ""
 
 msgctxt "changelog-view"
-msgid "What's new"
+msgid "What’s new"
 msgstr ""
 
 #. The selected location label displayed on the main view, when a user selected a specific host to connect to.
@@ -631,6 +648,14 @@ msgstr ""
 #. %(hostname)s - a hostname
 msgctxt "connect-container"
 msgid "%(city)s (%(hostname)s)"
+msgstr ""
+
+#. This is used as a feature indicator to show that DAITA is enabled through
+#. multihop.
+#. Available placeholders:
+#. %(DAITA)s - Is a non-translatable feature "DAITA"
+msgctxt "connect-view"
+msgid "%(DAITA)s: Multihop"
 msgstr ""
 
 msgctxt "connect-view"
@@ -894,6 +919,29 @@ msgctxt "in-app-notifications"
 msgid "%(duration)s. Buy more credit."
 msgstr ""
 
+#. First part of notification subtitle when there are no openVPN servers available.
+#. Will be followed by a link to VPN settings.
+#. Available placeholders:
+#. %(openVpn)s - Will be replaced with OpenVPN
+msgctxt "in-app-notifications"
+msgid "%(openVpn)s support has ended. Please update the app or"
+msgstr ""
+
+#. Notification title indicating that OpenVPN support is ending.
+#. Available placeholders:
+#. %(openVpn)s - Will be replaced with OPENVPN
+msgctxt "in-app-notifications"
+msgid "%(openVpn)s SUPPORT IS ENDING"
+msgstr ""
+
+#. First part of notification subtitle when there are no openVPN servers
+#. matching current settings. Will be followed by a link to VPN settings.
+#. Available placeholders:
+#. %(openVpn)s - Will be replaced with OpenVPN
+msgctxt "in-app-notifications"
+msgid "%(openVpn)s support is ending. Switch location or"
+msgstr ""
+
 msgctxt "in-app-notifications"
 msgid "ACCOUNT CREDIT EXPIRES SOON"
 msgstr ""
@@ -910,8 +958,16 @@ msgctxt "in-app-notifications"
 msgid "BLOCKING INTERNET"
 msgstr ""
 
+#. Link following the first part of the notification subtitle.
+#. Will navigate the user to the VPN settings.
+#. Available placeholders:
+#. %(wireGuard)s - Will be replaced with WireGuard
 msgctxt "in-app-notifications"
-msgid "Click here to see what's new."
+msgid "change tunnel protocol to %(wireGuard)s."
+msgstr ""
+
+msgctxt "in-app-notifications"
+msgid "Click here to see what’s new."
 msgstr ""
 
 #. The in-app banner displayed to the user when the app update is available.
@@ -931,8 +987,35 @@ msgctxt "in-app-notifications"
 msgid "NEW VERSION INSTALLED"
 msgstr ""
 
+#. Notification title when there are no openVPN servers
+#. matching current settings.
+#. Available placeholders:
+#. %(openVpn)s - Will be replaced with OPENVPN
+msgctxt "in-app-notifications"
+msgid "NO %(openVpn)s SERVER AVAILABLE"
+msgstr ""
+
+#. Notification title when there are no openVPN servers available.
+#. Available placeholders:
+#. %(openVpn)s - Will be replaced with OPENVPN
+msgctxt "in-app-notifications"
+msgid "NO %(openVpn)s SERVERS AVAILABLE"
+msgstr ""
+
+#. Notification subtitle indicating that OpenVPN support is ending.
+#. Available placeholders:
+#. %(wireGuard)s - Will be replaced with WireGuard
+msgctxt "in-app-notifications"
+msgid "Please change tunnel protocol to %(wireGuard)s."
+msgstr ""
+
 msgctxt "in-app-notifications"
 msgid "Please quit and restart the app."
+msgstr ""
+
+#. Link in notication to a blog post about OpenVPN support ending.
+msgctxt "in-app-notifications"
+msgid "Read more"
 msgstr ""
 
 msgctxt "in-app-notifications"
@@ -961,6 +1044,10 @@ msgstr ""
 
 msgctxt "launch-view"
 msgid "Connecting to Mullvad system service..."
+msgstr ""
+
+msgctxt "launch-view"
+msgid "Disable third party antivirus software."
 msgstr ""
 
 msgctxt "launch-view"
@@ -1170,6 +1257,16 @@ msgctxt "notifications"
 msgid "Failed to enable split tunneling. Please try reconnecting or disable split tunneling."
 msgstr ""
 
+#. Label for notification when IPv4 is not available.
+msgctxt "notifications"
+msgid "IPv4 is not available, please try changing <b>%(ipVersionFeatureName)</b> setting."
+msgstr ""
+
+#. Label for notification when IPv6 is not available.
+msgctxt "notifications"
+msgid "IPv6 is not available, please try changing <b>%(ipVersionFeatureName)</b> setting."
+msgstr ""
+
 msgctxt "notifications"
 msgid "Lockdown mode active, connection blocked"
 msgstr ""
@@ -1302,8 +1399,8 @@ msgstr ""
 #. available.
 #. Available placeholders:
 #. %(transportProtocol)s - the name of the transport protocol setting
-#. %(automat)s - the translation of "Automatic"
-#. %(openvpn)s - will be replaced with OpenVPN
+#. %(automatic)s - the translation of "Automatic"
+#. %(tcp)s - the translation of "TCP"
 msgctxt "openvpn-settings-view"
 msgid "To activate Bridge mode, change <b>%(transportProtocol)s</b> to <b>%(automatic)s</b> or <b>%(tcp)s</b>."
 msgstr ""
@@ -1574,7 +1671,7 @@ msgid "VPN settings"
 msgstr ""
 
 msgctxt "settings-view"
-msgid "What's new"
+msgid "What’s new"
 msgstr ""
 
 msgctxt "split-tunneling-view"
@@ -1936,6 +2033,13 @@ msgctxt "vpn-settings-view"
 msgid "Attention: this setting cannot be used in combination with <b>%(customDnsFeatureName)s</b>"
 msgstr ""
 
+#. Footer text for tunnel protocol selector when OpenVPN is selected.
+#. Available placeholders:
+#. %(openvpn)s - Will be replaced with OpenVPN
+msgctxt "vpn-settings-view"
+msgid "Attention: We are removing support for %(openVpn)s."
+msgstr ""
+
 msgctxt "vpn-settings-view"
 msgid "Auto-connect"
 msgstr ""
@@ -2008,6 +2112,12 @@ msgstr ""
 #. Label for settings that enables malware blocking.
 msgctxt "vpn-settings-view"
 msgid "Malware"
+msgstr ""
+
+#. Link in tunnel protocol selector footer to blog post
+#. about OpenVPN support ending.
+msgctxt "vpn-settings-view"
+msgid "Read more"
 msgstr ""
 
 msgctxt "vpn-settings-view"
@@ -2117,7 +2227,7 @@ msgid "%(wireguard)s settings"
 msgstr ""
 
 msgctxt "wireguard-settings-view"
-msgid "Attention: Be cautious if you have a limited data plan as this feature will increase your network traffic. This feature can only be used with %(wireguard)s."
+msgid "Attention: This increases network traffic and will also negatively affect speed, latency, and battery usage. Use with caution on limited plans. Only works with %(wireguard)s."
 msgstr ""
 
 msgctxt "wireguard-settings-view"
@@ -2169,8 +2279,10 @@ msgctxt "wireguard-settings-view"
 msgid "Obfuscation"
 msgstr ""
 
+#. Describes what WireGuard obfuscation does, how it works and when
+#. it would be useful to enable it.
 msgctxt "wireguard-settings-view"
-msgid "Obfuscation hides the WireGuard traffic inside another protocol. It can be used to help circumvent censorship and other types of filtering, where a plain WireGuard connect would be blocked."
+msgid "Obfuscation hides the WireGuard traffic inside another protocol. It can be used to help circumvent censorship and other types of filtering, where a plain WireGuard connection would be blocked."
 msgstr ""
 
 msgctxt "wireguard-settings-view"
@@ -2205,7 +2317,7 @@ msgid "Shadowsocks"
 msgstr ""
 
 msgctxt "wireguard-settings-view"
-msgid "Switch to “%(wireguard)s” or “%(automatic)s” in Settings > %(tunnelProtocol)s to make %(setting)s available."
+msgid "Switch to “%(wireguard)s” in Settings > %(tunnelProtocol)s to make %(setting)s available."
 msgstr ""
 
 msgctxt "wireguard-settings-view"
@@ -2334,9 +2446,6 @@ msgstr ""
 msgid "At least one method needs to be enabled"
 msgstr ""
 
-msgid "Attention: Be cautious if you have a limited data plan as this feature will increase your network traffic."
-msgstr ""
-
 msgid "Attention: If \"Block connections without VPN\" is enabled, \"Local network sharing\" will not work."
 msgstr ""
 
@@ -2344,6 +2453,9 @@ msgid "Attention: If \"Block connections without VPN\" is enabled, split apps wi
 msgstr ""
 
 msgid "Attention: Shadowsocks can increase battery consumption depending on data usage, such as streaming a video."
+msgstr ""
+
+msgid "Attention: This increases network traffic and will also negatively affect speed, latency, and battery usage. Use with caution on limited plans."
 msgstr ""
 
 msgid "Attention: this setting cannot be used in combination with \"Use custom DNS server\"."
@@ -2361,10 +2473,7 @@ msgstr ""
 msgid "Blocking internet (device offline)"
 msgstr ""
 
-msgid "Changelog"
-msgstr ""
-
-msgid "Changes in this version:"
+msgid "Blocking..."
 msgstr ""
 
 msgid "Changes to DNS related settings might not go into effect immediately due to cached results."
@@ -2419,6 +2528,9 @@ msgid "Delete method"
 msgstr ""
 
 msgid "Delete method?"
+msgstr ""
+
+msgid "Device IP version"
 msgstr ""
 
 msgid "Disable \"%s\" below to activate these settings."
@@ -2505,6 +2617,12 @@ msgstr ""
 msgid "Google Play unavailable"
 msgstr ""
 
+msgid "IPv4 is not available, please try changing \"Device IP version\" setting."
+msgstr ""
+
+msgid "IPv6 is not available, please try changing \"Device IP version\" setting."
+msgstr ""
+
 msgid "If the split tunneling feature is used, then the app queries your system for a list of all installed applications. This list is only retrieved in the split tunneling view. The list of installed applications is never sent from the device."
 msgstr ""
 
@@ -2517,7 +2635,13 @@ msgstr ""
 msgid "Importing new overrides might replace some previously imported overrides."
 msgstr ""
 
+msgid "In-tunnel IPv6"
+msgstr ""
+
 msgid "Invalid or missing value \"%s\""
+msgstr ""
+
+msgid "It can be useful when you are aware of problems caused by a certain IP version."
 msgstr ""
 
 msgid "It looks like you’ve entered an account number instead of a voucher code. If you would like to change the active account, please log out first."
@@ -2548,6 +2672,15 @@ msgid "Name was changed to %s"
 msgstr ""
 
 msgid "New list"
+msgstr ""
+
+msgid "No Android app store installed, could not open link"
+msgstr ""
+
+msgid "No browser app installed, could not open link"
+msgstr ""
+
+msgid "No changelog was added for this version"
 msgstr ""
 
 msgid "No custom lists available"
@@ -2598,9 +2731,6 @@ msgstr ""
 msgid "Privacy policy"
 msgstr ""
 
-msgid "Reconnecting..."
-msgstr ""
-
 msgid "Recursion limit"
 msgstr ""
 
@@ -2628,6 +2758,9 @@ msgstr ""
 msgid "Search"
 msgstr ""
 
+msgid "Set %s obfuscation to \"Automatic\" or \"Off\" below to activate this setting."
+msgstr ""
+
 msgid "Set WireGuard MTU value. Valid range: %d - %d."
 msgstr ""
 
@@ -2646,9 +2779,6 @@ msgstr ""
 msgid "Shows reminders when the account time is about to expire"
 msgstr ""
 
-msgid "Split tunneling"
-msgstr ""
-
 msgid "Submit"
 msgstr ""
 
@@ -2664,6 +2794,9 @@ msgstr ""
 msgid "The Auto-connect and Lockdown mode settings can be found in the Android system settings, follow this guide to enable one or both."
 msgstr ""
 
+msgid "The IPv6 DNS server will not work unless you enable \"IPv6\" under VPN settings."
+msgstr ""
+
 msgid "The Lockdown mode is called \"Block connections without VPN\" in the Android system settings. It helps minimize leaks, however it has some known limitations which you can read more about"
 msgstr ""
 
@@ -2674,6 +2807,9 @@ msgid "The local DNS server will not work unless you enable \"Local Network Shar
 msgstr ""
 
 msgid "This address has already been entered."
+msgstr ""
+
+msgid "This feature allows you to choose whether to use only IPv4, only IPv6, or allow the app to automatically decide the best option when connecting to a server."
 msgstr ""
 
 msgid "This field is required"
@@ -2727,7 +2863,7 @@ msgstr ""
 msgid "VPN permission error"
 msgstr ""
 
-msgid "VPN permission was denied when creating the tunnel. Please try connecting again."
+msgid "VPN permission was denied or another app has \"Always-on VPN\" enabled"
 msgstr ""
 
 msgid "VPN tunnel status"

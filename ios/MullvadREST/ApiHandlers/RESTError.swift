@@ -3,7 +3,7 @@
 //  RESTError
 //
 //  Created by pronebird on 27/07/2021.
-//  Copyright © 2021 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -11,7 +11,7 @@ import MullvadTypes
 
 extension REST {
     /// An error type returned by REST API classes.
-    public enum Error: LocalizedError, WrappingError {
+    public enum Error: LocalizedError, WrappingError, Sendable {
         /// Failure to create URL request.
         case createURLRequest(Swift.Error)
 
@@ -80,7 +80,7 @@ extension REST {
         }
     }
 
-    public struct ServerErrorResponse: Decodable {
+    public struct ServerErrorResponse: Decodable, Sendable {
         public let code: ServerResponseCode
         public let detail: String?
 
@@ -103,7 +103,7 @@ extension REST {
         }
     }
 
-    public struct ServerResponseCode: RawRepresentable, Equatable {
+    public struct ServerResponseCode: RawRepresentable, Equatable, Sendable {
         public static let invalidAccount = ServerResponseCode(rawValue: "INVALID_ACCOUNT")
         public static let keyLimitReached = ServerResponseCode(rawValue: "KEY_LIMIT_REACHED")
         public static let publicKeyNotFound = ServerResponseCode(rawValue: "PUBKEY_NOT_FOUND")
@@ -115,6 +115,7 @@ extension REST {
         public static let tooManyRequests = ServerResponseCode(rawValue: "TOO_MANY_REQUESTS")
         public static let invalidVoucher = ServerResponseCode(rawValue: "INVALID_VOUCHER")
         public static let usedVoucher = ServerResponseCode(rawValue: "VOUCHER_USED")
+        public static let parsingError = ServerResponseCode(rawValue: "PARSING_ERROR")
 
         public let rawValue: String
         public init(rawValue: String) {

@@ -3,7 +3,7 @@
 //  PacketTunnel
 //
 //  Created by pronebird on 30/05/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -23,15 +23,19 @@ struct DeviceCheckRemoteService: DeviceCheckRemoteServiceProtocol {
 
     func getAccountData(
         accountNumber: String,
-        completion: @escaping (Result<Account, Error>) -> Void
+        completion: @escaping @Sendable (Result<Account, Error>) -> Void
     ) -> Cancellable {
-        accountsProxy.getAccountData(accountNumber: accountNumber).execute(completionHandler: completion)
+        accountsProxy.getAccountData(
+            accountNumber: accountNumber,
+            retryStrategy: .noRetry,
+            completion: completion
+        )
     }
 
     func getDevice(
         accountNumber: String,
         identifier: String,
-        completion: @escaping (Result<Device, Error>) -> Void
+        completion: @escaping @Sendable (Result<Device, Error>) -> Void
     ) -> Cancellable {
         devicesProxy.getDevice(
             accountNumber: accountNumber,
@@ -45,7 +49,7 @@ struct DeviceCheckRemoteService: DeviceCheckRemoteServiceProtocol {
         accountNumber: String,
         identifier: String,
         publicKey: PublicKey,
-        completion: @escaping (Result<Device, Error>) -> Void
+        completion: @escaping @Sendable (Result<Device, Error>) -> Void
     ) -> Cancellable {
         devicesProxy.rotateDeviceKey(
             accountNumber: accountNumber,

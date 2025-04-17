@@ -2,13 +2,13 @@ import { useEffect, useRef } from 'react';
 import { sprintf } from 'sprintf-js';
 import styled from 'styled-components';
 
-import { colors, strings } from '../../../config.json';
+import { strings } from '../../../shared/constants';
 import { FeatureIndicator } from '../../../shared/daemon-rpc-types';
 import { messages } from '../../../shared/gettext';
+import { Colors } from '../../lib/foundations';
 import { useStyledRef } from '../../lib/utility-hooks';
 import { useSelector } from '../../redux/store';
 import { tinyText } from '../common-styles';
-import { InfoIcon } from '../InfoButton';
 import { ConnectionPanelAccordion } from './styles';
 
 const LINE_HEIGHT = 22;
@@ -28,7 +28,7 @@ const StyledTitle = styled.h2(tinyText, {
   margin: '0 0 2px',
   fontSize: '10px',
   lineHeight: '15px',
-  color: colors.white60,
+  color: Colors.white60,
 });
 
 const StyledFeatureIndicators = styled.div({
@@ -50,8 +50,8 @@ const StyledFeatureIndicatorLabel = styled.span(tinyText, (props) => ({
   justifyContent: 'center',
   alignItems: 'center',
   borderRadius: '4px',
-  background: colors.darkerBlue,
-  color: colors.white,
+  background: Colors.darkerBlue,
+  color: Colors.white,
   fontWeight: 400,
   whiteSpace: 'nowrap',
   visibility: 'hidden',
@@ -59,17 +59,17 @@ const StyledFeatureIndicatorLabel = styled.span(tinyText, (props) => ({
   // Style clickable feature indicators with a border and on-hover effect
   boxSizing: 'border-box', // make border act as padding rather than margin
   border: 'solid 1px',
-  borderColor: props.onClick ? colors.blue : colors.darkerBlue,
+  borderColor: props.onClick ? Colors.blue : Colors.darkerBlue,
   transition: 'background ease-in-out 300ms',
   '&&:hover': {
-    background: props.onClick ? colors.blue60 : undefined,
+    background: props.onClick ? Colors.blue60 : undefined,
   },
 }));
 
 const StyledBaseEllipsis = styled.span<{ $display: boolean }>(tinyText, (props) => ({
   position: 'absolute',
   top: `${LINE_HEIGHT + GAP}px`,
-  color: colors.white,
+  color: Colors.white,
   padding: '2px 8px 2px 16px',
   display: props.$display ? 'inline' : 'none',
 }));
@@ -116,15 +116,6 @@ export default function FeatureIndicators(props: FeatureIndicatorsProps) {
   }
 
   const ellipsis = messages.gettext('%(amount)d more...');
-
-  // Returns an optional callback for clickable feature indicators, or undefined.
-  const getFeatureIndicatorOnClick = (indicator: FeatureIndicator) => {
-    // NOTE: With the "smart routing" feature indicator removed, this function now does nothing, should it be removed?
-    switch (indicator) {
-      default:
-        return undefined;
-    }
-  };
 
   useEffect(() => {
     // We need to defer the visibility logic one painting cycle to make sure the elements are
@@ -197,14 +188,11 @@ export default function FeatureIndicators(props: FeatureIndicatorsProps) {
             ref={featureIndicatorsContainerRef}
             $expanded={props.expanded}>
             {sortedIndicators.map((indicator) => {
-              const onClick = getFeatureIndicatorOnClick(indicator);
               return (
                 <StyledFeatureIndicatorLabel
                   key={indicator.toString()}
-                  data-testid="feature-indicator"
-                  onClick={onClick}>
+                  data-testid="feature-indicator">
                   {getFeatureIndicatorLabel(indicator)}
-                  {onClick ? <InfoIcon size={10} /> : null}
                 </StyledFeatureIndicatorLabel>
               );
             })}
@@ -253,6 +241,17 @@ function getFeatureIndicatorLabel(indicator: FeatureIndicator) {
   switch (indicator) {
     case FeatureIndicator.daita:
       return strings.daita;
+    case FeatureIndicator.daitaMultihop:
+      return sprintf(
+        // TRANSLATORS: This is used as a feature indicator to show that DAITA is enabled through
+        // TRANSLATORS: multihop.
+        // TRANSLATORS: Available placeholders:
+        // TRANSLATORS: %(DAITA)s - Is a non-translatable feature "DAITA"
+        messages.pgettext('connect-view', '%(DAITA)s: Multihop'),
+        {
+          DAITA: strings.daita,
+        },
+      );
     case FeatureIndicator.udp2tcp:
     case FeatureIndicator.shadowsocks:
       return messages.pgettext('wireguard-settings-view', 'Obfuscation');

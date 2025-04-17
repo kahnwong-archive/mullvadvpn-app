@@ -1,12 +1,13 @@
 import { useCallback } from 'react';
 
-import { strings } from '../../config.json';
+import { strings } from '../../shared/constants';
 import { messages } from '../../shared/gettext';
 import { useAppContext } from '../context';
 import { Button, TitleBig } from '../lib/components';
 import { useHistory } from '../lib/history';
 import { RoutePath } from '../lib/routes';
 import { useSelector } from '../redux/store';
+import { AppNavigationHeader } from './';
 import * as Cell from './cell';
 import { BackAction } from './KeyboardNavigation';
 import {
@@ -19,7 +20,7 @@ import {
   SettingsNavigationScrollbars,
   SettingsStack,
 } from './Layout';
-import { NavigationBar, NavigationContainer, NavigationItems, TitleBarItem } from './NavigationBar';
+import { NavigationContainer } from './NavigationContainer';
 import SettingsHeader from './SettingsHeader';
 
 export default function Support() {
@@ -37,16 +38,12 @@ export default function Support() {
       <Layout>
         <SettingsContainer>
           <NavigationContainer>
-            <NavigationBar>
-              <NavigationItems>
-                <TitleBarItem>
-                  {
-                    // TRANSLATORS: Title label in navigation bar
-                    messages.pgettext('navigation-bar', 'Settings')
-                  }
-                </TitleBarItem>
-              </NavigationItems>
-            </NavigationBar>
+            <AppNavigationHeader
+              title={
+                // TRANSLATORS: Title label in navigation bar
+                messages.pgettext('navigation-bar', 'Settings')
+              }
+            />
 
             <SettingsNavigationScrollbars fillContainer>
               <SettingsContent>
@@ -58,10 +55,10 @@ export default function Support() {
                   {showSubSettings ? (
                     <>
                       <SettingsGroup>
-                        <UserInterfaceSettingsButton />
-                        <MultihopButton />
                         <DaitaButton />
+                        <MultihopButton />
                         <VpnSettingsButton />
+                        <UserInterfaceSettingsButton />
                       </SettingsGroup>
 
                       {showSplitTunneling && (
@@ -241,9 +238,11 @@ function QuitButton() {
 
   return (
     <Button variant="destructive" onClick={quit}>
-      {tunnelState.state === 'disconnected'
-        ? messages.gettext('Quit')
-        : messages.gettext('Disconnect & quit')}
+      <Button.Text>
+        {tunnelState.state === 'disconnected'
+          ? messages.gettext('Quit')
+          : messages.gettext('Disconnect & quit')}
+      </Button.Text>
     </Button>
   );
 }

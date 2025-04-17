@@ -1,39 +1,35 @@
 import { useCallback, useMemo, useState } from 'react';
 import styled from 'styled-components';
 
-import { colors } from '../../config.json';
 import { Ownership } from '../../shared/daemon-rpc-types';
 import { messages } from '../../shared/gettext';
+import { Icon } from '../lib/components';
 import { useRelaySettingsUpdater } from '../lib/constraint-updater';
 import {
   EndpointType,
   filterLocations,
   filterLocationsByEndPointType,
 } from '../lib/filter-locations';
+import { Colors } from '../lib/foundations';
 import { useHistory } from '../lib/history';
 import { useNormalRelaySettings, useTunnelProtocol } from '../lib/relay-settings-hooks';
 import { useBoolean } from '../lib/utility-hooks';
 import { IRelayLocationCountryRedux } from '../redux/settings/reducers';
 import { useSelector } from '../redux/store';
+import { AppNavigationHeader } from './';
 import Accordion from './Accordion';
 import * as AppButton from './AppButton';
 import { AriaInputGroup, AriaLabel } from './AriaGroup';
 import * as Cell from './cell';
 import Selector from './cell/Selector';
 import { normalText } from './common-styles';
-import ImageView from './ImageView';
 import { BackAction } from './KeyboardNavigation';
 import { Footer, Layout, SettingsContainer } from './Layout';
-import {
-  NavigationBar,
-  NavigationContainer,
-  NavigationItems,
-  NavigationScrollbars,
-  TitleBarItem,
-} from './NavigationBar';
+import { NavigationContainer } from './NavigationContainer';
+import { NavigationScrollbars } from './NavigationScrollbars';
 
 const StyledNavigationScrollbars = styled(NavigationScrollbars)({
-  backgroundColor: colors.darkBlue,
+  backgroundColor: Colors.darkBlue,
   flex: 1,
 });
 
@@ -83,16 +79,13 @@ export default function Filter() {
       <Layout>
         <SettingsContainer>
           <NavigationContainer>
-            <NavigationBar alwaysDisplayBarTitle={true}>
-              <NavigationItems>
-                <TitleBarItem>
-                  {
-                    // TRANSLATORS: Title label in navigation bar
-                    messages.pgettext('filter-nav', 'Filter')
-                  }
-                </TitleBarItem>
-              </NavigationItems>
-            </NavigationBar>
+            <AppNavigationHeader
+              title={
+                // TRANSLATORS: Title label in navigation bar
+                messages.pgettext('filter-nav', 'Filter')
+              }
+              titleVisible
+            />
             <StyledNavigationScrollbars>
               <FilterByOwnership
                 ownership={ownership}
@@ -121,7 +114,6 @@ export default function Filter() {
 
 // Returns only the ownership options that are compatible with the other filters
 function useFilteredOwnershipOptions(providers: string[], ownership: Ownership): Ownership[] {
-  const relaySettings = useNormalRelaySettings();
   const tunnelProtocol = useTunnelProtocol();
   const bridgeState = useSelector((state) => state.settings.bridgeState);
   const locations = useSelector((state) => state.settings.relayLocations);
@@ -133,7 +125,6 @@ function useFilteredOwnershipOptions(providers: string[], ownership: Ownership):
       locations,
       endpointType,
       tunnelProtocol,
-      relaySettings,
     );
     const relaylistForFilters = filterLocations(relayListForEndpointType, ownership, providers);
 
@@ -150,14 +141,13 @@ function useFilteredOwnershipOptions(providers: string[], ownership: Ownership):
     }
 
     return ownershipOptions;
-  }, [locations, endpointType, tunnelProtocol, relaySettings, ownership, providers]);
+  }, [locations, endpointType, tunnelProtocol, ownership, providers]);
 
   return availableOwnershipOptions;
 }
 
 // Returns only the providers that are compatible with the other filters
 export function useFilteredProviders(providers: string[], ownership: Ownership): string[] {
-  const relaySettings = useNormalRelaySettings();
   const tunnelProtocol = useTunnelProtocol();
   const bridgeState = useSelector((state) => state.settings.bridgeState);
   const locations = useSelector((state) => state.settings.relayLocations);
@@ -169,11 +159,10 @@ export function useFilteredProviders(providers: string[], ownership: Ownership):
       locations,
       endpointType,
       tunnelProtocol,
-      relaySettings,
     );
     const relaylistForFilters = filterLocations(relayListForEndpointType, ownership, providers);
     return providersFromRelays(relaylistForFilters);
-  }, [endpointType, locations, ownership, providers, relaySettings, tunnelProtocol]);
+  }, [endpointType, locations, ownership, providers, tunnelProtocol]);
 
   return availableProviders;
 }
@@ -195,12 +184,7 @@ function useProviders(): Record<string, boolean> {
 
   const endpointType =
     tunnelProtocol === 'openvpn' && bridgeState === 'on' ? EndpointType.any : EndpointType.exit;
-  const relays = filterLocationsByEndPointType(
-    relayLocations,
-    endpointType,
-    tunnelProtocol,
-    relaySettings,
-  );
+  const relays = filterLocationsByEndPointType(relayLocations, endpointType, tunnelProtocol);
   const providers = providersFromRelays(relays);
 
   // Empty containt array means that all providers are selected. No selection isn't possible.
@@ -246,11 +230,7 @@ function FilterByOwnership(props: IFilterByOwnershipProps) {
         <AriaLabel>
           <Cell.Label>{messages.pgettext('filter-view', 'Ownership')}</Cell.Label>
         </AriaLabel>
-        <ImageView
-          tintColor={colors.white80}
-          source={expanded ? 'icon-chevron-up' : 'icon-chevron-down'}
-          height={24}
-        />
+        <Icon color={Colors.white80} icon={expanded ? 'chevron-up' : 'chevron-down'} />
       </Cell.CellButton>
 
       <Accordion expanded={expanded}>
@@ -296,11 +276,7 @@ function FilterByProvider(props: IFilterByProviderProps) {
     <>
       <Cell.CellButton onClick={toggleExpanded}>
         <Cell.Label>{messages.pgettext('filter-view', 'Providers')}</Cell.Label>
-        <ImageView
-          tintColor={colors.white80}
-          source={expanded ? 'icon-chevron-up' : 'icon-chevron-down'}
-          height={24}
-        />
+        <Icon color={Colors.white80} icon={expanded ? 'chevron-up' : 'chevron-down'} />
       </Cell.CellButton>
       <Accordion expanded={expanded}>
         <CheckboxRow
@@ -334,20 +310,20 @@ const StyledCheckbox = styled.div({
   display: 'flex',
   alignItems: 'center',
   justifyContent: 'center',
-  backgroundColor: colors.white,
+  backgroundColor: Colors.white,
   borderRadius: '4px',
 });
 
 const StyledRow = styled(Cell.Row)({
-  backgroundColor: colors.blue40,
+  backgroundColor: Colors.blue40,
   '&&:hover': {
-    backgroundColor: colors.blue80,
+    backgroundColor: Colors.blue80,
   },
 });
 
 const StyledRowTitle = styled.label<IStyledRowTitleProps>(normalText, (props) => ({
   fontWeight: props.$bold ? 600 : 400,
-  color: colors.white,
+  color: Colors.white,
   marginLeft: '22px',
 }));
 
@@ -365,7 +341,7 @@ function CheckboxRow(props: ICheckboxRowProps) {
   return (
     <StyledRow onClick={onToggle}>
       <StyledCheckbox role="checkbox" aria-label={props.label} aria-checked={props.checked}>
-        {props.checked && <ImageView source="icon-tick" width={18} tintColor={colors.green} />}
+        {props.checked && <Icon icon="checkmark" color={Colors.green} />}
       </StyledCheckbox>
       <StyledRowTitle aria-hidden $bold={props.$bold}>
         {props.label}

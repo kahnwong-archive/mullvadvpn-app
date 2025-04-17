@@ -3,46 +3,17 @@
 //  MullvadREST
 //
 //  Created by pronebird on 10/07/2020.
-//  Copyright © 2020 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
+import MullvadRustRuntime
 import MullvadTypes
+import Operations
 import WireGuardKitTypes
 
-public protocol APIQuerying {
-    func getAddressList(
-        retryStrategy: REST.RetryStrategy,
-        completionHandler: @escaping ProxyCompletionHandler<[AnyIPEndpoint]>
-    ) -> Cancellable
-
-    func getRelays(
-        etag: String?,
-        retryStrategy: REST.RetryStrategy,
-        completionHandler: @escaping ProxyCompletionHandler<REST.ServerRelaysCacheResponse>
-    ) -> Cancellable
-
-    func createApplePayment(
-        accountNumber: String,
-        receiptString: Data
-    ) -> any RESTRequestExecutor<REST.CreateApplePaymentResponse>
-
-    func sendProblemReport(
-        _ body: REST.ProblemReportRequest,
-        retryStrategy: REST.RetryStrategy,
-        completionHandler: @escaping ProxyCompletionHandler<Void>
-    ) -> Cancellable
-
-    func submitVoucher(
-        voucherCode: String,
-        accountNumber: String,
-        retryStrategy: REST.RetryStrategy,
-        completionHandler: @escaping ProxyCompletionHandler<REST.SubmitVoucherResponse>
-    ) -> Cancellable
-}
-
 extension REST {
-    public final class APIProxy: Proxy<AuthProxyConfiguration>, APIQuerying {
+    public final class APIProxy: Proxy<AuthProxyConfiguration>, APIQuerying, @unchecked Sendable {
         public init(configuration: AuthProxyConfiguration) {
             super.init(
                 name: "APIProxy",
@@ -57,7 +28,7 @@ extension REST {
 
         public func getAddressList(
             retryStrategy: REST.RetryStrategy,
-            completionHandler: @escaping ProxyCompletionHandler<[AnyIPEndpoint]>
+            completionHandler: @escaping @Sendable ProxyCompletionHandler<[AnyIPEndpoint]>
         ) -> Cancellable {
             let requestHandler = AnyRequestHandler { endpoint in
                 try self.requestFactory.createRequest(
@@ -84,7 +55,7 @@ extension REST {
         public func getRelays(
             etag: String?,
             retryStrategy: REST.RetryStrategy,
-            completionHandler: @escaping ProxyCompletionHandler<ServerRelaysCacheResponse>
+            completionHandler: @escaping @Sendable ProxyCompletionHandler<ServerRelaysCacheResponse>
         ) -> Cancellable {
             let requestHandler = AnyRequestHandler { endpoint in
                 var requestBuilder = try self.requestFactory.createRequestBuilder(
@@ -240,7 +211,7 @@ extension REST {
             voucherCode: String,
             accountNumber: String,
             retryStrategy: REST.RetryStrategy,
-            completionHandler: @escaping ProxyCompletionHandler<SubmitVoucherResponse>
+            completionHandler: @escaping @Sendable ProxyCompletionHandler<SubmitVoucherResponse>
         ) -> Cancellable {
             let requestHandler = AnyRequestHandler(
                 createURLRequest: { endpoint, authorization in
@@ -283,69 +254,20 @@ extension REST {
 
     // MARK: - Response types
 
-    public enum ServerRelaysCacheResponse {
-        case notModified
-        case newContent(_ etag: String?, _ rawData: Data)
-    }
-
-    private struct CreateApplePaymentRequest: Encodable {
+    private struct CreateApplePaymentRequest: Encodable, Sendable {
         let receiptString: Data
     }
 
-    public enum CreateApplePaymentResponse {
-        case noTimeAdded(_ expiry: Date)
-        case timeAdded(_ timeAdded: Int, _ newExpiry: Date)
-
-        public var newExpiry: Date {
-            switch self {
-            case let .noTimeAdded(expiry), let .timeAdded(_, expiry):
-                return expiry
-            }
-        }
-
-        public var timeAdded: TimeInterval {
-            switch self {
-            case .noTimeAdded:
-                return 0
-            case let .timeAdded(timeAdded, _):
-                return TimeInterval(timeAdded)
-            }
-        }
-
-        /// Returns a formatted string for the `timeAdded` interval, i.e "30 days"
-        public var formattedTimeAdded: String? {
-            let formatter = DateComponentsFormatter()
-            formatter.allowedUnits = [.day, .hour]
-            formatter.unitsStyle = .full
-
-            return formatter.string(from: self.timeAdded)
-        }
-    }
-
-    private struct CreateApplePaymentRawResponse: Decodable {
+    private struct CreateApplePaymentRawResponse: Decodable, Sendable {
         let timeAdded: Int
         let newExpiry: Date
     }
 
-    public struct ProblemReportRequest: Encodable {
-        public let address: String
-        public let message: String
-        public let log: String
-        public let metadata: [String: String]
-
-        public init(address: String, message: String, log: String, metadata: [String: String]) {
-            self.address = address
-            self.message = message
-            self.log = log
-            self.metadata = metadata
-        }
-    }
-
-    private struct SubmitVoucherRequest: Encodable {
+    private struct SubmitVoucherRequest: Encodable, Sendable {
         let voucherCode: String
     }
 
-    public struct SubmitVoucherResponse: Decodable {
+    public struct SubmitVoucherResponse: Decodable, Sendable {
         public let timeAdded: Int
         public let newExpiry: Date
 

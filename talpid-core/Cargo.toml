@@ -52,8 +52,8 @@ hickory-proto = { workspace = true }
 hickory-server = { workspace = true, features = ["resolver"] }
 talpid-platform-metadata = { path = "../talpid-platform-metadata" }
 pcap = { version = "2.1", features = ["capture-stream"] }
-pnet_packet = "0.34"
-tun = { version = "0.5.5", features = ["async"] }
+pnet_packet = { workspace = true }
+tun = { workspace = true, features = ["async"] }
 nix = { version = "0.28", features = ["socket", "signal"] }
 serde = { workspace = true, features = ["derive"] }
 serde_json = { workspace = true }
@@ -104,4 +104,4 @@ tonic-build = { workspace = true, default-features = false, features = ["transpo
 
 
 [dev-dependencies]
-tokio = { workspace = true, features = [ "io-util", "test-util", "time" ] }
+tokio = { workspace = true, features = ["io-util", "test-util", "time"] }

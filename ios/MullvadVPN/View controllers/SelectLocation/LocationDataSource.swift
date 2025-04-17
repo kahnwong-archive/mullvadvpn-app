@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 11/03/2021.
-//  Copyright © 2021 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Combine
@@ -15,19 +15,18 @@ import UIKit
 final class LocationDataSource:
     UITableViewDiffableDataSource<LocationSection, LocationCellViewModel>,
     LocationDiffableDataSourceProtocol {
-    private var currentSearchString = ""
-    private var dataSources: [LocationDataSourceProtocol] = []
+    nonisolated(unsafe) private var currentSearchString = ""
+    nonisolated(unsafe) private var dataSources: [LocationDataSourceProtocol] = []
     // The selected location.
-    private var selectedLocation: LocationCellViewModel?
+    nonisolated(unsafe) private var selectedLocation: LocationCellViewModel?
     // When multihop is enabled, this is the "inverted" selected location, ie. entry
     // if in exit mode and exit if in entry mode.
-    private var excludedLocation: LocationCellViewModel?
+    nonisolated(unsafe) private var excludedLocation: LocationCellViewModel?
     let tableView: UITableView
     let sections: [LocationSection]
-    let serialUpdateQueue = DispatchQueue(label: "LocationDataSource.UpdateQueue")
 
-    var didSelectRelayLocations: ((UserSelectedRelays) -> Void)?
-    var didTapEditCustomLists: (() -> Void)?
+    var didSelectRelayLocations: (@Sendable (UserSelectedRelays) -> Void)?
+    var didTapEditCustomLists: (@Sendable () -> Void)?
 
     init(
         tableView: UITableView,
@@ -56,22 +55,22 @@ final class LocationDataSource:
     }
 
     func setRelays(_ relaysWithLocation: LocationRelays, selectedRelays: RelaySelection) {
-        serialUpdateQueue.async { [weak self] in
-            guard let self = self,
-                  let allLocationsDataSource = dataSources
-                  .first(where: { $0 is AllLocationDataSource }) as? AllLocationDataSource,
-                  let customListsDataSource = dataSources
-                  .first(where: { $0 is CustomListsDataSource }) as? CustomListsDataSource else { return }
+        Task { @MainActor in
+            guard let allLocationsDataSource = dataSources
+                .first(where: { $0 is AllLocationDataSource }) as? AllLocationDataSource,
+                let customListsDataSource = dataSources
+                .first(where: { $0 is CustomListsDataSource }) as? CustomListsDataSource else { return }
             allLocationsDataSource.reload(relaysWithLocation)
             customListsDataSource.reload(allLocationNodes: allLocationsDataSource.nodes)
-            setSelectedRelays(selectedRelays)
-            filterRelays(by: currentSearchString)
+            Task { @MainActor in
+                setSelectedRelays(selectedRelays)
+                filterRelays(by: currentSearchString)
+            }
         }
     }
 
     func filterRelays(by searchString: String) {
-        serialUpdateQueue.async(flags: .barrier) { [weak self] in
-            guard let self = self else { return }
+        Task { @MainActor in
             currentSearchString = searchString
 
             let list = sections.enumerated().map { index, section in
@@ -103,12 +102,11 @@ final class LocationDataSource:
 
     /// Refreshes the custom list section and keeps all modifications intact (selection and expanded states).
     func refreshCustomLists() {
-        serialUpdateQueue.async { [weak self] in
-            guard let self = self,
-                  let allLocationsDataSource =
-                  dataSources.first(where: { $0 is AllLocationDataSource }) as? AllLocationDataSource,
-                  let customListsDataSource =
-                  dataSources.first(where: { $0 is CustomListsDataSource }) as? CustomListsDataSource
+        Task { @MainActor in
+            guard let allLocationsDataSource =
+                dataSources.first(where: { $0 is AllLocationDataSource }) as? AllLocationDataSource,
+                let customListsDataSource =
+                dataSources.first(where: { $0 is CustomListsDataSource }) as? CustomListsDataSource
             else {
                 return
             }
@@ -120,8 +118,8 @@ final class LocationDataSource:
     }
 
     func setSelectedRelays(_ selectedRelays: RelaySelection) {
-        serialUpdateQueue.async(flags: .barrier) { [weak self] in
-            guard let self, let _selectedLocation = mapSelection(from: selectedRelays.selected) else { return }
+        Task { @MainActor in
+            guard let _selectedLocation = mapSelection(from: selectedRelays.selected) else { return }
             selectedLocation = _selectedLocation
             excludedLocation = mapSelection(from: selectedRelays.excluded)
             excludedLocation?.excludedRelayTitle = selectedRelays.excludedTitle
@@ -141,9 +139,7 @@ final class LocationDataSource:
     }
 
     private func indexPathForSelectedRelay() -> IndexPath? {
-        serialUpdateQueue.sync {
-            selectedLocation.flatMap { indexPath(for: $0) }
-        }
+        selectedLocation.flatMap { indexPath(for: $0) }
     }
 
     private func mapSelection(from selectedRelays: UserSelectedRelays?) -> LocationCellViewModel? {
@@ -257,12 +253,16 @@ extension LocationDataSource: UITableViewDelegate {
     func tableView(_ tableView: UITableView, viewForHeaderInSection section: Int) -> UIView? {
         switch sections[section] {
         case .allLocations:
-            return LocationSectionHeaderView(
-                configuration: LocationSectionHeaderView.Configuration(name: LocationSection.allLocations.description)
+            LocationSectionHeaderFooterView(
+                configuration: LocationSectionHeaderFooterView.Configuration(
+                    name: LocationSection.allLocations.header,
+                    style: .header
+                )
             )
         case .customLists:
-            return LocationSectionHeaderView(configuration: LocationSectionHeaderView.Configuration(
-                name: LocationSection.customLists.description,
+            LocationSectionHeaderFooterView(configuration: LocationSectionHeaderFooterView.Configuration(
+                name: LocationSection.customLists.header,
+                style: .header,
                 primaryAction: UIAction(
                     handler: { [weak self] _ in
                         self?.didTapEditCustomLists?()
@@ -273,15 +273,48 @@ extension LocationDataSource: UITableViewDelegate {
     }
 
     func tableView(_ tableView: UITableView, viewForFooterInSection section: Int) -> UIView? {
-        nil
+        switch sections[section] {
+        case .allLocations:
+            return LocationSectionHeaderFooterView(configuration: LocationSectionHeaderFooterView.Configuration(
+                name: LocationSection.allLocations.footer,
+                style: .footer,
+                directionalEdgeInsets: NSDirectionalEdgeInsets(top: 24, leading: 16, bottom: 0, trailing: 16)
+            ))
+        case .customLists:
+            guard dataSources[section].nodes.isEmpty else {
+                return nil
+            }
+
+            let text = NSMutableAttributedString(string: NSLocalizedString(
+                "CUSTOM_LIST_FOOTER",
+                tableName: "SelectLocation",
+                value: "To create a custom list, tap on ",
+                comment: ""
+            ))
+
+            text.append(NSAttributedString(string: "\""))
+
+            if let image = UIImage(systemName: "ellipsis") {
+                text.append(NSAttributedString(attachment: NSTextAttachment(image: image)))
+            } else {
+                text.append(NSAttributedString(string: "..."))
+            }
+
+            text.append(NSAttributedString(string: "\""))
+
+            var contentConfiguration = UIListContentConfiguration.mullvadGroupedFooter(tableStyle: tableView.style)
+            contentConfiguration.attributedText = text
+
+            return UIListContentView(configuration: contentConfiguration)
+        }
     }
 
     func tableView(_ tableView: UITableView, heightForFooterInSection section: Int) -> CGFloat {
         switch sections[section] {
         case .allLocations:
-            return .zero
+            dataSources[section].nodes.isEmpty ? 80 : .zero
         case .customLists:
-            return 24
+            dataSources[section].nodes.isEmpty ? UITableView.automaticDimension : 24
         }
     }
 
@@ -330,7 +363,7 @@ extension LocationDataSource: UITableViewDelegate {
     }
 }
 
-extension LocationDataSource: LocationCellDelegate {
+extension LocationDataSource: @preconcurrency LocationCellDelegate {
     func toggleExpanding(cell: LocationCell) {
         guard let indexPath = tableView.indexPath(for: cell),
               let item = itemIdentifier(for: indexPath) else { return }

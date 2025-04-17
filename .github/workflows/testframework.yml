@@ -10,7 +10,6 @@ on:
       - '.github/workflows/daemon.yml'
       - '!android/**'
       - '!audits/**'
-      - '!build-apk.sh'
       - '!build.sh'
       - '!ci/**'
       - '!clippy.toml'
@@ -43,8 +42,7 @@ jobs:
 
       - name: Use default container image and resolve digest
         if: ${{ github.event.inputs.override_container_image == '' }}
-        run: |
-          echo "inner_container_image=$(cat ./building/linux-container-image.txt)" >> $GITHUB_ENV
+        run: echo "inner_container_image=$(cat ./building/linux-container-image.txt)" >> $GITHUB_ENV
 
     outputs:
       container_image: ${{ env.inner_container_image }}
@@ -70,7 +68,7 @@ jobs:
 
       - name: Build test framework
         working-directory: test
-        run: cargo build --release
+        run: cargo build --release --locked
 
   # Build the test runner + test manager at once.
   build-test-framework-macos:
@@ -84,15 +82,9 @@ jobs:
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Install Rust
-        uses: actions-rs/toolchain@v1.0.6
-        with:
-          toolchain: stable
-          default: true
-
       - name: Build test runner
         working-directory: test
-        run: cargo build
+        run: cargo build --locked
 
   # Build only the test-runner binary on Windows. Windows is not a supported host for test-manager.
   build-test-runner-windows:
@@ -113,4 +105,4 @@ jobs:
 
       - name: Build test runner
         working-directory: test
-        run: cargo build --release -p test-runner --target x86_64-pc-windows-gnu
+        run: cargo build --release --locked -p test-runner --target x86_64-pc-windows-gnu

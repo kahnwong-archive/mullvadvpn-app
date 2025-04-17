@@ -3,14 +3,15 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 12/12/2022.
-//  Copyright © 2022 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import MullvadSettings
 import MullvadTypes
 
-final class AccountExpiryInAppNotificationProvider: NotificationProvider, InAppNotificationProvider {
+final class AccountExpiryInAppNotificationProvider: NotificationProvider, InAppNotificationProvider,
+    @unchecked Sendable {
     private var accountExpiry = AccountExpiry()
     private var tunnelObserver: TunnelBlockObserver?
     private var timer: DispatchSourceTimer?
@@ -36,6 +37,10 @@ final class AccountExpiryInAppNotificationProvider: NotificationProvider, InAppN
 
     override var identifier: NotificationProviderIdentifier {
         .accountExpiryInAppNotification
+    }
+
+    override var priority: NotificationPriority {
+        .high
     }
 
     // MARK: - InAppNotificationProvider

@@ -3,13 +3,13 @@
 //  MullvadSettings
 //
 //  Created by Mojgan on 2024-08-08.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import MullvadTypes
 
-public struct TunnelSettingsV6: Codable, Equatable, TunnelSettings {
+public struct TunnelSettingsV6: Codable, Equatable, TunnelSettings, Sendable {
     /// Relay constraints.
     public var relayConstraints: RelayConstraints
 
@@ -45,6 +45,15 @@ public struct TunnelSettingsV6: Codable, Equatable, TunnelSettings {
     }
 
     public func upgradeToNextVersion() -> any TunnelSettings {
-        self
+        TunnelSettingsV7(
+            relayConstraints: relayConstraints,
+            dnsSettings: dnsSettings,
+            wireGuardObfuscation: wireGuardObfuscation,
+            tunnelQuantumResistance: tunnelQuantumResistance,
+            tunnelMultihopState: tunnelMultihopState,
+            daita: daita,
+            localNetworkSharing: false,
+            includeAllNetworks: false
+        )
     }
 }

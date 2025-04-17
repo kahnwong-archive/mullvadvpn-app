@@ -3,26 +3,21 @@
 //  PacketTunnelCore
 //
 //  Created by pronebird on 10/08/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
-import NetworkExtension
+import Network
 
 /// A type providing default path access and observation.
-public protocol DefaultPathObserverProtocol {
+public protocol DefaultPathObserverProtocol: Sendable {
     /// Returns current default path or `nil` if unknown yet.
-    var defaultPath: NetworkPath? { get }
+    var currentPathStatus: Network.NWPath.Status { get }
 
     /// Start observing changes to `defaultPath`.
     /// This call must be idempotent. Multiple calls to start should replace the existing handler block.
-    func start(_ body: @escaping (NetworkPath) -> Void)
+    func start(_ body: @escaping @Sendable (Network.NWPath.Status) -> Void)
 
     /// Stop observing changes to `defaultPath`.
     func stop()
-}
-
-/// A type that represents a network path.
-public protocol NetworkPath {
-    var status: NetworkExtension.NWPathStatus { get }
 }

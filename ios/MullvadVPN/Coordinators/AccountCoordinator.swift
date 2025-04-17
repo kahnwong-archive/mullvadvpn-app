@@ -3,25 +3,22 @@
 //  MullvadVPN
 //
 //  Created by Jon Petersson on 2023-04-14.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Routing
+import StoreKit
 import UIKit
 
-enum AccountDismissReason: Equatable {
+enum AccountDismissReason: Equatable, Sendable {
     case none
     case userLoggedOut
     case accountDeletion
 }
 
-enum AddedMoreCreditOption: Equatable {
-    case redeemingVoucher
-    case inAppPurchase
-}
-
-final class AccountCoordinator: Coordinator, Presentable, Presenting {
+final class AccountCoordinator: Coordinator, Presentable, Presenting, @unchecked Sendable {
     private let interactor: AccountInteractor
+    private let storePaymentManager: StorePaymentManager
     private var accountController: AccountViewController?
 
     let navigationController: UINavigationController
@@ -29,14 +26,16 @@ final class AccountCoordinator: Coordinator, Presentable, Presenting {
         navigationController
     }
 
-    var didFinish: ((AccountCoordinator, AccountDismissReason) -> Void)?
+    var didFinish: (@MainActor (AccountCoordinator, AccountDismissReason) -> Void)?
 
     init(
         navigationController: UINavigationController,
-        interactor: AccountInteractor
+        interactor: AccountInteractor,
+        storePaymentManager: StorePaymentManager
     ) {
         self.navigationController = navigationController
         self.interactor = interactor
+        self.storePaymentManager = storePaymentManager
     }
 
     func start(animated: Bool) {
@@ -67,7 +66,29 @@ final class AccountCoordinator: Coordinator, Presentable, Presenting {
             navigateToDeleteAccount()
         case .restorePurchasesInfo:
             showRestorePurchasesInfo()
+        case .showFailedToLoadProducts:
+            showFailToFetchProducts()
+        case .showRestorePurchases:
+            didRequestShowInAppPurchase(paymentAction: .restorePurchase)
+        case .showPurchaseOptions:
+            didRequestShowInAppPurchase(paymentAction: .purchase)
         }
+    }
+
+    private func didRequestShowInAppPurchase(
+        paymentAction: PaymentAction
+    ) {
+        guard let accountNumber = interactor.deviceState.accountData?.number else { return }
+        let coordinator = InAppPurchaseCoordinator(
+            storePaymentManager: storePaymentManager,
+            accountNumber: accountNumber,
+            paymentAction: paymentAction
+        )
+        coordinator.didFinish = { coordinator in
+            coordinator.dismiss(animated: true)
+        }
+        coordinator.start()
+        presentChild(coordinator, animated: true)
     }
 
     private func navigateToRedeemVoucher() {
@@ -101,6 +122,7 @@ final class AccountCoordinator: Coordinator, Presentable, Presenting {
         )
     }
 
+    @MainActor
     private func navigateToDeleteAccount() {
         let coordinator = AccountDeletionCoordinator(
             navigationController: CustomNavigationController(),
@@ -109,10 +131,12 @@ final class AccountCoordinator: Coordinator, Presentable, Presenting {
 
         coordinator.start()
         coordinator.didCancel = { accountDeletionCoordinator in
-            accountDeletionCoordinator.dismiss(animated: true)
+            Task { @MainActor in
+                accountDeletionCoordinator.dismiss(animated: true)
+            }
         }
 
-        coordinator.didFinish = { accountDeletionCoordinator in
+        coordinator.didFinish = { @MainActor accountDeletionCoordinator in
             accountDeletionCoordinator.dismiss(animated: true) {
                 self.didFinish?(self, .userLoggedOut)
             }
@@ -222,6 +246,38 @@ final class AccountCoordinator: Coordinator, Presentable, Presenting {
                 ),
                 style: .default
             )]
+        )
+
+        let presenter = AlertPresenter(context: self)
+        presenter.showAlert(presentation: presentation, animated: true)
+    }
+
+    func showFailToFetchProducts() {
+        let message = NSLocalizedString(
+            "WELCOME_FAILED_TO_FETCH_PRODUCTS_DIALOG",
+            tableName: "Welcome",
+            value:
+            """
+            Failed to connect to App store, please try again later.
+            """,
+            comment: ""
+        )
+
+        let presentation = AlertPresentation(
+            id: "welcome-failed-to-fetch-products-alert",
+            icon: .info,
+            message: message,
+            buttons: [
+                AlertAction(
+                    title: NSLocalizedString(
+                        "WELCOME_FAILED_TO_FETCH_PRODUCTS_OK_ACTION",
+                        tableName: "Welcome",
+                        value: "Got it!",
+                        comment: ""
+                    ),
+                    style: .default
+                ),
+            ]
         )
 
         let presenter = AlertPresenter(context: self)

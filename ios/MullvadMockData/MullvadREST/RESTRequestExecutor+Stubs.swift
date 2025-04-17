@@ -3,14 +3,14 @@
 //  MullvadVPNTests
 //
 //  Created by Marco Nikic on 2023-10-03.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import MullvadREST
 import MullvadTypes
 
-struct RESTRequestExecutorStub<Success>: RESTRequestExecutor {
+struct RESTRequestExecutorStub<Success: Sendable>: RESTRequestExecutor {
     var success: (() -> Success)?
 
     func execute(completionHandler: @escaping (Result<Success, Error>) -> Void) -> Cancellable {

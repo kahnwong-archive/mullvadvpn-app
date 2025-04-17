@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 14/03/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import UIKit
@@ -11,6 +11,7 @@ import UIKit
 /**
  A struct holding modal presentation configuration.
  */
+@MainActor
 public struct ModalPresentationConfiguration {
     var preferredContentSize: CGSize?
     var modalPresentationStyle: UIModalPresentationStyle?

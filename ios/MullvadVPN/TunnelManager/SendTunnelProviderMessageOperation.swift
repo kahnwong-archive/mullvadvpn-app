@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 27/01/2022.
-//  Copyright © 2022 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadTypes
@@ -20,7 +20,7 @@ private let connectingStateWaitDelay: Duration = .seconds(5)
 /// Default timeout in seconds.
 private let defaultTimeout: Duration = .seconds(5)
 
-final class SendTunnelProviderMessageOperation<Output>: ResultOperation<Output> {
+final class SendTunnelProviderMessageOperation<Output: Sendable>: ResultOperation<Output>, @unchecked Sendable {
     typealias DecoderHandler = (Data?) throws -> Output
 
     private let backgroundTaskProvider: BackgroundTaskProviding

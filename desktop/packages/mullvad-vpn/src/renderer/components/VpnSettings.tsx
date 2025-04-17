@@ -2,13 +2,13 @@ import { useCallback, useMemo } from 'react';
 import { sprintf } from 'sprintf-js';
 import styled from 'styled-components';
 
-import { strings } from '../../config.json';
-import { IDnsOptions, TunnelProtocol, wrapConstraint } from '../../shared/daemon-rpc-types';
+import { strings, urls } from '../../shared/constants';
+import { IDnsOptions, TunnelProtocol } from '../../shared/daemon-rpc-types';
 import { messages } from '../../shared/gettext';
 import log from '../../shared/logging';
 import { useAppContext } from '../context';
 import { useRelaySettingsUpdater } from '../lib/constraint-updater';
-import { Colors, Spacings } from '../lib/foundations';
+import { Colors, spacings } from '../lib/foundations';
 import { useHistory } from '../lib/history';
 import { formatHtml } from '../lib/html-formatter';
 import { useTunnelProtocol } from '../lib/relay-settings-hooks';
@@ -16,26 +16,23 @@ import { RoutePath } from '../lib/routes';
 import { useBoolean } from '../lib/utility-hooks';
 import { RelaySettingsRedux } from '../redux/settings/reducers';
 import { useSelector } from '../redux/store';
+import { AppNavigationHeader } from './';
 import * as AppButton from './AppButton';
 import { AriaDescription, AriaDetails, AriaInput, AriaInputGroup, AriaLabel } from './AriaGroup';
 import * as Cell from './cell';
 import Selector, { SelectorItem } from './cell/Selector';
 import CustomDnsSettings from './CustomDnsSettings';
-import InfoButton, { InfoIcon } from './InfoButton';
+import { ExternalLink } from './ExternalLink';
+import InfoButton from './InfoButton';
 import { BackAction } from './KeyboardNavigation';
 import { Layout, SettingsContainer, SettingsContent, SettingsGroup, SettingsStack } from './Layout';
 import { ModalAlert, ModalAlertType, ModalMessage } from './Modal';
-import {
-  NavigationBar,
-  NavigationContainer,
-  NavigationItems,
-  NavigationScrollbars,
-  TitleBarItem,
-} from './NavigationBar';
+import { NavigationContainer } from './NavigationContainer';
+import { NavigationScrollbars } from './NavigationScrollbars';
 import SettingsHeader, { HeaderTitle } from './SettingsHeader';
 
-const StyledInfoIcon = styled(InfoIcon)({
-  marginRight: Spacings.spacing5,
+const StyledInfoButton = styled(InfoButton)({
+  marginRight: spacings.medium,
 });
 
 const StyledTitleLabel = styled(Cell.SectionTitle)({
@@ -48,11 +45,11 @@ const StyledSectionItem = styled(Cell.Container)({
 
 const LanIpRanges = styled.ul({
   listStyle: 'disc outside',
-  marginLeft: Spacings.spacing6,
+  marginLeft: spacings.large,
 });
 
 const IndentedValueLabel = styled(Cell.ValueLabel)({
-  marginLeft: Spacings.spacing5,
+  marginLeft: spacings.medium,
 });
 
 export default function VpnSettings() {
@@ -63,16 +60,12 @@ export default function VpnSettings() {
       <Layout>
         <SettingsContainer>
           <NavigationContainer>
-            <NavigationBar>
-              <NavigationItems>
-                <TitleBarItem>
-                  {
-                    // TRANSLATORS: Title label in navigation bar
-                    messages.pgettext('vpn-settings-view', 'VPN settings')
-                  }
-                </TitleBarItem>
-              </NavigationItems>
-            </NavigationBar>
+            <AppNavigationHeader
+              title={
+                // TRANSLATORS: Title label in navigation bar
+                messages.pgettext('vpn-settings-view', 'VPN settings')
+              }
+            />
 
             <NavigationScrollbars>
               <SettingsHeader>
@@ -204,7 +197,7 @@ function AllowLan() {
           </Cell.InputLabel>
         </AriaLabel>
         <AriaDetails>
-          <InfoButton>
+          <StyledInfoButton>
             <ModalMessage>
               {messages.pgettext(
                 'vpn-settings-view',
@@ -225,7 +218,7 @@ function AllowLan() {
                 <li>fc00::/7</li>
               </LanIpRanges>
             </ModalMessage>
-          </InfoButton>
+          </StyledInfoButton>
         </AriaDetails>
         <AriaInput>
           <Cell.Switch isOn={allowLan} onChange={setAllowLan} />
@@ -263,7 +256,7 @@ function DnsBlockers() {
       <StyledTitleLabel as="label" disabled={dns.state === 'custom'}>
         {messages.pgettext('vpn-settings-view', 'DNS content blockers')}
       </StyledTitleLabel>
-      <InfoButton>
+      <StyledInfoButton>
         <ModalMessage>
           {messages.pgettext(
             'vpn-settings-view',
@@ -287,7 +280,7 @@ function DnsBlockers() {
             ),
           )}
         </ModalMessage>
-      </InfoButton>
+      </StyledInfoButton>
     </>
   );
 
@@ -368,14 +361,14 @@ function BlockMalware() {
           </IndentedValueLabel>
         </AriaLabel>
         <AriaDetails>
-          <InfoButton>
+          <StyledInfoButton>
             <ModalMessage>
               {messages.pgettext(
                 'vpn-settings-view',
                 'Warning: The malware blocker is not an anti-virus and should not be treated as such, this is just an extra layer of protection.',
               )}
             </ModalMessage>
-          </InfoButton>
+          </StyledInfoButton>
         </AriaDetails>
         <AriaInput>
           <Cell.Switch
@@ -510,7 +503,7 @@ function EnableIpv6() {
           <Cell.InputLabel>{messages.pgettext('vpn-settings-view', 'Enable IPv6')}</Cell.InputLabel>
         </AriaLabel>
         <AriaDetails>
-          <InfoButton>
+          <StyledInfoButton>
             <ModalMessage>
               {messages.pgettext(
                 'vpn-settings-view',
@@ -523,7 +516,7 @@ function EnableIpv6() {
                 'IPv4 is always enabled and the majority of websites and applications use this protocol. We do not recommend enabling IPv6 unless you know you need it.',
               )}
             </ModalMessage>
-          </InfoButton>
+          </StyledInfoButton>
         </AriaDetails>
         <AriaInput>
           <Cell.Switch isOn={enableIpv6} onChange={setEnableIpv6} />
@@ -538,19 +531,19 @@ function KillSwitchInfo() {
 
   return (
     <>
-      <Cell.CellButton onClick={showKillSwitchInfo}>
-        <AriaInputGroup>
+      <AriaInputGroup>
+        <Cell.Container>
           <AriaLabel>
             <Cell.InputLabel>
               {messages.pgettext('vpn-settings-view', 'Kill switch')}
             </Cell.InputLabel>
           </AriaLabel>
-          <StyledInfoIcon />
+          <StyledInfoButton onClick={showKillSwitchInfo} />
           <AriaInput>
             <Cell.Switch isOn disabled />
           </AriaInput>
-        </AriaInputGroup>
-      </Cell.CellButton>
+        </Cell.Container>
+      </AriaInputGroup>
       <ModalAlert
         isOpen={killSwitchInfoVisible}
         type={ModalAlertType.info}
@@ -622,7 +615,7 @@ function LockdownMode() {
             </Cell.InputLabel>
           </AriaLabel>
           <AriaDetails>
-            <InfoButton>
+            <StyledInfoButton>
               <ModalMessage>
                 {messages.pgettext(
                   'vpn-settings-view',
@@ -635,7 +628,7 @@ function LockdownMode() {
                   'With Lockdown Mode enabled, you must be connected to a Mullvad VPN server to be able to reach the internet. Manually disconnecting or quitting the app will block your connection.',
                 )}
               </ModalMessage>
-            </InfoButton>
+            </StyledInfoButton>
           </AriaDetails>
           <AriaInput>
             <Cell.Switch isOn={blockWhenDisconnected} onChange={setLockDownMode} />
@@ -672,9 +665,8 @@ function LockdownMode() {
 }
 
 function TunnelProtocolSetting() {
-  const tunnelProtocol = useSelector((state) =>
-    mapRelaySettingsToProtocol(state.settings.relaySettings),
-  );
+  const tunnelProtocol = useTunnelProtocol();
+
   const relaySettingsUpdater = useRelaySettingsUpdater();
 
   const relaySettings = useSelector((state) => state.settings.relaySettings);
@@ -697,11 +689,11 @@ function TunnelProtocolSetting() {
   }
 
   const setTunnelProtocol = useCallback(
-    async (tunnelProtocol: TunnelProtocol | null) => {
+    async (tunnelProtocol: TunnelProtocol) => {
       try {
         await relaySettingsUpdater((settings) => ({
           ...settings,
-          tunnelProtocol: wrapConstraint(tunnelProtocol),
+          tunnelProtocol,
         }));
       } catch (e) {
         const error = e as Error;
@@ -731,11 +723,10 @@ function TunnelProtocolSetting() {
       <Selector
         title={messages.pgettext('vpn-settings-view', 'Tunnel protocol')}
         items={tunnelProtocolItems}
-        value={tunnelProtocol ?? null}
+        value={tunnelProtocol}
         onSelect={setTunnelProtocol}
-        automaticValue={null}
       />
-      {openVpnDisabled ? (
+      {openVpnDisabled && (
         <Cell.CellFooter>
           <AriaDescription>
             <Cell.CellFooterText>
@@ -749,7 +740,33 @@ function TunnelProtocolSetting() {
             </Cell.CellFooterText>
           </AriaDescription>
         </Cell.CellFooter>
-      ) : null}
+      )}
+      {tunnelProtocol === 'openvpn' && (
+        <Cell.CellFooter>
+          <AriaDescription>
+            <Cell.CellFooterText>
+              {sprintf(
+                // TRANSLATORS: Footer text for tunnel protocol selector when OpenVPN is selected.
+                // TRANSLATORS: Available placeholders:
+                // TRANSLATORS: %(openvpn)s - Will be replaced with OpenVPN
+                messages.pgettext(
+                  'vpn-settings-view',
+                  'Attention: We are removing support for %(openVpn)s.',
+                ),
+                { openVpn: strings.openvpn },
+              )}{' '}
+            </Cell.CellFooterText>
+          </AriaDescription>
+          <ExternalLink variant="labelTiny" to={urls.removingOpenVpnBlog}>
+            {sprintf(
+              // TRANSLATORS: Link in tunnel protocol selector footer to blog post
+              // TRANSLATORS: about OpenVPN support ending.
+              messages.pgettext('vpn-settings-view', 'Read more'),
+            )}
+            <ExternalLink.Icon icon="external" size="small" />
+          </ExternalLink>
+        </Cell.CellFooter>
+      )}
     </AriaInputGroup>
   );
 }
@@ -757,7 +774,7 @@ function TunnelProtocolSetting() {
 function mapRelaySettingsToProtocol(relaySettings: RelaySettingsRedux) {
   if ('normal' in relaySettings) {
     const { tunnelProtocol } = relaySettings.normal;
-    return tunnelProtocol === 'any' ? undefined : tunnelProtocol;
+    return tunnelProtocol;
     // since the GUI doesn't display custom settings, just display the default ones.
     // If the user sets any settings, then those will be applied.
   } else if ('customTunnelEndpoint' in relaySettings) {

@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by Mojgan on 2023-06-13.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -44,7 +44,7 @@ final class ProfileVoucherCoordinator: Coordinator, Presentable {
     }
 }
 
-extension ProfileVoucherCoordinator: RedeemVoucherViewControllerDelegate {
+extension ProfileVoucherCoordinator: @preconcurrency RedeemVoucherViewControllerDelegate {
     func redeemVoucherDidSucceed(
         _ controller: RedeemVoucherViewController,
         with response: REST.SubmitVoucherResponse
@@ -59,7 +59,7 @@ extension ProfileVoucherCoordinator: RedeemVoucherViewControllerDelegate {
     }
 }
 
-extension ProfileVoucherCoordinator: AddCreditSucceededViewControllerDelegate {
+extension ProfileVoucherCoordinator: @preconcurrency AddCreditSucceededViewControllerDelegate {
     func addCreditSucceededViewControllerDidFinish(in controller: AddCreditSucceededViewController) {
         didFinish?(self)
     }

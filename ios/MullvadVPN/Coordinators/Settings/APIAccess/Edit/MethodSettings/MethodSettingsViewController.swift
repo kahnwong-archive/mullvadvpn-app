@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 21/11/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Combine
@@ -298,7 +298,9 @@ class MethodSettingsViewController: UITableViewController {
         saveBarButton.isEnabled = false
 
         interactor.startProxyConfigurationTest { [weak self] _ in
-            self?.onTestCompleted()
+            Task { @MainActor in
+                self?.onTestCompleted()
+            }
         }
     }
 

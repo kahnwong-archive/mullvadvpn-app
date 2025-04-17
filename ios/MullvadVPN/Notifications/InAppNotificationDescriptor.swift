@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 09/12/2022.
-//  Copyright © 2022 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -24,7 +24,10 @@ struct InAppNotificationDescriptor: Equatable {
     var body: NSAttributedString
 
     /// Notification action.
-    var action: InAppNotificationAction?
+    var button: InAppNotificationAction?
+
+    /// Notification tap action (optional).
+    var tapAction: InAppNotificationAction?
 }
 
 /// Type describing a specific in-app notification action.

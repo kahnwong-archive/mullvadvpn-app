@@ -2,6 +2,7 @@ package net.mullvad.mullvadvpn.viewmodel
 
 import android.content.res.Resources
 import android.net.Uri
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.channels.Channel
@@ -13,8 +14,8 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import net.mullvad.mullvadvpn.R
+import net.mullvad.mullvadvpn.lib.model.VersionInfo
 import net.mullvad.mullvadvpn.repository.ChangelogRepository
-import net.mullvad.mullvadvpn.ui.VersionInfo
 import net.mullvad.mullvadvpn.ui.serviceconnection.AppVersionInfoRepository
 
 class AppInfoViewModel(
@@ -22,6 +23,7 @@ class AppInfoViewModel(
     appVersionInfoRepository: AppVersionInfoRepository,
     private val resources: Resources,
     private val isPlayBuild: Boolean,
+    private val isFdroidBuild: Boolean,
     private val packageName: String,
 ) : ViewModel() {
 
@@ -34,36 +36,34 @@ class AppInfoViewModel(
                 flowOf(changelogRepository.getLastVersionChanges()),
                 flowOf(isPlayBuild),
             ) { versionInfo, changes, isPlayBuild ->
-                AppInfoUiState(versionInfo, changes, isPlayBuild)
+                AppInfoUiState(versionInfo, isPlayBuild)
             }
             .stateIn(
                 viewModelScope,
                 SharingStarted.WhileSubscribed(),
-                AppInfoUiState(
-                    appVersionInfoRepository.versionInfo.value,
-                    changelogRepository.getLastVersionChanges(),
-                    true,
-                ),
+                AppInfoUiState(appVersionInfoRepository.versionInfo.value, true),
             )
 
     fun openAppListing() =
         viewModelScope.launch {
-            val uri =
-                if (isPlayBuild) {
-                    resources.getString(R.string.market_uri, packageName)
+            val sideEffect =
+                if (isPlayBuild || isFdroidBuild) {
+                    AppInfoSideEffect.OpenUri(
+                        uri = resources.getString(R.string.market_uri, packageName).toUri(),
+                        errorMessage = resources.getString(R.string.uri_market_app_not_found),
+                    )
                 } else {
-                    resources.getString(R.string.download_url)
+                    AppInfoSideEffect.OpenUri(
+                        uri = resources.getString(R.string.download_url).toUri(),
+                        errorMessage = resources.getString(R.string.uri_browser_app_not_found),
+                    )
                 }
-            _uiSideEffect.send(AppInfoSideEffect.OpenUri(Uri.parse(uri)))
+            _uiSideEffect.send(sideEffect)
         }
 }
 
-data class AppInfoUiState(
-    val version: VersionInfo,
-    val changes: List<String>,
-    val isPlayBuild: Boolean,
-)
+data class AppInfoUiState(val version: VersionInfo, val isPlayBuild: Boolean)
 
 sealed interface AppInfoSideEffect {
-    data class OpenUri(val uri: Uri) : AppInfoSideEffect
+    data class OpenUri(val uri: Uri, val errorMessage: String) : AppInfoSideEffect
 }

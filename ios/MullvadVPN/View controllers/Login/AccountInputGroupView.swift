@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 22/03/2019.
-//  Copyright © 2019 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadTypes
@@ -22,7 +22,7 @@ final class AccountInputGroupView: UIView {
     let sendButton: UIButton = {
         let button = UIButton(type: .custom)
         button.translatesAutoresizingMaskIntoConstraints = false
-        button.setImage(UIImage(named: "IconArrow"), for: .normal)
+        button.setImage(UIImage.Buttons.rightArrow, for: .normal)
         button.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
         button.setAccessibilityIdentifier(.loginTextFieldButton)
         button.accessibilityLabel = NSLocalizedString(
@@ -125,7 +125,7 @@ final class AccountInputGroupView: UIView {
             value: "Remove last used account",
             comment: ""
         )
-        button.configuration?.image = UIImage(resource: .iconCloseSml).withTintColor(.primaryColor)
+        button.configuration?.image = UIImage.Buttons.closeSmall.withTintColor(.primaryColor)
         button.configuration?.title = " "
         return button
     }()

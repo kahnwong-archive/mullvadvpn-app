@@ -23,6 +23,30 @@ Line wrap the file at 100 chars.                                              Th
 
 ## Unreleased
 ### Added
+- Make account number copyable on welcome screen.
+
+### Changed
+- Improve the filter view to display the number of available servers based on selected criteria.
+
+## 2025.2 - 2025-02-08
+### Added
+- Add different themes for app icons
+
+### Fixed
+- Broken DAITA settings view on iOS 15.
+
+### Changed
+- Move changelog to settings and add an in-app notification banner for app update.
+
+### Removed
+- Remove Google's resolvers from encrypted DNS proxy.
+
+## [2025.3 - 2025-03-06]
+### Fixed
+- Fix DAITA for multihop.
+
+## [2025.1 - 2025-01-14]
+### Added
 - Update to DAITA v2 - now machines are provided by relays dynamically instead
   of using bundled ones.
 

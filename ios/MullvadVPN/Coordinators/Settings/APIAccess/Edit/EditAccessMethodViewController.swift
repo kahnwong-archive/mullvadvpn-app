@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 17/11/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Combine
@@ -199,6 +199,7 @@ extension EditAccessMethodViewController: UITableViewDelegate {
 
     private func configureTestMethod(_ cell: UITableViewCell, itemIdentifier: EditAccessMethodItemIdentifier) {
         var contentConfiguration = ButtonCellContentConfiguration()
+        contentConfiguration.accessibilityIdentifier = .accessMethodTestButton
         contentConfiguration.text = itemIdentifier.text
         contentConfiguration.isEnabled = subject.value.testingStatus != .inProgress
         contentConfiguration.primaryAction = UIAction { [weak self] _ in
@@ -209,6 +210,7 @@ extension EditAccessMethodViewController: UITableViewDelegate {
 
     private func configureCancelTest(_ cell: UITableViewCell, itemIdentifier: EditAccessMethodItemIdentifier) {
         var contentConfiguration = ButtonCellContentConfiguration()
+        contentConfiguration.accessibilityIdentifier = .accessMethodTestButton
         contentConfiguration.text = itemIdentifier.text
         contentConfiguration.isEnabled = subject.value.testingStatus == .inProgress
         contentConfiguration.primaryAction = UIAction { [weak self] _ in

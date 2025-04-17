@@ -133,7 +133,9 @@ impl MullvadProxyClient {
         TunnelState::try_from(state).map_err(Error::InvalidResponse)
     }
 
-    pub async fn events_listen(&mut self) -> Result<impl Stream<Item = Result<DaemonEvent>>> {
+    pub async fn events_listen<'a>(
+        &mut self,
+    ) -> Result<impl Stream<Item = Result<DaemonEvent>> + 'a> {
         let listener = self
             .0
             .events_listen(())
@@ -765,6 +767,17 @@ impl MullvadProxyClient {
             .map_err(Error::Rpc)
             .map(|response| response.into_inner())
             .map(FeatureIndicators::from)
+    }
+
+    // Debug features
+    pub async fn disable_relay(&mut self, relay: String) -> Result<()> {
+        self.0.disable_relay(relay).await.map_err(Error::Rpc)?;
+        Ok(())
+    }
+
+    pub async fn enable_relay(&mut self, relay: String) -> Result<()> {
+        self.0.enable_relay(relay).await.map_err(Error::Rpc)?;
+        Ok(())
     }
 }
 

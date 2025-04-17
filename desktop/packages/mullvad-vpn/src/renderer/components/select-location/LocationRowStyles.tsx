@@ -1,11 +1,11 @@
 import styled from 'styled-components';
 import { Styles } from 'styled-components/dist/types';
 
-import { colors } from '../../../config.json';
+import { Icon } from '../../lib/components';
+import { Colors } from '../../lib/foundations';
 import * as Cell from '../cell';
 import { buttonColor, ButtonColors } from '../cell/styles';
 import { measurements, normalText } from '../common-styles';
-import ImageView from '../ImageView';
 import InfoButton from '../InfoButton';
 
 export const StyledLocationRowContainer = styled(Cell.Container)({
@@ -82,14 +82,11 @@ export const StyledHoverIconButton = styled.button<ButtonColors & HoverButtonPro
   hoverButton,
 );
 
-export const StyledHoverIcon = styled(ImageView).attrs({
-  width: 18,
-  height: 18,
-  tintColor: colors.white60,
-  tintHoverColor: colors.white,
+export const StyledHoverIcon = styled(Icon).attrs({
+  color: Colors.white60,
 })({
   [`${StyledHoverIconButton}:hover &&`]: {
-    backgroundColor: colors.white,
+    backgroundColor: Colors.white,
   },
 });
 
@@ -99,19 +96,19 @@ export const StyledHoverInfoButton = styled(InfoButton)<ButtonColors & HoverButt
 );
 
 export function getButtonColor(selected: boolean, level: number, disabled?: boolean) {
-  let backgroundColor = colors.blue60;
+  let backgroundColor = Colors.blue60;
   if (selected) {
-    backgroundColor = colors.green;
+    backgroundColor = Colors.green;
   } else if (level === 1) {
-    backgroundColor = colors.blue40;
+    backgroundColor = Colors.blue40;
   } else if (level === 2) {
-    backgroundColor = colors.blue20;
+    backgroundColor = Colors.blue20;
   } else if (level === 3) {
-    backgroundColor = colors.blue10;
+    backgroundColor = Colors.blue10;
   }
 
   return {
     $backgroundColor: backgroundColor,
-    $backgroundColorHover: selected || disabled ? backgroundColor : colors.blue80,
+    $backgroundColorHover: selected || disabled ? backgroundColor : Colors.blue80,
   };
 }

@@ -3,7 +3,7 @@
 //  MullvadTransport
 //
 //  Created by pronebird on 12/06/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -44,7 +44,7 @@ public final class ShadowsocksTransport: RESTTransport {
 
     public func sendRequest(
         _ request: URLRequest,
-        completion: @escaping (Data?, URLResponse?, Swift.Error?) -> Void
+        completion: @escaping @Sendable (Data?, URLResponse?, Swift.Error?) -> Void
     ) -> Cancellable {
         // Start the Shadowsocks proxy in order to get a local port
         shadowsocksProxy.start()

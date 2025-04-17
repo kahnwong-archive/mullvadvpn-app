@@ -1,10 +1,10 @@
 import { useCallback, useEffect, useState } from 'react';
 import styled from 'styled-components';
 
-import { colors } from '../../config.json';
 import { NonEmptyArray } from '../../shared/utils';
+import { IconButton } from '../lib/components';
+import { Colors } from '../lib/foundations';
 import { useStyledRef } from '../lib/utility-hooks';
-import { Icon } from './cell';
 
 const PAGE_GAP = 16;
 
@@ -153,24 +153,12 @@ const StyledPageIndicator = styled.div<{ $current: boolean }>((props) => ({
   width: '8px',
   height: '8px',
   borderRadius: '50%',
-  backgroundColor: props.$current ? colors.white80 : colors.white40,
+  backgroundColor: props.$current ? Colors.white80 : Colors.white40,
 
   [`${StyledTransparentButton}:hover &&`]: {
-    backgroundColor: colors.white80,
+    backgroundColor: Colors.white80,
   },
 }));
-
-const StyledArrow = styled(Icon)((props) => ({
-  backgroundColor: props.disabled ? colors.white20 : props.tintColor,
-
-  [`${StyledTransparentButton}:hover &&`]: {
-    backgroundColor: props.disabled ? colors.white20 : props.tintHoverColor,
-  },
-}));
-
-const StyledLeftArrow = styled(StyledArrow)({
-  transform: 'scaleX(-100%)',
-});
 
 interface ControlsProps {
   pageNumber: number;
@@ -197,26 +185,12 @@ function Controls(props: ControlsProps) {
         ))}
       </StyledPageIndicators>
       <StyledArrows>
-        <StyledTransparentButton onClick={props.prev}>
-          <StyledLeftArrow
-            disabled={!props.hasPrev}
-            height={12}
-            width={7}
-            source="icon-chevron"
-            tintColor={colors.white}
-            tintHoverColor={colors.white60}
-          />
-        </StyledTransparentButton>
-        <StyledTransparentButton onClick={props.next}>
-          <StyledArrow
-            disabled={!props.hasNext}
-            height={12}
-            width={7}
-            source="icon-chevron"
-            tintColor={colors.white}
-            tintHoverColor={colors.white60}
-          />
-        </StyledTransparentButton>
+        <IconButton disabled={!props.hasPrev} onClick={props.prev}>
+          <IconButton.Icon icon="chevron-left" />
+        </IconButton>
+        <IconButton disabled={!props.hasNext} onClick={props.next}>
+          <IconButton.Icon icon="chevron-right" />
+        </IconButton>
       </StyledArrows>
     </StyledControlsContainer>
   );

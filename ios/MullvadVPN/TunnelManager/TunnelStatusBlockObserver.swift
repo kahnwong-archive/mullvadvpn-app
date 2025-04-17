@@ -3,13 +3,13 @@
 //  MullvadVPN
 //
 //  Created by Marco Nikic on 2023-10-03.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import NetworkExtension
 
-final class TunnelStatusBlockObserver: TunnelStatusObserver {
+final class TunnelStatusBlockObserver: TunnelStatusObserver, @unchecked Sendable {
     typealias Handler = (any TunnelProtocol, NEVPNStatus) -> Void
 
     private weak var tunnel: (any TunnelProtocol)?
@@ -27,7 +27,7 @@ final class TunnelStatusBlockObserver: TunnelStatusObserver {
     }
 
     func tunnel(_ tunnel: any TunnelProtocol, didReceiveStatus status: NEVPNStatus) {
-        let block = {
+        let block: @Sendable () -> Void = {
             self.handler(tunnel, status)
         }
 

@@ -13,6 +13,7 @@ use talpid_dbus::{
         WireguardTunnel,
     },
 };
+use talpid_net::unix::iface_index;
 use talpid_tunnel_config_client::DaitaSettings;
 
 #[derive(thiserror::Error, Debug)]
@@ -28,7 +29,6 @@ pub struct NetworkManagerTunnel {
     network_manager: NetworkManager,
     tunnel: Option<WireguardTunnel>,
     netlink_connections: Handle,
-    tokio_handle: tokio::runtime::Handle,
     interface_name: String,
 }
 
@@ -58,12 +58,12 @@ impl NetworkManagerTunnel {
             network_manager,
             tunnel: Some(tunnel),
             netlink_connections,
-            tokio_handle,
             interface_name,
         })
     }
 }
 
+#[async_trait::async_trait]
 impl Tunnel for NetworkManagerTunnel {
     fn get_interface_name(&self) -> String {
         self.interface_name.clone()
@@ -82,18 +82,16 @@ impl Tunnel for NetworkManagerTunnel {
         }
     }
 
-    fn get_tunnel_stats(&self) -> std::result::Result<StatsMap, TunnelError> {
+    async fn get_tunnel_stats(&self) -> std::result::Result<StatsMap, TunnelError> {
         let mut wg = self.netlink_connections.wg_handle.clone();
-        self.tokio_handle.block_on(async move {
-            let device = wg
-                .get_by_name(self.interface_name.clone())
-                .await
-                .map_err(|err| {
-                    log::error!("Failed to fetch WireGuard device config: {}", err);
-                    TunnelError::GetConfigError
-                })?;
-            Ok(Stats::parse_device_message(&device))
-        })
+        let device = wg
+            .get_by_name(self.interface_name.clone())
+            .await
+            .map_err(|err| {
+                log::error!("Failed to fetch WireGuard device config: {}", err);
+                TunnelError::GetConfigError
+            })?;
+        Ok(Stats::parse_device_message(&device))
     }
 
     fn set_config(
@@ -211,31 +209,4 @@ fn convert_config_to_dbus(config: &Config) -> DeviceConfig {
     settings.insert("connection".into(), connection_config);
 
     settings
-}
-
-/// Converts an interface name into the corresponding index.
-#[cfg(target_os = "linux")]
-fn iface_index(name: &str) -> std::result::Result<libc::c_uint, IfaceIndexLookupError> {
-    let c_name = std::ffi::CString::new(name)
-        .map_err(|e| IfaceIndexLookupError::InvalidInterfaceName(name.to_owned(), e))?;
-    let index = unsafe { libc::if_nametoindex(c_name.as_ptr()) };
-    if index == 0 {
-        Err(IfaceIndexLookupError::InterfaceLookupError(
-            name.to_owned(),
-            std::io::Error::last_os_error(),
-        ))
-    } else {
-        Ok(index)
-    }
-}
-
-/// Failure to lookup an interfaces index by its name.
-#[derive(Debug, thiserror::Error)]
-pub enum IfaceIndexLookupError {
-    /// The interface name is invalid -  contains null bytes or is too long.
-    #[error("Invalid network interface name: {0}")]
-    InvalidInterfaceName(String, #[source] std::ffi::NulError),
-    /// Interface wasn't found by its name.
-    #[error("Failed to get index for interface {0}")]
-    InterfaceLookupError(String, #[source] std::io::Error),
 }

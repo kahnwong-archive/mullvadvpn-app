@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 31/10/2022.
-//  Copyright © 2022 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -38,11 +38,11 @@ final class VPNSettingsInteractor {
         tunnelManager.addObserver(tunnelObserver)
     }
 
-    func updateSettings(_ changes: [TunnelSettingsUpdate], completion: (() -> Void)? = nil) {
+    func updateSettings(_ changes: [TunnelSettingsUpdate], completion: (@Sendable () -> Void)? = nil) {
         tunnelManager.updateSettings(changes, completionHandler: completion)
     }
 
-    func setPort(_ port: UInt16?, completion: (() -> Void)? = nil) {
+    func setPort(_ port: UInt16?, completion: (@Sendable () -> Void)? = nil) {
         var relayConstraints = tunnelManager.settings.relayConstraints
 
         if let port {

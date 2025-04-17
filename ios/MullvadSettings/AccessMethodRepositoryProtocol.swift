@@ -3,12 +3,12 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 28/11/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Combine
 
-public protocol AccessMethodRepositoryDataSource {
+public protocol AccessMethodRepositoryDataSource: Sendable {
     /// Publisher that propagates a snapshot of all access methods upon modifications.
     var accessMethodsPublisher: AnyPublisher<[PersistentAccessMethod], Never> { get }
 

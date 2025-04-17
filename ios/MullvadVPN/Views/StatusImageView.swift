@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 12/02/2021.
-//  Copyright © 2021 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import UIKit
@@ -16,9 +16,9 @@ class StatusImageView: UIImageView {
         fileprivate var image: UIImage? {
             switch self {
             case .success:
-                return UIImage(named: "IconSuccess")
+                return UIImage.Status.success
             case .failure:
-                return UIImage(named: "IconFail")
+                return UIImage.Status.failure
             }
         }
     }

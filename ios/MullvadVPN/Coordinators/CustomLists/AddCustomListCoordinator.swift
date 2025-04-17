@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by Jon Petersson on 2024-02-14.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Combine
@@ -71,7 +71,7 @@ class AddCustomListCoordinator: Coordinator, Presentable, Presenting {
     }
 }
 
-extension AddCustomListCoordinator: CustomListViewControllerDelegate {
+extension AddCustomListCoordinator: @preconcurrency CustomListViewControllerDelegate {
     func customListDidSave(_ list: CustomList) {
         didFinish?(self)
     }

@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 07/12/2022.
-//  Copyright © 2022 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -12,14 +12,14 @@ import MullvadTypes
 import NetworkExtension
 import UIKit
 
-protocol TunnelStoreProtocol {
+protocol TunnelStoreProtocol: Sendable {
     associatedtype TunnelType: TunnelProtocol, Equatable
     func getPersistentTunnels() -> [TunnelType]
     func createNewTunnel() -> TunnelType
 }
 
 /// Wrapper around system VPN tunnels.
-final class TunnelStore: TunnelStoreProtocol, TunnelStatusObserver {
+final class TunnelStore: TunnelStoreProtocol, TunnelStatusObserver, @unchecked Sendable {
     typealias TunnelType = Tunnel
     private let logger = Logger(label: "TunnelStore")
     private let lock = NSLock()

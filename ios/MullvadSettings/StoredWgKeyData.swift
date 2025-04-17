@@ -3,13 +3,13 @@
 //  MullvadSettings
 //
 //  Created by Marco Nikic on 2023-10-23.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
-import WireGuardKitTypes
+@preconcurrency import WireGuardKitTypes
 
-public struct StoredWgKeyData: Codable, Equatable {
+public struct StoredWgKeyData: Codable, Equatable, Sendable {
     /// Private key creation date.
     public var creationDate: Date
 

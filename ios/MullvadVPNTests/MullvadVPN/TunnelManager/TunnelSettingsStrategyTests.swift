@@ -3,7 +3,7 @@
 //  MullvadVPNTests
 //
 //  Created by Mojgan on 2024-06-19.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 import MullvadSettings
 import MullvadTypes
@@ -103,5 +103,31 @@ final class TunnelSettingsStrategyTests: XCTestCase {
             oldSettings: currentSettings,
             newSettings: updatedSettings
         ))
+    }
+
+    func testHardReconnectWhenIncludeAllNetworksChange() {
+        let currentSettings = LatestTunnelSettings()
+        var updatedSettings = currentSettings
+        TunnelSettingsUpdate.includeAllNetworks(true)
+            .apply(to: &updatedSettings)
+
+        let tunnelSettingsStrategy = TunnelSettingsStrategy()
+        XCTAssertEqual(tunnelSettingsStrategy.getReconnectionStrategy(
+            oldSettings: currentSettings,
+            newSettings: updatedSettings
+        ), .hardReconnect)
+    }
+
+    func testHardReconnectWhenLocalNetworkSharingChange() {
+        let currentSettings = LatestTunnelSettings()
+        var updatedSettings = currentSettings
+        TunnelSettingsUpdate.localNetworkSharing(true)
+            .apply(to: &updatedSettings)
+
+        let tunnelSettingsStrategy = TunnelSettingsStrategy()
+        XCTAssertEqual(tunnelSettingsStrategy.getReconnectionStrategy(
+            oldSettings: currentSettings,
+            newSettings: updatedSettings
+        ), .hardReconnect)
     }
 }

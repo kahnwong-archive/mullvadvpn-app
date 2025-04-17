@@ -3,51 +3,67 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 24/03/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadLogging
 import Routing
+import SwiftUI
 import UIKit
 
-final class ChangeLogCoordinator: Coordinator, Presentable {
-    private var alertController: AlertViewController?
-    private let interactor: ChangeLogInteractor
+final class ChangeLogCoordinator: Coordinator, Presentable, SettingsChildCoordinator {
+    private let route: AppRoute
+    private let viewModel: ChangeLogViewModel
+    private var navigationController: UINavigationController?
     var didFinish: ((ChangeLogCoordinator) -> Void)?
 
     var presentedViewController: UIViewController {
-        return alertController!
+        navigationController!
     }
 
-    init(interactor: ChangeLogInteractor) {
-        self.interactor = interactor
+    init(
+        route: AppRoute,
+        navigationController: UINavigationController,
+        viewModel: ChangeLogViewModel
+    ) {
+        self.route = route
+        self.viewModel = viewModel
+        self.navigationController = navigationController
     }
 
-    func start() {
-        let presentation = AlertPresentation(
-            id: "change-log-ok-alert",
-            accessibilityIdentifier: .changeLogAlert,
-            header: interactor.viewModel.header,
-            title: interactor.viewModel.title,
-            attributedMessage: interactor.viewModel.body,
-            buttons: [
-                AlertAction(
-                    title: NSLocalizedString(
-                        "CHANGE_LOG_OK_ACTION",
-                        tableName: "Account",
-                        value: "Got it!",
-                        comment: ""
-                    ),
-                    style: .default,
-                    accessibilityId: .alertOkButton,
-                    handler: { [weak self] in
-                        guard let self else { return }
-                        didFinish?(self)
-                    }
-                ),
-            ]
+    func start(animated: Bool) {
+        let changeLogViewController = UIHostingController(rootView: ChangeLogView(viewModel: viewModel))
+        changeLogViewController.view.setAccessibilityIdentifier(.changeLogAlert)
+        changeLogViewController.navigationItem.title = NSLocalizedString(
+            "whats_new_title",
+            tableName: "Changelog",
+            value: "What's new",
+            comment: ""
         )
 
-        alertController = AlertViewController(presentation: presentation)
+        switch route {
+        case .changelog:
+            let barButtonItem = UIBarButtonItem(
+                title: NSLocalizedString(
+                    "CHANGELOG_NAVIGATION_DONE_BUTTON",
+                    tableName: "Changelog",
+                    value: "Done",
+                    comment: ""
+                ),
+                primaryAction: UIAction { [weak self] _ in
+                    guard let self else { return }
+                    didFinish?(self)
+                }
+            )
+            barButtonItem.style = .done
+            changeLogViewController.navigationItem.rightBarButtonItem = barButtonItem
+            fallthrough
+        case .settings:
+            changeLogViewController.navigationItem.largeTitleDisplayMode = .always
+            navigationController?.navigationBar.prefersLargeTitles = true
+        default: break
+        }
+
+        navigationController?.pushViewController(changeLogViewController, animated: animated)
     }
 }

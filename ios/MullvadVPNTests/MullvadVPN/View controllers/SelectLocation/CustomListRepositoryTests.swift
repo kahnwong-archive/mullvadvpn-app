@@ -3,7 +3,7 @@
 //  MullvadVPNTests
 //
 //  Created by Mojgan on 2024-02-07.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 @testable import MullvadSettings
@@ -11,7 +11,7 @@ import Network
 import XCTest
 
 class CustomListRepositoryTests: XCTestCase {
-    static let store = InMemorySettingsStore<SettingNotFound>()
+    nonisolated(unsafe) static let store = InMemorySettingsStore<SettingNotFound>()
     private var repository = CustomListRepository()
 
     override class func setUp() {

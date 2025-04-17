@@ -1,3 +1,5 @@
+#![allow(clippy::undocumented_unsafe_blocks)] // Remove me if you dare.
+
 use crate::{dns::ResolvedDnsConfig, tunnel::TunnelMetadata};
 
 use std::{ffi::CStr, io, net::IpAddr, ptr, sync::LazyLock};
@@ -720,7 +722,7 @@ mod winfw {
         }
     }
 
-    extern "system" {
+    unsafe extern "system" {
         #[link_name = "WinFw_Initialize"]
         pub fn WinFw_Initialize(
             timeout: libc::c_uint,

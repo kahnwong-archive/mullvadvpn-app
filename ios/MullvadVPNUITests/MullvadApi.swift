@@ -3,7 +3,7 @@
 //  MullvadVPNUITests
 //
 //  Created by Emils on 31/01/2024.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -56,7 +56,8 @@ class MullvadApi {
         let result = mullvad_api_client_initialize(
             &clientContext,
             apiAddress,
-            hostname
+            hostname,
+            false
         )
         try ApiError(result).throwIfErr()
     }

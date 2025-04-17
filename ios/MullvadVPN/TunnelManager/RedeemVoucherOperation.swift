@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 29/03/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -13,7 +13,7 @@ import MullvadSettings
 import MullvadTypes
 import Operations
 
-class RedeemVoucherOperation: ResultOperation<REST.SubmitVoucherResponse> {
+class RedeemVoucherOperation: ResultOperation<REST.SubmitVoucherResponse>, @unchecked Sendable {
     private let logger = Logger(label: "RedeemVoucherOperation")
     private let interactor: TunnelInteractor
 

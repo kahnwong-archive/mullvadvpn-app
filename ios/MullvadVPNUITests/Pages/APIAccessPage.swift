@@ -3,7 +3,7 @@
 //  MullvadVPNUITests
 //
 //  Created by Niklas Berglund on 2024-04-08.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -23,6 +23,10 @@ class APIAccessPage: Page {
     }
 
     func getAccessMethodCells() -> [XCUIElement] {
-        return app.otherElements[AccessibilityIdentifier.apiAccessView].cells.allElementsBoundByIndex
+        app.otherElements[AccessibilityIdentifier.apiAccessView].cells.allElementsBoundByIndex
+    }
+
+    func getAccessMethodCell(accessibilityId: AccessibilityIdentifier) -> XCUIElement {
+        app.otherElements[AccessibilityIdentifier.apiAccessView].cells[accessibilityId]
     }
 }

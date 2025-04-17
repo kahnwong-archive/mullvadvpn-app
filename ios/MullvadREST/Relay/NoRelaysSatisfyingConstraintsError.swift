@@ -3,12 +3,12 @@
 //  MullvadREST
 //
 //  Created by Mojgan on 2024-04-26.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 
-public enum NoRelaysSatisfyingConstraintsReason {
+public enum NoRelaysSatisfyingConstraintsReason: Sendable {
     case filterConstraintNotMatching
     case invalidPort
     case entryEqualsExit
@@ -19,7 +19,7 @@ public enum NoRelaysSatisfyingConstraintsReason {
     case relayConstraintNotMatching
 }
 
-public struct NoRelaysSatisfyingConstraintsError: LocalizedError {
+public struct NoRelaysSatisfyingConstraintsError: LocalizedError, Sendable {
     public let reason: NoRelaysSatisfyingConstraintsReason
 
     public var errorDescription: String? {

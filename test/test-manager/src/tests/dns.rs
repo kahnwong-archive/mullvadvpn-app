@@ -8,7 +8,6 @@ use std::{
 use itertools::Itertools;
 use mullvad_management_interface::MullvadProxyClient;
 use mullvad_types::{
-    relay_constraints::RelaySettings,
     settings,
     wireguard::{DaitaSettings, QuantumResistantState},
     ConnectionConfig, CustomTunnelEndpoint,
@@ -18,7 +17,7 @@ use test_macro::test_function;
 use test_rpc::ServiceClient;
 
 use super::{
-    helpers::{self, connect_and_wait, set_relay_settings},
+    helpers::{self, connect_and_wait, set_custom_endpoint},
     Error, TestContext,
 };
 use crate::{
@@ -28,9 +27,9 @@ use crate::{
     },
     vm::network::{
         CUSTOM_TUN_GATEWAY, CUSTOM_TUN_LOCAL_PRIVKEY, CUSTOM_TUN_LOCAL_TUN_ADDR,
-        CUSTOM_TUN_REMOTE_PUBKEY, CUSTOM_TUN_REMOTE_REAL_ADDR, CUSTOM_TUN_REMOTE_REAL_PORT,
-        CUSTOM_TUN_REMOTE_TUN_ADDR, NON_TUN_GATEWAY,
+        CUSTOM_TUN_REMOTE_PUBKEY, CUSTOM_TUN_REMOTE_REAL_PORT, CUSTOM_TUN_REMOTE_TUN_ADDR,
     },
+    TEST_CONFIG,
 };
 
 /// How long to wait for expected "DNS queries" to appear
@@ -358,20 +357,28 @@ pub async fn test_dns_config_custom_private(
     rpc: ServiceClient,
     mut mullvad_client: MullvadProxyClient,
 ) -> anyhow::Result<()> {
-    log::debug!("Setting custom DNS resolver to {NON_TUN_GATEWAY}");
+    log::debug!(
+        "Setting custom DNS resolver to {}",
+        TEST_CONFIG.host_bridge_ip
+    );
 
     mullvad_client
         .set_dns_options(settings::DnsOptions {
             default_options: settings::DefaultDnsOptions::default(),
             custom_options: settings::CustomDnsOptions {
-                addresses: vec![IpAddr::V4(NON_TUN_GATEWAY)],
+                addresses: vec![IpAddr::V4(TEST_CONFIG.host_bridge_ip)],
             },
             state: settings::DnsState::Custom,
         })
         .await
         .context("failed to configure DNS server")?;
 
-    run_dns_config_non_tunnel_test(&rpc, &mut mullvad_client, IpAddr::V4(NON_TUN_GATEWAY)).await
+    run_dns_config_non_tunnel_test(
+        &rpc,
+        &mut mullvad_client,
+        IpAddr::V4(TEST_CONFIG.host_bridge_ip),
+    )
+    .await
 }
 
 /// Test whether the expected custom DNS works for public IPs.
@@ -646,11 +653,11 @@ async fn connect_local_wg_relay(mullvad_client: &mut MullvadProxyClient) -> Resu
         .await?;
 
     let peer_addr: SocketAddr = SocketAddr::new(
-        IpAddr::V4(CUSTOM_TUN_REMOTE_REAL_ADDR),
+        IpAddr::V4(TEST_CONFIG.host_bridge_ip),
         CUSTOM_TUN_REMOTE_REAL_PORT,
     );
 
-    let relay_settings = RelaySettings::CustomTunnelEndpoint(CustomTunnelEndpoint {
+    let custom_tunnel_endpoint = CustomTunnelEndpoint {
         host: peer_addr.ip().to_string(),
         config: ConnectionConfig::Wireguard(wireguard::ConnectionConfig {
             tunnel: wireguard::TunnelConfig {
@@ -670,9 +677,8 @@ async fn connect_local_wg_relay(mullvad_client: &mut MullvadProxyClient) -> Resu
             fwmark: None,
             ipv6_gateway: None,
         }),
-    });
-
-    set_relay_settings(mullvad_client, relay_settings)
+    };
+    set_custom_endpoint(mullvad_client, custom_tunnel_endpoint)
         .await
         .expect("failed to update relay settings");
 

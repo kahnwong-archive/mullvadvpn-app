@@ -46,6 +46,7 @@ use tokio::{
 mod account_history;
 mod device;
 mod v1;
+mod v10;
 mod v2;
 mod v3;
 mod v4;
@@ -207,6 +208,8 @@ async fn migrate_settings(
         }),
     )?;
 
+    v10::migrate(settings)?;
+
     Ok(migration_data)
 }
 
@@ -227,15 +230,22 @@ pub(crate) fn migrate_device(
 
 #[cfg(windows)]
 mod windows {
-    use std::{ffi::OsStr, io, os::windows::ffi::OsStrExt, path::Path, ptr};
+    use std::{
+        ffi::OsStr,
+        io,
+        os::windows::ffi::OsStrExt,
+        path::Path,
+        ptr::{self, NonNull},
+    };
     use talpid_types::ErrorExt;
     use tokio::fs;
     use windows_sys::Win32::{
-        Foundation::{LocalFree, ERROR_SUCCESS, HLOCAL, PSID},
+        Foundation::{LocalFree, ERROR_SUCCESS, PSID},
         Security::{
             Authorization::{GetNamedSecurityInfoW, SE_FILE_OBJECT, SE_OBJECT_TYPE},
             IsWellKnownSid, WinBuiltinAdministratorsSid, WinLocalSystemSid,
-            OWNER_SECURITY_INFORMATION, SECURITY_DESCRIPTOR, SID, WELL_KNOWN_SID_TYPE,
+            OWNER_SECURITY_INFORMATION, PSECURITY_DESCRIPTOR, SECURITY_DESCRIPTOR, SID,
+            WELL_KNOWN_SID_TYPE,
         },
     };
 
@@ -355,8 +365,8 @@ mod windows {
     }
 
     struct SecurityInformation {
-        security_descriptor: *mut SECURITY_DESCRIPTOR,
-        owner: PSID,
+        security_descriptor: NonNull<SECURITY_DESCRIPTOR>,
+        owner: Option<NonNull<SID>>,
     }
 
     impl SecurityInformation {
@@ -375,9 +385,12 @@ mod windows {
             let mut u16_path: Vec<u16> = object_name.as_ref().encode_wide().collect();
             u16_path.push(0u16);
 
-            let mut security_descriptor = ptr::null_mut();
-            let mut owner = ptr::null_mut();
+            let mut security_descriptor: PSECURITY_DESCRIPTOR = ptr::null_mut();
+            let mut owner: PSID = ptr::null_mut();
 
+            // SAFETY:
+            // - u16_path is a null-terminated UTF-16 string
+            // - The *mut pointers are allowed to be null
             let status = unsafe {
                 GetNamedSecurityInfoW(
                     u16_path.as_ptr(),
@@ -395,31 +408,41 @@ mod windows {
                 return Err(std::io::Error::from_raw_os_error(status as i32));
             }
 
+            let Some(security_descriptor) = NonNull::new(security_descriptor) else {
+                return Err(std::io::Error::other("GetNamedSecurityInfoW returned null"));
+            };
+
             Ok(SecurityInformation {
-                security_descriptor: security_descriptor as *mut _,
-                owner,
+                security_descriptor: security_descriptor.cast::<SECURITY_DESCRIPTOR>(),
+                owner: NonNull::new(owner.cast::<SID>()),
             })
         }
 
         pub fn owner(&self) -> Option<&SID> {
-            unsafe { (self.owner as *const SID).as_ref() }
+            // SAFETY: GetNamedSecurityInfoW promises that this pointer was valid,
+            // and it should stay valid until we deallocate self.security_descriptor.
+            self.owner.map(|ptr| unsafe { ptr.as_ref() })
         }
     }
 
     impl Drop for SecurityInformation {
         fn drop(&mut self) {
-            unsafe { LocalFree(self.security_descriptor as HLOCAL) };
+            // SAFETY: GetNamedSecurityInfoW promises that this pointer was valid,
+            // and we do not deallocate it before this point. Since we have &mut self,
+            // we know that no one else has a reference to security_descriptor.
+            unsafe { LocalFree(self.security_descriptor.as_ptr() as PSECURITY_DESCRIPTOR) };
         }
     }
 
     fn is_well_known_sid(sid: &SID, well_known_sid_type: WELL_KNOWN_SID_TYPE) -> bool {
-        unsafe { IsWellKnownSid(sid as *const SID as *mut _, well_known_sid_type) == 1 }
+        // SAFETY: this function doesn't take ownership of sid, and is trivially safe to call.
+        unsafe { IsWellKnownSid(sid as *const SID as PSID, well_known_sid_type) == 1 }
     }
 }
 
 #[cfg(test)]
 mod test {
-    use mullvad_types::settings::Settings;
+    use mullvad_types::settings::{Settings, CURRENT_SETTINGS_VERSION};
 
     use crate::migrations::migrate_settings;
 
@@ -435,5 +458,15 @@ mod test {
             .unwrap();
 
         assert_eq!(default_settings, migrated_settings);
+    }
+
+    /// Ensure that the settings version is correct after running all migration code
+    #[tokio::test]
+    async fn test_all_migrations() {
+        const V1_SETTINGS: &str = include_str!("v1_settings.json");
+        let mut settings = serde_json::from_str(V1_SETTINGS).unwrap();
+        migrate_settings(None, &mut settings).await.unwrap();
+        let deserialized: Settings = serde_json::from_value(settings).unwrap();
+        assert_eq!(deserialized.settings_version, CURRENT_SETTINGS_VERSION);
     }
 }

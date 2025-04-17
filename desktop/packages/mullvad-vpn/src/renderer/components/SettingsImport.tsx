@@ -2,28 +2,22 @@ import { useCallback, useEffect, useState } from 'react';
 import { sprintf } from 'sprintf-js';
 import styled from 'styled-components';
 
-import { colors } from '../../config.json';
 import { messages } from '../../shared/gettext';
 import { useScheduler } from '../../shared/scheduler';
 import { useAppContext } from '../context';
 import useActions from '../lib/actionsHook';
-import { Flex } from '../lib/components';
+import { Flex, Icon, IconProps } from '../lib/components';
+import { Colors, spacings } from '../lib/foundations';
 import { transitions, useHistory } from '../lib/history';
 import { RoutePath } from '../lib/routes';
 import { useBoolean, useEffectEvent } from '../lib/utility-hooks';
 import settingsImportActions from '../redux/settings-import/actions';
 import { useSelector } from '../redux/store';
+import { AppNavigationHeader } from './';
 import { measurements, normalText, tinyText } from './common-styles';
-import ImageView from './ImageView';
 import { BackAction } from './KeyboardNavigation';
 import { Footer, Layout, SettingsContainer } from './Layout';
 import { ModalAlert, ModalAlertType } from './Modal';
-import {
-  NavigationBar,
-  NavigationInfoButton,
-  NavigationItems,
-  TitleBarItem,
-} from './NavigationBar';
 import SettingsHeader, { HeaderSubTitle, HeaderTitle } from './SettingsHeader';
 import { SmallButton, SmallButtonColor, SmallButtonGrid } from './SmallButton';
 
@@ -116,34 +110,31 @@ export default function SettingsImport() {
     <BackAction action={history.pop}>
       <Layout>
         <SettingsContainer>
-          <NavigationBar>
-            <NavigationItems>
-              <TitleBarItem>
-                {
-                  // TRANSLATORS: Title label in navigation bar. This is for a feature that lets
-                  // TRANSLATORS: users import server IP settings.
-                  messages.pgettext('settings-import', 'Server IP override')
-                }
-              </TitleBarItem>
-              <NavigationInfoButton
-                title={messages.pgettext('settings-import', 'Server IP override')}
-                message={[
-                  messages.pgettext(
-                    'settings-import',
-                    'On some networks, where various types of censorship are being used, our server IP addresses are sometimes blocked.',
-                  ),
-                  messages.pgettext(
-                    'settings-import',
-                    'To circumvent this you can import a file or a text, provided by our support team, with new IP addresses that override the default addresses of the servers in the Select location view.',
-                  ),
-                  messages.pgettext(
-                    'settings-import',
-                    'If you are having issues connecting to VPN servers, please contact support.',
-                  ),
-                ]}
-              />
-            </NavigationItems>
-          </NavigationBar>
+          <AppNavigationHeader
+            title={
+              // TRANSLATORS: Title label in navigation bar. This is for a feature that lets
+              // TRANSLATORS: users import server IP settings.
+              messages.pgettext('settings-import', 'Server IP override')
+            }>
+            <AppNavigationHeader.InfoButton
+              title={messages.pgettext('settings-import', 'Server IP override')}
+              variant="secondary"
+              message={[
+                messages.pgettext(
+                  'settings-import',
+                  'On some networks, where various types of censorship are being used, our server IP addresses are sometimes blocked.',
+                ),
+                messages.pgettext(
+                  'settings-import',
+                  'To circumvent this you can import a file or a text, provided by our support team, with new IP addresses that override the default addresses of the servers in the Select location view.',
+                ),
+                messages.pgettext(
+                  'settings-import',
+                  'If you are having issues connecting to VPN servers, please contact support.',
+                ),
+              ]}
+            />
+          </AppNavigationHeader>
           <Flex $flexDirection="column" $flex={1}>
             <SettingsHeader>
               <HeaderTitle>
@@ -215,15 +206,12 @@ const StyledStatusTitle = styled.div(normalText, {
   alignItems: 'center',
   fontWeight: 'bold',
   lineHeight: '20px',
-  color: colors.white,
-});
-
-const StyledStatusImage = styled(ImageView)({
-  margin: '5px',
+  color: Colors.white,
+  gap: spacings.tiny,
 });
 
 const StyledStatusSubTitle = styled.div(tinyText, {
-  color: colors.white60,
+  color: Colors.white60,
 });
 
 interface ImportStatusProps {
@@ -244,10 +232,15 @@ function SettingsImportStatus(props: ImportStatusProps) {
     title = messages.pgettext('settings-import', 'NO OVERRIDES IMPORTED');
   }
 
-  let icon = undefined;
+  let iconProps: Pick<IconProps, 'icon' | 'color'> | undefined = undefined;
   let subtitle;
   if (props.status !== undefined) {
-    icon = props.status.successful ? 'icon-checkmark' : 'icon-cross';
+    iconProps = props.status.successful
+      ? {
+          icon: 'checkmark',
+          color: Colors.green,
+        }
+      : { icon: 'cross', color: Colors.red };
 
     if (props.status.successful) {
       subtitle =
@@ -284,7 +277,7 @@ function SettingsImportStatus(props: ImportStatusProps) {
     <StyledStatusContainer>
       <StyledStatusTitle data-testid="status-title">
         {title}
-        {icon !== undefined && <StyledStatusImage source={icon} width={13} />}
+        {iconProps !== undefined && <Icon {...iconProps} size="medium" />}
       </StyledStatusTitle>
       {subtitle !== undefined && (
         <StyledStatusSubTitle data-testid="status-subtitle">{subtitle}</StyledStatusSubTitle>

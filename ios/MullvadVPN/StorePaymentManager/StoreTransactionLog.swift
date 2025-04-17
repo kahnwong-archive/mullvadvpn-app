@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 26/10/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -12,7 +12,7 @@ import MullvadLogging
 /// Transaction log responsible for storing and querying processed transactions.
 ///
 /// This class is thread safe.
-final class StoreTransactionLog {
+final class StoreTransactionLog: @unchecked Sendable {
     private let logger = Logger(label: "StoreTransactionLog")
     private var transactionIdentifiers: Set<String> = []
     private let stateLock = NSLock()

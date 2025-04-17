@@ -5,6 +5,20 @@ package net.mullvad.mullvadvpn.util
 import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+
+inline fun <T> Flow<T>.onFirst(crossinline action: suspend (T) -> Unit): Flow<T> {
+    return flow {
+        var first = true
+        collect { value ->
+            if (first) {
+                action(value)
+                first = false
+            }
+            emit(value)
+        }
+    }
+}
 
 inline fun <T1, T2, T3, T4, T5, T6, R> combine(
     flow: Flow<T1>,
@@ -61,3 +75,11 @@ fun <T> Deferred<T>.getOrDefault(default: T) =
     } catch (e: IllegalStateException) {
         default
     }
+
+fun <T> Flow<T>.withPrev(): Flow<Pair<T, T?>> = flow {
+    var prev: T? = null
+    collect { curr ->
+        emit(curr to prev)
+        prev = curr
+    }
+}

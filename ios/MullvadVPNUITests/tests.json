@@ -4,12 +4,14 @@
             "AccountTests",
             "ConnectivityTests",
             "CustomListsTests",
+            "LeakTests",
             "RelayTests",
             "SettingsTests"
         ],
         "pr-merge-to-main": [
             "AccountTests/testLogin",
-            "AccountTests/testCreateAccount"
+            "AccountTests/testCreateAccount",
+            "RelayTests"
         ],
         "api-tests": [
             "AccountTests"

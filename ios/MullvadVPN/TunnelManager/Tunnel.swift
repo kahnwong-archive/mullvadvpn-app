@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 25/02/2022.
-//  Copyright © 2022 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -21,7 +21,7 @@ protocol TunnelStatusObserver {
     func tunnel(_ tunnel: any TunnelProtocol, didReceiveStatus status: NEVPNStatus)
 }
 
-protocol TunnelProtocol: AnyObject {
+protocol TunnelProtocol: AnyObject, Sendable {
     associatedtype TunnelManagerProtocol: VPNTunnelProviderManagerProtocol
     var status: NEVPNStatus { get }
     var isOnDemandEnabled: Bool { get set }
@@ -49,7 +49,7 @@ protocol TunnelProtocol: AnyObject {
 }
 
 /// Tunnel wrapper class.
-final class Tunnel: TunnelProtocol, Equatable {
+final class Tunnel: TunnelProtocol, Equatable, @unchecked Sendable {
     /// Unique identifier assigned to instance at the time of creation.
     let identifier = UUID()
 

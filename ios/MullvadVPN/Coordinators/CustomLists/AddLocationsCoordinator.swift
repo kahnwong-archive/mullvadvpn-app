@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by Mojgan on 2024-03-04.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Combine
@@ -51,7 +51,7 @@ class AddLocationsCoordinator: Coordinator, Presentable, Presenting {
     }
 }
 
-extension AddLocationsCoordinator: AddLocationsViewControllerDelegate {
+extension AddLocationsCoordinator: @preconcurrency AddLocationsViewControllerDelegate {
     func didBack() {
         didFinish?(self)
     }

@@ -3,7 +3,7 @@
 //  MullvadREST
 //
 //  Created by Marco Nikic on 2023-04-27.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -11,7 +11,7 @@ import Logging
 import MullvadSettings
 import MullvadTypes
 
-public struct TransportStrategy: Equatable {
+public struct TransportStrategy: Equatable, Sendable {
     /// The different transports suggested by the strategy
     public enum Transport: Equatable {
         /// Connecting a direct connection

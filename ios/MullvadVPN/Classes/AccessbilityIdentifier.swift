@@ -1,9 +1,9 @@
 //
-//  RelayFilter.swift
+//  AccessibilityIdentifier.swift
 //  MullvadVPN
 //
 //  Created by Jon Petersson on 2023-12-20.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import UIKit
@@ -12,6 +12,7 @@ public enum AccessibilityIdentifier: Equatable {
     // Buttons
     case addAccessMethodButton
     case accessMethodAddButton
+    case accessMethodTestButton
     case accountButton
     case accessMethodUnreachableBackButton
     case accessMethodUnreachableSaveButton
@@ -31,6 +32,7 @@ public enum AccessibilityIdentifier: Equatable {
     case revokedDeviceLoginButton
     case dnsSettingsEditButton
     case infoButton
+    case copyButton
     case learnAboutPrivacyButton
     case logOutDeviceConfirmButton
     case logOutDeviceCancelButton
@@ -40,7 +42,7 @@ public enum AccessibilityIdentifier: Equatable {
     case purchaseButton
     case redeemVoucherButton
     case restorePurchasesButton
-    case secureConnectionButton
+    case connectButton
     case selectLocationButton
     case closeSelectLocationButton
     case settingsButton
@@ -60,9 +62,14 @@ public enum AccessibilityIdentifier: Equatable {
     case selectLocationFilterButton
     case relayFilterChipCloseButton
     case openPortSelectorMenuButton
+    case cancelPurchaseListButton
+    case acceptLocalNetworkSharingButton
 
     // Cells
     case deviceCell
+    case accessMethodDirectCell
+    case accessMethodBridgesCell
+    case accessMethodEncryptedDNSCell
     case accessMethodProtocolSelectionCell
     case vpnSettingsCell
     case dnsSettingsAddServerCell
@@ -93,6 +100,8 @@ public enum AccessibilityIdentifier: Equatable {
     case daitaConfirmAlertEnableButton
     case multihopCell
     case daitaCell
+    case daitaFilterPill
+    case obfuscationFilterPill
 
     // Labels
     case accountPageDeviceNameLabel
@@ -132,7 +141,7 @@ public enum AccessibilityIdentifier: Equatable {
     case selectLocationTableView
     case settingsTableView
     case vpnSettingsTableView
-    case tunnelControlView
+    case connectionView
     case problemReportView
     case problemReportSubmittedView
     case revokedDeviceView
@@ -156,6 +165,8 @@ public enum AccessibilityIdentifier: Equatable {
     case logOutSpinnerAlertView
     case connectionPanelInAddressRow
     case connectionPanelOutAddressRow
+    case connectionPanelOutIpv6AddressRow
+    case connectionPanelServerLabel
     case customSwitch
     case customWireGuardPortTextField
     case dnsContentBlockersHeaderView
@@ -173,6 +184,8 @@ public enum AccessibilityIdentifier: Equatable {
     case statusImageView
 
     // DNS settings
+    case includeAllNetworks
+    case localNetworkSharing
     case dnsSettings
     case ipOverrides
     case wireGuardCustomPort
@@ -181,6 +194,8 @@ public enum AccessibilityIdentifier: Equatable {
     case wireGuardObfuscationOff
     case wireGuardObfuscationUdpOverTcp
     case wireGuardObfuscationShadowsocks
+    case wireGuardObfuscationUdpOverTcpPort
+    case wireGuardObfuscationShadowsocksPort
     case wireGuardPort(UInt16?)
     case udpOverTcpObfuscationSettings
 
@@ -210,6 +225,10 @@ public enum AccessibilityIdentifier: Equatable {
     // Multihop
     case multihopSwitch
 
+    // WireGuard obfuscation settings
+    case wireGuardObfuscationUdpOverTcpTable
+    case wireGuardObfuscationShadowsocksTable
+
     // Error
     case unknown
 }
@@ -221,6 +240,7 @@ extension AccessibilityIdentifier {
 }
 
 extension UIAccessibilityIdentification {
+    @MainActor
     func setAccessibilityIdentifier(_ value: AccessibilityIdentifier?) {
         accessibilityIdentifier = value.map(\.asString)
     }

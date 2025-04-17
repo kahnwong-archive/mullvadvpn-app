@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 #[cfg(target_os = "android")]
 use serde_json::json;
 #[cfg(target_os = "android")]
@@ -28,6 +29,16 @@ const SPLIT_TUNNELING_APPS: &str = "split-tunnelling.txt";
 /// The file where the split-tunnelling state (enabled / disabled) is stored.
 #[cfg(target_os = "android")]
 const SPLIT_TUNNELING_STATE: &str = "split-tunnelling-enabled.txt";
+
+/// Tunnel protocol
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[serde(rename = "tunnel_type")]
+pub enum TunnelType {
+    #[serde(rename = "openvpn")]
+    OpenVpn,
+    #[serde(rename = "wireguard")]
+    Wireguard,
+}
 
 // ======================================================
 
@@ -73,8 +84,7 @@ pub fn migrate(
         }
     }
 
-    // TODO: Uncomment this when closing the migration:
-    // json_blob["settings_version"] = serde_json::json!(SettingsVersion::V10);
+    json_blob["settings_version"] = serde_json::json!(SettingsVersion::V10);
 
     Ok(())
 }
@@ -195,40 +205,281 @@ mod android {
     }
 }
 
-#[cfg(target_os = "android")]
 #[cfg(test)]
 mod test {
-    use crate::migrations::v9::test::constants::V9_SETTINGS;
+    use super::{migrate, version_matches};
 
-    /// Assert that split-tunneling settings has been added to the android settings post-migration.
-    #[test]
-    fn test_v9_to_v10_migration() {
-        use crate::migrations::v9::{
-            add_split_tunneling_settings,
-            test::constants::{V10_ANDROID_SETTINGS, V9_ANDROID_SETTINGS},
-        };
+    #[cfg(target_os = "android")]
+    mod android {
+        /// Assert that split-tunneling settings has been added to the android settings post-migration.
+        #[test]
+        fn test_v9_to_v10_migration() {
+            use crate::migrations::v9::{
+                add_split_tunneling_settings,
+                test::android::constants::{V10_ANDROID_SETTINGS, V9_ANDROID_SETTINGS},
+            };
 
-        let enabled = true;
-        let apps = ["com.android.chrome", "net.mullvad.mullvadvpn"];
+            let enabled = true;
+            let apps = ["com.android.chrome", "net.mullvad.mullvadvpn"];
 
-        let mut settings = serde_json::from_str(V9_ANDROID_SETTINGS).unwrap();
-        // Perform the actual settings migration while skipping the I/O performed in
-        // `migrate_split_tunnel_settings`.
-        add_split_tunneling_settings(settings, enabled, apps);
-        let new_settings = serde_json::from_str(V10_ANDROID_SETTINGS).unwrap();
-        assert_eq!(settings, new_settings);
+            let mut settings = serde_json::from_str(V9_ANDROID_SETTINGS).unwrap();
+            // Perform the actual settings migration while skipping the I/O performed in
+            // `migrate_split_tunnel_settings`.
+            add_split_tunneling_settings(settings, enabled, apps);
+            let new_settings = serde_json::from_str(V10_ANDROID_SETTINGS).unwrap();
+            assert_eq!(settings, new_settings);
+        }
+
+        mod constants {
+            /// This settings blob does not contain the "split_tunnel" option.
+            pub const V9_ANDROID_SETTINGS: &str = r#"
+  {
+  "relay_settings": {
+    "normal": {
+      "location": {
+        "only": {
+          "location": {
+            "hostname": "at-vie-ovpn-001"
+          }
+        }
+      },
+      "providers": "any",
+      "ownership": "any",
+      "tunnel_protocol": "any",
+      "wireguard_constraints": {
+        "port": "any",
+        "ip_version": "any",
+        "use_multihop": false,
+        "entry_location": {
+          "only": {
+            "location": {
+              "country": "se"
+            }
+          }
+        }
+      },
+      "openvpn_constraints": {
+        "port": "any"
+      }
     }
+  },
+  "bridge_settings": {
+    "bridge_type": "normal",
+    "normal": {
+      "location": "any",
+      "providers": "any",
+      "ownership": "any"
+    },
+    "custom": null
+  },
+  "obfuscation_settings": {
+    "selected_obfuscation": "auto",
+    "udp2tcp": {
+      "port": "any"
+    }
+  },
+  "bridge_state": "auto",
+  "custom_lists": {
+    "custom_lists": []
+  },
+  "api_access_methods": {
+    "direct": {
+      "id": "d81121bf-c942-4ca4-971f-8ea6581bc915",
+      "name": "Direct",
+      "enabled": true,
+      "access_method": {
+        "built_in": "direct"
+      }
+    },
+    "mullvad_bridges": {
+      "id": "92135711-534d-4950-963d-93e446a792e4",
+      "name": "Mullvad Bridges",
+      "enabled": true,
+      "access_method": {
+        "built_in": "bridge"
+      }
+    },
+    "custom": []
+  },
+  "allow_lan": false,
+  "block_when_disconnected": false,
+  "auto_connect": false,
+  "tunnel_options": {
+    "openvpn": {
+      "mssfix": null
+    },
+    "wireguard": {
+      "mtu": null,
+      "quantum_resistant": "auto",
+      "rotation_interval": null
+    },
+    "generic": {
+      "enable_ipv6": false
+    },
+    "dns_options": {
+      "state": "default",
+      "default_options": {
+        "block_ads": false,
+        "block_trackers": false,
+        "block_malware": false,
+        "block_adult_content": false,
+        "block_gambling": false,
+        "block_social_media": false
+      },
+      "custom_options": {
+        "addresses": []
+      }
+    }
+  },
+  "relay_overrides": [],
+  "show_beta_releases": true,
+  "settings_version": 9
+  }
+  "#;
 
-    mod constants {
-        /// This settings blob does not contain the "split_tunnel" option.
-        pub const V9_ANDROID_SETTINGS: &str = r#"
-{
+            /// This settings blob *should* contain the "split_tunnel" option.
+            pub const V10_ANDROID_SETTINGS: &str = r#"
+  {
   "relay_settings": {
     "normal": {
       "location": {
         "only": {
           "location": {
             "country": "se"
+          }
+        }
+      },
+      "providers": "any",
+      "ownership": "any",
+      "tunnel_protocol": "wireguard",
+      "wireguard_constraints": {
+        "port": "any",
+        "ip_version": "any",
+        "use_multihop": false,
+        "entry_location": {
+          "only": {
+            "location": {
+              "country": "se"
+            }
+          }
+        }
+      },
+      "openvpn_constraints": {
+        "port": "any"
+      }
+    }
+  },
+  "bridge_settings": {
+    "bridge_type": "normal",
+    "normal": {
+      "location": "any",
+      "providers": "any",
+      "ownership": "any"
+    },
+    "custom": null
+  },
+  "obfuscation_settings": {
+    "selected_obfuscation": "auto",
+    "udp2tcp": {
+      "port": "any"
+    }
+  },
+  "bridge_state": "auto",
+  "custom_lists": {
+    "custom_lists": []
+  },
+  "api_access_methods": {
+    "direct": {
+      "id": "d81121bf-c942-4ca4-971f-8ea6581bc915",
+      "name": "Direct",
+      "enabled": true,
+      "access_method": {
+        "built_in": "direct"
+      }
+    },
+    "mullvad_bridges": {
+      "id": "92135711-534d-4950-963d-93e446a792e4",
+      "name": "Mullvad Bridges",
+      "enabled": true,
+      "access_method": {
+        "built_in": "bridge"
+      }
+    },
+    "custom": []
+  },
+  "allow_lan": false,
+  "block_when_disconnected": false,
+  "auto_connect": false,
+  "tunnel_options": {
+    "openvpn": {
+      "mssfix": null
+    },
+    "wireguard": {
+      "mtu": null,
+      "quantum_resistant": "auto",
+      "rotation_interval": null
+    },
+    "generic": {
+      "enable_ipv6": false
+    },
+    "dns_options": {
+      "state": "default",
+      "default_options": {
+        "block_ads": false,
+        "block_trackers": false,
+        "block_malware": false,
+        "block_adult_content": false,
+        "block_gambling": false,
+        "block_social_media": false
+      },
+      "custom_options": {
+        "addresses": []
+      }
+    }
+  },
+  "relay_overrides": [],
+  "show_beta_releases": true,
+  "split_tunnel": {
+    "enable_exclusions": true,
+    "apps": ["com.android.chrome", "net.mullvad.mullvadvpn"]
+  }
+  "settings_version": 10
+  }
+  "#;
+        }
+    }
+
+    /// Assert that tunnel type is migrated
+    #[test]
+    fn test_v9_to_v10_migration() {
+        // TODO: Also test the case where the location is not an openvpn relay and the tunnel type is any
+        let mut old_settings = serde_json::from_str(V9_SETTINGS).unwrap();
+
+        assert!(version_matches(&old_settings));
+        migrate(&mut old_settings).unwrap();
+        let new_settings: serde_json::Value = serde_json::from_str(V10_SETTINGS).unwrap();
+
+        eprintln!(
+            "old_settings: {}",
+            serde_json::to_string_pretty(&old_settings).unwrap()
+        );
+        eprintln!(
+            "new_settings: {}",
+            serde_json::to_string_pretty(&new_settings).unwrap()
+        );
+
+        assert_eq!(&old_settings, &new_settings);
+    }
+
+    /// This settings blob contains no constraint for tunnel type
+    pub const V9_SETTINGS: &str = r#"
+{
+  "relay_settings": {
+    "normal": {
+      "location": {
+        "only": {
+          "location": {
+            "hostname": "at-vie-ovpn-001"
           }
         }
       },
@@ -326,15 +577,15 @@ mod test {
 }
 "#;
 
-        /// This settings blob *should* contain the "split_tunnel" option.
-        pub const V10_ANDROID_SETTINGS: &str = r#"
+    /// This settings blob does not contain an "any" tunnel type
+    pub const V10_SETTINGS: &str = r#"
 {
   "relay_settings": {
     "normal": {
       "location": {
         "only": {
           "location": {
-            "country": "se"
+            "hostname": "at-vie-ovpn-001"
           }
         }
       },
@@ -428,12 +679,7 @@ mod test {
   },
   "relay_overrides": [],
   "show_beta_releases": true,
-  "split_tunnel": {
-    "enable_exclusions": true,
-    "apps": ["com.android.chrome", "net.mullvad.mullvadvpn"]
-  }
   "settings_version": 10
 }
 "#;
-    }
 }

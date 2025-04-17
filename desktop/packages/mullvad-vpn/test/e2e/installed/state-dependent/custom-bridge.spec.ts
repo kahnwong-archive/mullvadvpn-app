@@ -1,7 +1,7 @@
 import { expect, test } from '@playwright/test';
 import { Page } from 'playwright';
 
-import { colors } from '../../../../src/config.json';
+import { colors } from '../../../../src/renderer/lib/foundations';
 import { RoutePath } from '../../../../src/renderer/lib/routes';
 import { TestUtils } from '../../utils';
 import { startInstalledApp } from '../installed-utils';
@@ -36,10 +36,9 @@ test('App should enable bridge mode', async () => {
     RoutePath.openVpnSettings,
   );
 
-  await page.getByTestId('bridge-mode-on').click();
-  await expect(page.getByText('Enable bridge mode?')).toBeVisible();
-
-  await page.getByTestId('enable-confirm').click();
+  const bridgeModeOnButton = page.getByTestId('bridge-mode-on');
+  await bridgeModeOnButton.click();
+  await expect(bridgeModeOnButton).toHaveAttribute('aria-selected', 'true');
 
   await util.waitForNavigation(() => page.click('button[aria-label="Back"]'));
   await util.waitForNavigation(() => page.click('button[aria-label="Back"]'));
@@ -98,16 +97,16 @@ test('App should add new custom bridge', async () => {
 
 test('App should select custom bridge', async () => {
   const customBridgeButton = page.locator('button:has-text("Custom bridge")');
-  await expect(customBridgeButton).toHaveCSS('background-color', colors.green);
+  await expect(customBridgeButton).toHaveCSS('background-color', colors['--color-green']);
 
   const automaticButton = page.getByText('Automatic');
   await automaticButton.click();
   await page.getByText(/^Entry$/).click();
-  await expect(customBridgeButton).not.toHaveCSS('background-color', colors.green);
+  await expect(customBridgeButton).not.toHaveCSS('background-color', colors['--color-green']);
 
   await customBridgeButton.click();
   await page.getByText(/^Entry$/).click();
-  await expect(customBridgeButton).toHaveCSS('background-color', colors.green);
+  await expect(customBridgeButton).toHaveCSS('background-color', colors['--color-green']);
 });
 
 test('App should edit custom bridge', async () => {
@@ -134,7 +133,7 @@ test('App should edit custom bridge', async () => {
 
   const customBridgeButton = page.locator('button:has-text("Custom bridge")');
   await expect(customBridgeButton).toBeEnabled();
-  await expect(customBridgeButton).toHaveCSS('background-color', colors.green);
+  await expect(customBridgeButton).toHaveCSS('background-color', colors['--color-green']);
 });
 
 test('App should delete custom bridge', async () => {
@@ -156,5 +155,5 @@ test('App should delete custom bridge', async () => {
 
   const customBridgeButton = page.locator('button:has-text("Custom bridge")');
   await expect(customBridgeButton).toBeDisabled();
-  await expect(customBridgeButton).not.toHaveCSS('background-color', colors.green);
+  await expect(customBridgeButton).not.toHaveCSS('background-color', colors['--color-green']);
 });

@@ -3,13 +3,14 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 14/11/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Combine
 import UIKit
 
 /// Type responsible for handling cells in socks table view section.
+@MainActor
 struct SocksSectionHandler {
     private let authenticationInputMaxLength = 255
 

@@ -4,11 +4,15 @@ use futures::{
     future::{BoxFuture, FusedFuture},
     FutureExt, SinkExt, StreamExt, TryFutureExt,
 };
-use mullvad_api::{availability::ApiAvailability, rest::MullvadRestHandle, AppVersionProxy};
-use mullvad_types::version::{AppVersionInfo, ParsedAppVersion};
+use mullvad_api::{
+    availability::ApiAvailability,
+    rest::MullvadRestHandle,
+    version::{AppVersionProxy, AppVersionResponse},
+};
+use mullvad_types::version::AppVersionInfo;
+use mullvad_version::Version;
 use serde::{Deserialize, Serialize};
 use std::{
-    cmp::max,
     future::Future,
     io,
     path::{Path, PathBuf},
@@ -24,8 +28,8 @@ use tokio::{fs::File, io::AsyncReadExt};
 
 const VERSION_INFO_FILENAME: &str = "version-info.json";
 
-static APP_VERSION: LazyLock<ParsedAppVersion> =
-    LazyLock::new(|| ParsedAppVersion::from_str(mullvad_version::VERSION).unwrap());
+static APP_VERSION: LazyLock<Version> =
+    LazyLock::new(|| Version::from_str(mullvad_version::VERSION).unwrap());
 static IS_DEV_BUILD: LazyLock<bool> = LazyLock::new(|| APP_VERSION.is_dev());
 
 const DOWNLOAD_TIMEOUT: Duration = Duration::from_secs(15);
@@ -194,11 +198,8 @@ impl VersionUpdaterInner {
         self.last_app_version_info.as_ref().map(|(info, _)| info)
     }
 
-    /// Convert a [mullvad_api::AppVersionResponse] to an [AppVersionInfo].
-    fn response_to_version_info(
-        &self,
-        response: mullvad_api::AppVersionResponse,
-    ) -> AppVersionInfo {
+    /// Convert a [AppVersionResponse] to an [AppVersionInfo].
+    fn response_to_version_info(&self, response: AppVersionResponse) -> AppVersionInfo {
         let suggested_upgrade = suggested_upgrade(
             &APP_VERSION,
             &response.latest_stable,
@@ -252,7 +253,7 @@ impl VersionUpdaterInner {
     /// Wait until [Self::last_app_version_info] becomes stale and needs to be refreshed.
     ///
     /// This happens [UPDATE_INTERVAL] after the last version check.
-    fn wait_until_version_is_stale(&self) -> Pin<Box<impl FusedFuture<Output = ()>>> {
+    fn wait_until_version_is_stale(&self) -> Pin<Box<impl FusedFuture<Output = ()> + use<>>> {
         let time_until_stale = self.time_until_version_is_stale();
 
         // Boxed, pinned, and fused.
@@ -295,12 +296,9 @@ impl VersionUpdaterInner {
         mut self,
         mut rx: mpsc::Receiver<VersionUpdaterCommand>,
         update: impl Fn(AppVersionInfo) -> BoxFuture<'static, Result<(), Error>>,
-        do_version_check: impl Fn()
-            -> BoxFuture<'static, Result<mullvad_api::AppVersionResponse, Error>>,
-        do_version_check_in_background: impl Fn() -> BoxFuture<
-            'static,
-            Result<mullvad_api::AppVersionResponse, Error>,
-        >,
+        do_version_check: impl Fn() -> BoxFuture<'static, Result<AppVersionResponse, Error>>,
+        do_version_check_in_background: impl Fn()
+            -> BoxFuture<'static, Result<AppVersionResponse, Error>>,
     ) {
         let mut version_is_stale = self.wait_until_version_is_stale();
         let mut version_check = futures::future::Fuse::terminated();
@@ -396,13 +394,16 @@ struct UpdateContext {
 impl UpdateContext {
     /// Write [VersionUpdaterInner::last_app_version_info], if any, to the cache file
     /// ([VERSION_INFO_FILENAME]). Also, notify `self.update_sender`
-    fn update(&self, last_app_version: AppVersionInfo) -> impl Future<Output = Result<(), Error>> {
+    fn update(
+        &self,
+        last_app_version: AppVersionInfo,
+    ) -> impl Future<Output = Result<(), Error>> + use<> {
         let _ = self.update_sender.send(last_app_version.clone());
         let cache_path = self.cache_path.clone();
 
         async move {
             log::debug!("Writing version check cache to {}", cache_path.display());
-            let cached_app_version = CachedAppVersionInfo::from(last_app_version.to_owned());
+            let cached_app_version = CachedAppVersionInfo::from(last_app_version);
             let buf = serde_json::to_vec_pretty(&cached_app_version).map_err(Error::Serialize)?;
             tokio::fs::write(cache_path, buf)
                 .await
@@ -419,9 +420,7 @@ struct ApiContext {
 }
 
 /// Immediately query the API for the latest [AppVersionInfo].
-fn do_version_check(
-    api: ApiContext,
-) -> BoxFuture<'static, Result<mullvad_api::AppVersionResponse, Error>> {
+fn do_version_check(api: ApiContext) -> BoxFuture<'static, Result<AppVersionResponse, Error>> {
     let download_future_factory = move || {
         api.version_proxy
             .version_check(
@@ -456,7 +455,7 @@ fn do_version_check(
 /// On any error, this function retries repeatedly every [UPDATE_INTERVAL_ERROR] until success.
 fn do_version_check_in_background(
     api: ApiContext,
-) -> BoxFuture<'static, Result<mullvad_api::AppVersionResponse, Error>> {
+) -> BoxFuture<'static, Result<AppVersionResponse, Error>> {
     let download_future_factory = move || {
         let when_available = api.api_handle.wait_background();
         let request = api.version_proxy.version_check(
@@ -532,26 +531,38 @@ fn dev_version_cache() -> AppVersionInfo {
         suggested_upgrade: None,
     }
 }
+
 /// If current_version is not the latest, return a string containing the latest version.
 fn suggested_upgrade(
-    current_version: &ParsedAppVersion,
+    current_version: &Version,
     latest_stable: &Option<String>,
     latest_beta: &str,
     show_beta: bool,
 ) -> Option<String> {
     let stable_version = latest_stable
         .as_ref()
-        .and_then(|stable| ParsedAppVersion::from_str(stable).ok());
+        .and_then(|stable| Version::from_str(stable).ok());
 
     let beta_version = if show_beta {
-        ParsedAppVersion::from_str(latest_beta).ok()
+        Version::from_str(latest_beta).ok()
     } else {
         None
     };
 
-    let latest_version = max(stable_version, beta_version)?;
+    let latest_version = match (&stable_version, &beta_version) {
+        (Some(_), None) => stable_version,
+        (None, Some(_)) => beta_version,
+        (Some(stable), Some(beta)) => {
+            if beta > stable {
+                beta_version
+            } else {
+                stable_version
+            }
+        }
+        (None, None) => None,
+    }?;
 
-    if current_version < &latest_version {
+    if &latest_version > current_version {
         Some(latest_version.to_string())
     } else {
         None
@@ -706,12 +717,11 @@ mod test {
         }
     }
 
-    fn fake_version_check() -> BoxFuture<'static, Result<mullvad_api::AppVersionResponse, Error>> {
+    fn fake_version_check() -> BoxFuture<'static, Result<AppVersionResponse, Error>> {
         Box::pin(async { Ok(fake_version_response()) })
     }
 
-    fn fake_version_check_err() -> BoxFuture<'static, Result<mullvad_api::AppVersionResponse, Error>>
-    {
+    fn fake_version_check_err() -> BoxFuture<'static, Result<AppVersionResponse, Error>> {
         Box::pin(retry_future(
             || async { Err(Error::Download(mullvad_api::rest::Error::TimeoutError)) },
             |_| true,
@@ -719,8 +729,8 @@ mod test {
         ))
     }
 
-    fn fake_version_response() -> mullvad_api::AppVersionResponse {
-        mullvad_api::AppVersionResponse {
+    fn fake_version_response() -> AppVersionResponse {
+        AppVersionResponse {
             supported: true,
             latest: "2024.1".to_owned(),
             latest_stable: None,
@@ -733,13 +743,17 @@ mod test {
         let latest_stable = Some("2020.4".to_string());
         let latest_beta = "2020.5-beta3";
 
-        let older_stable = ParsedAppVersion::from_str("2020.3").unwrap();
-        let current_stable = ParsedAppVersion::from_str("2020.4").unwrap();
-        let newer_stable = ParsedAppVersion::from_str("2021.5").unwrap();
+        let older_stable = Version::from_str("2020.3").unwrap();
+        let current_stable = Version::from_str("2020.4").unwrap();
+        let newer_stable = Version::from_str("2021.5").unwrap();
 
-        let older_beta = ParsedAppVersion::from_str("2020.3-beta3").unwrap();
-        let current_beta = ParsedAppVersion::from_str("2020.5-beta3").unwrap();
-        let newer_beta = ParsedAppVersion::from_str("2021.5-beta3").unwrap();
+        let older_beta = Version::from_str("2020.3-beta3").unwrap();
+        let current_beta = Version::from_str("2020.5-beta3").unwrap();
+        let newer_beta = Version::from_str("2021.5-beta3").unwrap();
+
+        let older_alpha = Version::from_str("2020.3-alpha3").unwrap();
+        let current_alpha = Version::from_str("2020.5-alpha3").unwrap();
+        let newer_alpha = Version::from_str("2021.5-alpha3").unwrap();
 
         assert_eq!(
             suggested_upgrade(&older_stable, &latest_stable, latest_beta, false),
@@ -765,6 +779,7 @@ mod test {
             suggested_upgrade(&newer_stable, &latest_stable, latest_beta, true),
             None
         );
+
         assert_eq!(
             suggested_upgrade(&older_beta, &latest_stable, latest_beta, false),
             Some("2020.4".to_owned())
@@ -787,6 +802,31 @@ mod test {
         );
         assert_eq!(
             suggested_upgrade(&newer_beta, &latest_stable, latest_beta, true),
+            None
+        );
+
+        assert_eq!(
+            suggested_upgrade(&older_alpha, &latest_stable, latest_beta, false),
+            Some("2020.4".to_owned())
+        );
+        assert_eq!(
+            suggested_upgrade(&older_alpha, &latest_stable, latest_beta, true),
+            Some("2020.5-beta3".to_owned())
+        );
+        assert_eq!(
+            suggested_upgrade(&current_alpha, &latest_stable, latest_beta, false),
+            None,
+        );
+        assert_eq!(
+            suggested_upgrade(&current_alpha, &latest_stable, latest_beta, true),
+            Some("2020.5-beta3".to_owned())
+        );
+        assert_eq!(
+            suggested_upgrade(&newer_alpha, &latest_stable, latest_beta, false),
+            None
+        );
+        assert_eq!(
+            suggested_upgrade(&newer_alpha, &latest_stable, latest_beta, true),
             None
         );
     }

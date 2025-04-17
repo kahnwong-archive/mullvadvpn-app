@@ -332,7 +332,7 @@ impl ProcessStates {
 
             // Check if own path is excluded
             if paths.contains(&info.exec_path) && !new_exclude_paths.contains(&info.exec_path) {
-                new_exclude_paths.insert(info.exec_path.to_owned());
+                new_exclude_paths.insert(info.exec_path.clone());
             }
 
             info.excluded_by_paths = new_exclude_paths;
@@ -413,7 +413,7 @@ impl InnerProcessStates {
 
         // Exclude if path is excluded
         if self.exclude_paths.contains(&info.exec_path) {
-            info.excluded_by_paths.insert(info.exec_path.to_owned());
+            info.excluded_by_paths.insert(info.exec_path.clone());
             log::trace!("Excluding {pid} by path: {}", info.exec_path.display());
         }
     }
@@ -567,7 +567,7 @@ mod test {
             msg.contains('\n'),
             "Message does not contain a newline!! Make sure to add a newline to '{msg}'"
         );
-        let (stdout_read, mut stdout_write) = simplex(msg.as_bytes().len());
+        let (stdout_read, mut stdout_write) = simplex(msg.len());
         //  "print" to "stdout" after `duration`.
         tokio::spawn(async move {
             tokio::time::sleep(lag).await;

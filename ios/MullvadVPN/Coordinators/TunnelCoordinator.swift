@@ -3,16 +3,16 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 01/02/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
+import MullvadSettings
 import Routing
 import UIKit
 
 class TunnelCoordinator: Coordinator, Presenting {
     private let tunnelManager: TunnelManager
     private let controller: TunnelViewController
-
     private var tunnelObserver: TunnelObserver?
 
     var presentationContext: UIViewController {
@@ -27,13 +27,15 @@ class TunnelCoordinator: Coordinator, Presenting {
 
     init(
         tunnelManager: TunnelManager,
-        outgoingConnectionService: OutgoingConnectionServiceHandling
+        outgoingConnectionService: OutgoingConnectionServiceHandling,
+        ipOverrideRepository: IPOverrideRepositoryProtocol
     ) {
         self.tunnelManager = tunnelManager
 
         let interactor = TunnelViewControllerInteractor(
             tunnelManager: tunnelManager,
-            outgoingConnectionService: outgoingConnectionService
+            outgoingConnectionService: outgoingConnectionService,
+            ipOverrideRepository: ipOverrideRepository
         )
 
         controller = TunnelViewController(interactor: interactor)

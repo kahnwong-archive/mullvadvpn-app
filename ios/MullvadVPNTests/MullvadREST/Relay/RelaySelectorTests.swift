@@ -3,9 +3,10 @@
 //  RelaySelectorTests
 //
 //  Created by pronebird on 07/11/2019.
-//  Copyright © 2019 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
+import MullvadMockData
 @testable import MullvadREST
 @testable import MullvadSettings
 import MullvadTypes
@@ -55,16 +56,15 @@ class RelaySelectorTests: XCTestCase {
         )
 
         let relayWithLocations = sampleRelays.wireguard.relays.map {
-            let location = sampleRelays.locations[$0.location]!
-            let locationComponents = $0.location.split(separator: "-")
+            let location = sampleRelays.locations[$0.location.rawValue]!
 
             return RelayWithLocation(
                 relay: $0,
                 serverLocation: Location(
                     country: location.country,
-                    countryCode: String(locationComponents[0]),
+                    countryCode: String($0.location.country),
                     city: location.city,
-                    cityCode: String(locationComponents[1]),
+                    cityCode: String($0.location.city),
                     latitude: location.latitude,
                     longitude: location.longitude
                 )
@@ -138,7 +138,7 @@ class RelaySelectorTests: XCTestCase {
 
     func testClosestRelay() throws {
         let relayWithLocations = try sampleRelays.wireguard.relays.map {
-            let serverLocation = try XCTUnwrap(sampleRelays.locations[$0.location])
+            let serverLocation = try XCTUnwrap(sampleRelays.locations[$0.location.rawValue])
             let location = Location(
                 country: serverLocation.country,
                 countryCode: serverLocation.country,
@@ -215,14 +215,12 @@ class RelaySelectorTests: XCTestCase {
         let filter = RelayFilter(ownership: .rented, providers: .any)
 
         let constraints = RelayConstraints(
-            exitLocations: .only(UserSelectedRelays(locations: [.hostname("se", "sto", "se6-wireguard")])),
+            exitLocations: .only(UserSelectedRelays(locations: [.hostname("es", "mad", "es1-wireguard")])),
             filter: .only(filter)
         )
 
-        XCTAssertThrowsError(try pickRelay(by: constraints, in: sampleRelays, failedAttemptCount: 0)) { error in
-            let error = error as? NoRelaysSatisfyingConstraintsError
-            XCTAssertEqual(error?.reason, .filterConstraintNotMatching)
-        }
+        let result = try pickRelay(by: constraints, in: sampleRelays, failedAttemptCount: 0)
+        XCTAssertNotEqual(result.relay.owned, true)
     }
 
     func testRelayFilterConstraintWithCorrectProvider() throws {
@@ -239,7 +237,7 @@ class RelaySelectorTests: XCTestCase {
     }
 
     func testRelayFilterConstraintWithIncorrectProvider() throws {
-        let provider = "DataPacket"
+        let provider = ""
         let filter = RelayFilter(ownership: .any, providers: .only([provider]))
 
         let constraints = RelayConstraints(

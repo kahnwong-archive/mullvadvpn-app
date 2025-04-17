@@ -56,7 +56,7 @@ configuration.
    vim ios/Configurations/Screenshots.xcconfig
    ```
 
-### Prerequisitives
+### Prerequisites
 
 1. Make sure you have [rvm](https://rvm.io) installed.
 1. Install Ruby 2.5.1 or later using `rvm install <VERSION>`.
@@ -97,3 +97,9 @@ ios/convert-assets.rb --app-icon
 ios/convert-assets.rb --import-desktop-assets
 ios/convert-assets.rb --additional-assets
 ```
+
+## Cached relays
+
+The script `relays-prebuild.sh` runs on each Xcode build and will download and cache a list of relays if it is not already present for a given configuration.
+The cached list for a given configuration will always override the current relays file.
+To get a fresh relay file on demand, issue a `clean` command to Xcode and re-build the project.

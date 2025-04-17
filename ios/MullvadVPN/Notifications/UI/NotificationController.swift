@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 01/06/2021.
-//  Copyright © 2021 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import UIKit
@@ -97,7 +97,8 @@ final class NotificationController: UIViewController {
         bannerView.title = notification.title
         bannerView.body = notification.body
         bannerView.style = notification.style
-        bannerView.action = notification.action
+        bannerView.action = notification.button
+        bannerView.tapAction = notification.tapAction
         bannerView.accessibilityLabel = "\(notification.title)\n\(notification.body.string)"
 
         // Do not emit the .layoutChanged unless the banner is focused to avoid capturing

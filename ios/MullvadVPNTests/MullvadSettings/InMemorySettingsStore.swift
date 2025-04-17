@@ -3,7 +3,7 @@
 //  MullvadVPNTests
 //
 //  Created by Marco Nikic on 2023-10-17.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -13,7 +13,7 @@ protocol Instantiable {
     init()
 }
 
-class InMemorySettingsStore<ThrownError: Error>: SettingsStore where ThrownError: Instantiable {
+class InMemorySettingsStore<ThrownError: Error>: SettingsStore, @unchecked Sendable where ThrownError: Instantiable {
     private var settings = [SettingsKey: Data]()
 
     func read(key: SettingsKey) throws -> Data {

@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 02/11/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Combine
@@ -16,7 +16,7 @@ enum ListAccessMethodSectionIdentifier: Hashable {
 }
 
 struct ListAccessMethodItemIdentifier: Hashable {
-    var id: UUID
+    let id: UUID
 }
 
 /// View controller presenting a list of API access methods.
@@ -219,6 +219,18 @@ class ListAccessMethodViewController: UIViewController, UITableViewDelegate {
         if let cell = cell as? CustomCellDisclosureHandling {
             cell.disclosureType = .chevron
         }
+
+        let accessibilityId: AccessibilityIdentifier? = switch item.id.uuidString {
+        case AccessMethodRepository.directId.uuidString:
+            AccessibilityIdentifier.accessMethodDirectCell
+        case AccessMethodRepository.bridgeId.uuidString:
+            AccessibilityIdentifier.accessMethodBridgesCell
+        case AccessMethodRepository.encryptedDNSId.uuidString:
+            AccessibilityIdentifier.accessMethodEncryptedDNSCell
+        default:
+            nil
+        }
+        cell.setAccessibilityIdentifier(accessibilityId)
 
         return cell
     }

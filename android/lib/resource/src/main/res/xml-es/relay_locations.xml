@@ -69,7 +69,9 @@
     <string name="Japan">Japón</string>
     <string name="Johannesburg">Johannesburgo</string>
     <string name="Kiev">Kiev</string>
+    <string name="Kuala Lumpur">Kuala Lumpur</string>
     <string name="Kyiv">Kiev</string>
+    <string name="Lagos">Lagos</string>
     <string name="Latvia">Letonia</string>
     <string name="Lima">Lima</string>
     <string name="Lisbon">Lisboa</string>
@@ -79,8 +81,10 @@
     <string name="Louisville, KY">Louisville, KY</string>
     <string name="Luxembourg">Luxemburgo</string>
     <string name="Madrid">Madrid</string>
+    <string name="Malaysia">Malasia</string>
     <string name="Malmö">Malmö</string>
     <string name="Manchester">Manchester</string>
+    <string name="Manila">Manila</string>
     <string name="Marseille">Marsella</string>
     <string name="McAllen, TX">McAllen, TX</string>
     <string name="Melbourne">Melbourne</string>
@@ -95,6 +99,7 @@
     <string name="New York, NY">Nueva York, NY</string>
     <string name="New Zealand">Nueva Zelanda</string>
     <string name="Nicosia">Nicosia</string>
+    <string name="Nigeria">Nigeria</string>
     <string name="Nis">Niš</string>
     <string name="North Macedonia">Macedonia del Norte</string>
     <string name="Norway">Noruega</string>
@@ -106,6 +111,7 @@
     <string name="Perth">Perth</string>
     <string name="Peru">Perú</string>
     <string name="Philadelphia, PA">Filadelfia, PA</string>
+    <string name="Philippines">Filipinas</string>
     <string name="Phoenix, AZ">Phoenix, AZ</string>
     <string name="Piscataway, NJ">Piscataway, NJ</string>
     <string name="Poland">Polonia</string>

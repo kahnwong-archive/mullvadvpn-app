@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 08/07/2021.
-//  Copyright © 2021 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import UIKit
@@ -12,6 +12,34 @@ class AccountContentView: UIView {
     let purchaseButton: InAppPurchaseButton = {
         let button = InAppPurchaseButton()
         button.setAccessibilityIdentifier(.purchaseButton)
+        button.setTitle(NSLocalizedString(
+            "ADD_TIME_BUTTON_TITLE",
+            tableName: "Account",
+            value: "Add time",
+            comment: ""
+        ), for: .normal)
+        return button
+    }()
+
+    let storeKit2PurchaseButton: AppButton = {
+        let button = AppButton(style: .success)
+        button.setTitle(NSLocalizedString(
+            "BUY_SUBSCRIPTION_STOREKIT_2",
+            tableName: "Account",
+            value: "Make a purchase with StoreKit2",
+            comment: ""
+        ), for: .normal)
+        return button
+    }()
+
+    let storeKit2RefundButton: AppButton = {
+        let button = AppButton(style: .success)
+        button.setTitle(NSLocalizedString(
+            "BUY_SUBSCRIPTION_STOREKIT_2",
+            tableName: "Account",
+            value: "Refund last purchase with StoreKit2",
+            comment: ""
+        ), for: .normal)
         return button
     }()
 
@@ -85,12 +113,15 @@ class AccountContentView: UIView {
         var arrangedSubviews = [UIView]()
         #if DEBUG
         arrangedSubviews.append(redeemVoucherButton)
+        arrangedSubviews.append(storeKit2PurchaseButton)
+        arrangedSubviews.append(storeKit2RefundButton)
         #endif
         arrangedSubviews.append(contentsOf: [
             purchaseButton,
             logoutButton,
             deleteButton,
         ])
+        arrangedSubviews.forEach { $0.isExclusiveTouch = true }
         let stackView = UIStackView(arrangedSubviews: arrangedSubviews)
         stackView.axis = .vertical
         stackView.spacing = UIMetrics.padding16

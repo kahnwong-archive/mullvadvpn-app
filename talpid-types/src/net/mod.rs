@@ -1,4 +1,7 @@
+use self::proxy::{CustomProxy, Socks5Local};
 use ipnetwork::{IpNetwork, Ipv4Network, Ipv6Network};
+#[cfg(target_os = "android")]
+use jnix::FromJava;
 use obfuscation::ObfuscatorConfig;
 use serde::{Deserialize, Serialize};
 #[cfg(windows)]
@@ -9,8 +12,6 @@ use std::{
     str::FromStr,
     sync::LazyLock,
 };
-
-use self::proxy::{CustomProxy, Socks5Local};
 
 pub mod obfuscation;
 pub mod openvpn;
@@ -101,7 +102,7 @@ impl TunnelParameters {
         }
     }
 
-    // Returns the endpoint that will be connected to
+    /// Returns the endpoint that will be connected to
     pub fn get_next_hop_endpoint(&self) -> Endpoint {
         match self {
             TunnelParameters::OpenVpn(params) => params
@@ -109,24 +110,7 @@ impl TunnelParameters {
                 .as_ref()
                 .map(|proxy| proxy.get_remote_endpoint().endpoint)
                 .unwrap_or(params.config.endpoint),
-            TunnelParameters::Wireguard(params) => params
-                .obfuscation
-                .as_ref()
-                .map(Self::get_obfuscator_endpoint)
-                .unwrap_or_else(|| params.connection.get_endpoint()),
-        }
-    }
-
-    fn get_obfuscator_endpoint(obfuscator: &ObfuscatorConfig) -> Endpoint {
-        match obfuscator {
-            ObfuscatorConfig::Udp2Tcp { endpoint } => Endpoint {
-                address: *endpoint,
-                protocol: TransportProtocol::Tcp,
-            },
-            ObfuscatorConfig::Shadowsocks { endpoint } => Endpoint {
-                address: *endpoint,
-                protocol: TransportProtocol::Udp,
-            },
+            TunnelParameters::Wireguard(params) => params.get_next_hop_endpoint(),
         }
     }
 
@@ -174,12 +158,13 @@ impl From<openvpn::TunnelParameters> for TunnelParameters {
 }
 
 /// The tunnel protocol used by a [`TunnelEndpoint`].
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(rename = "tunnel_type")]
 pub enum TunnelType {
     #[serde(rename = "openvpn")]
     OpenVpn,
     #[serde(rename = "wireguard")]
+    #[default]
     Wireguard,
 }
 
@@ -587,22 +572,25 @@ pub fn all_of_the_internet() -> Vec<ipnetwork::IpNetwork> {
 /// Information about the host's connectivity, such as the preesence of
 /// configured IPv4 and/or IPv6.
 #[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(target_os = "android", derive(FromJava))]
+#[cfg_attr(target_os = "android", jnix(package = "net.mullvad.talpid.model"))]
 pub enum Connectivity {
-    #[cfg(not(target_os = "android"))]
-    Status {
-        /// Whether IPv4 connectivity seems to be available on the host.
-        ipv4: bool,
-        /// Whether IPv6 connectivity seems to be available on the host.
-        ipv6: bool,
-    },
-    #[cfg(target_os = "android")]
-    Status {
-        /// Whether _any_ connectivity seems to be available on the host.
-        connected: bool,
-    },
-    /// On/offline status could not be verified, but we have no particular
-    /// reason to believe that the host is offline.
+    /// Host is offline
+    Offline,
+    /// The connectivity status is unknown, but presumed to be online
     PresumeOnline,
+    /// Host is online with the given IP versions available
+    Online(IpAvailability),
+}
+
+#[derive(Debug, Clone, Copy, PartialEq)]
+#[cfg_attr(target_os = "android", derive(FromJava))]
+#[cfg_attr(target_os = "android", jnix(package = "net.mullvad.talpid.model"))]
+/// Available IP versions
+pub enum IpAvailability {
+    Ipv4,
+    Ipv6,
+    Ipv4AndIpv6,
 }
 
 impl Connectivity {
@@ -613,37 +601,39 @@ impl Connectivity {
 
     /// If no IP4 nor IPv6 routes exist, we have no way of reaching the internet
     /// so we consider ourselves offline.
-    #[cfg(not(target_os = "android"))]
     pub fn is_offline(&self) -> bool {
+        *self == Connectivity::Offline
+    }
+
+    /// Whether IPv4 connectivity seems to be available on the host.
+    ///
+    /// If IPv4 status is unknown, `true` is returned.
+    pub fn has_ipv4(&self) -> bool {
         matches!(
             self,
-            Connectivity::Status {
-                ipv4: false,
-                ipv6: false
-            }
+            Connectivity::PresumeOnline
+                | Connectivity::Online(IpAvailability::Ipv4)
+                | Connectivity::Online(IpAvailability::Ipv4AndIpv6)
         )
     }
 
     /// Whether IPv6 connectivity seems to be available on the host.
     ///
     /// If IPv6 status is unknown, `false` is returned.
-    #[cfg(not(target_os = "android"))]
     pub fn has_ipv6(&self) -> bool {
-        matches!(self, Connectivity::Status { ipv6: true, .. })
+        matches!(
+            self,
+            Connectivity::Online(IpAvailability::Ipv6)
+                | Connectivity::Online(IpAvailability::Ipv4AndIpv6)
+        )
     }
 
-    /// Whether IPv6 connectivity seems to be available on the host.
-    ///
-    /// If IPv6 status is unknown, `false` is returned.
-    #[cfg(target_os = "android")]
-    pub fn has_ipv6(&self) -> bool {
-        self.is_online()
-    }
-
-    /// If the host does not have configured IPv6 routes, we have no way of
-    /// reaching the internet so we consider ourselves offline.
-    #[cfg(target_os = "android")]
-    pub fn is_offline(&self) -> bool {
-        matches!(self, Connectivity::Status { connected: false })
+    pub fn new(ipv4: bool, ipv6: bool) -> Connectivity {
+        match (ipv4, ipv6) {
+            (true, true) => Connectivity::Online(IpAvailability::Ipv4AndIpv6),
+            (true, false) => Connectivity::Online(IpAvailability::Ipv4),
+            (false, true) => Connectivity::Online(IpAvailability::Ipv6),
+            (false, false) => Connectivity::Offline,
+        }
     }
 }

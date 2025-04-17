@@ -3,21 +3,21 @@
 //  MullvadVPN
 //
 //  Created by Marco Nikic on 2023-07-31.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 
 /// Alias to the latest version of the `TunnelSettings`.
-public typealias LatestTunnelSettings = TunnelSettingsV6
+public typealias LatestTunnelSettings = TunnelSettingsV7
 
 /// Protocol all TunnelSettings must adhere to, for upgrade purposes.
-public protocol TunnelSettings: Codable {
+public protocol TunnelSettings: Codable, Sendable {
     func upgradeToNextVersion() -> any TunnelSettings
 }
 
 /// Settings and device state schema versions.
-public enum SchemaVersion: Int, Equatable {
+public enum SchemaVersion: Int, Equatable, Sendable {
     /// Legacy settings format, stored as `TunnelSettingsV1`.
     case v1 = 1
 
@@ -36,6 +36,9 @@ public enum SchemaVersion: Int, Equatable {
     /// V5 format with DAITA settings, stored as `TunnelSettingsV6`.
     case v6 = 6
 
+    /// V6 format with Local network sharing, stored as `TunnelSettingsV7`.
+    case v7 = 7
+
     var settingsType: any TunnelSettings.Type {
         switch self {
         case .v1: return TunnelSettingsV1.self
@@ -44,6 +47,7 @@ public enum SchemaVersion: Int, Equatable {
         case .v4: return TunnelSettingsV4.self
         case .v5: return TunnelSettingsV5.self
         case .v6: return TunnelSettingsV6.self
+        case .v7: return TunnelSettingsV7.self
         }
     }
 
@@ -54,10 +58,11 @@ public enum SchemaVersion: Int, Equatable {
         case .v3: return .v4
         case .v4: return .v5
         case .v5: return .v6
-        case .v6: return .v6
+        case .v6: return .v7
+        case .v7: return .v7
         }
     }
 
     /// Current schema version.
-    public static let current = SchemaVersion.v6
+    public static let current = SchemaVersion.v7
 }

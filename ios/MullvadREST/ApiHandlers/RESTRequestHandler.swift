@@ -3,7 +3,7 @@
 //  MullvadREST
 //
 //  Created by pronebird on 20/04/2022.
-//  Copyright © 2022 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -29,7 +29,7 @@ extension REST {
 
         let authorizationProvider: RESTAuthorizationProvider?
 
-        init(createURLRequest: @escaping (AnyIPEndpoint) throws -> REST.Request) {
+        init(createURLRequest: @escaping @Sendable (AnyIPEndpoint) throws -> REST.Request) {
             _createURLRequest = { endpoint, _ in
                 try createURLRequest(endpoint)
             }
@@ -37,7 +37,7 @@ extension REST {
         }
 
         init(
-            createURLRequest: @escaping (AnyIPEndpoint, REST.Authorization) throws -> REST.Request,
+            createURLRequest: @escaping @Sendable (AnyIPEndpoint, REST.Authorization) throws -> REST.Request,
             authorizationProvider: RESTAuthorizationProvider
         ) {
             _createURLRequest = { endpoint, authorization in

@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 16/03/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -13,8 +13,9 @@ import UIKit
 /**
  Main application router.
  */
-public final class ApplicationRouter<RouteType: AppRouteProtocol> {
-    private let logger = Logger(label: "ApplicationRouter")
+@MainActor
+public final class ApplicationRouter<RouteType: AppRouteProtocol>: Sendable {
+    nonisolated(unsafe) private let logger = Logger(label: "ApplicationRouter")
 
     private(set) var modalStack: [RouteType.RouteGroupType] = []
     private(set) var presentedRoutes: [RouteType.RouteGroupType: [PresentedRoute<RouteType>]] = [:]
@@ -95,7 +96,7 @@ public final class ApplicationRouter<RouteType: AppRouteProtocol> {
         _ route: RouteType,
         animated: Bool,
         metadata: Any?,
-        completion: @escaping (PendingPresentationResult) -> Void
+        completion: @escaping @Sendable @MainActor (PendingPresentationResult) -> Void
     ) {
         /**
          Pass sub-route for routes supporting sub-navigation.
@@ -157,18 +158,21 @@ public final class ApplicationRouter<RouteType: AppRouteProtocol> {
             let context = RoutePresentationContext(route: route, isAnimated: animated, metadata: metadata)
 
             delegate.applicationRouter(self, presentWithContext: context, animated: animated) { coordinator in
-                /*
-                 Synchronize router when modal controllers are removed by swipe.
-                 */
-                if let presentable = coordinator as? Presentable {
-                    presentable.onInteractiveDismissal { [weak self] coordinator in
-                        self?.handleInteractiveDismissal(route: route, coordinator: coordinator)
+                /// Synchronize router when modal controllers are removed by swipe.
+                /// The delegate (`ApplicationCoordinator`) is `@MainActor` by virtue of being a `Coordinator`
+                MainActor.assumeIsolated {
+                    if let presentable = coordinator as? Presentable {
+                        presentable.onInteractiveDismissal { [weak self] coordinator in
+                            MainActor.assumeIsolated {
+                                self?.handleInteractiveDismissal(route: route, coordinator: coordinator)
+                            }
+                        }
                     }
+
+                    self.addPresentedRoute(PresentedRoute(route: route, coordinator: coordinator))
+
+                    completion(.success)
                 }
-
-                self.addPresentedRoute(PresentedRoute(route: route, coordinator: coordinator))
-
-                completion(.success)
             }
         } else {
             completion(.drop)
@@ -178,7 +182,7 @@ public final class ApplicationRouter<RouteType: AppRouteProtocol> {
     private func dismissGroup(
         _ dismissGroup: RouteType.RouteGroupType,
         animated: Bool,
-        completion: @escaping (PendingDismissalResult) -> Void
+        completion: @escaping @Sendable (PendingDismissalResult) -> Void
     ) {
         /**
          Check if routes corresponding to the group requested for dismissal are present.
@@ -224,7 +228,7 @@ public final class ApplicationRouter<RouteType: AppRouteProtocol> {
     private func dismissRoute(
         _ dismissRoute: RouteType,
         animated: Bool,
-        completion: @escaping (PendingDismissalResult) -> Void
+        completion: @escaping @Sendable (PendingDismissalResult) -> Void
     ) {
         var routes = presentedRoutes[dismissRoute.routeGroup] ?? []
 
@@ -304,19 +308,21 @@ public final class ApplicationRouter<RouteType: AppRouteProtocol> {
 
         case let .dismiss(dismissMatch):
             handleDismissal(dismissMatch, animated: pendingRoute.animated) { result in
-                switch result {
-                case .success, .drop:
-                    self.finishPendingRoute(pendingRoute)
+                MainActor.assumeIsolated {
+                    switch result {
+                    case .success, .drop:
+                        self.finishPendingRoute(pendingRoute)
 
-                case .blockedByModalAbove:
-                    /**
-                     If router cannot dismiss modal because there is one above,
-                     try walking down the queue and see if there is a dismissal request that could
-                     resolve that.
-                     */
-                    self.processPendingRoutes(
-                        skipRouteGroups: skipRouteGroups.union([dismissMatch.routeGroup])
-                    )
+                    case .blockedByModalAbove:
+                        /**
+                         If router cannot dismiss modal because there is one above,
+                         try walking down the queue and see if there is a dismissal request that could
+                         resolve that.
+                         */
+                        self.processPendingRoutes(
+                            skipRouteGroups: skipRouteGroups.union([dismissMatch.routeGroup])
+                        )
+                    }
                 }
             }
         }
@@ -325,7 +331,7 @@ public final class ApplicationRouter<RouteType: AppRouteProtocol> {
     private func handleDismissal(
         _ dismissMatch: DismissMatch<RouteType>,
         animated: Bool,
-        completion: @escaping (PendingDismissalResult) -> Void
+        completion: @escaping @Sendable (PendingDismissalResult) -> Void
     ) {
         switch dismissMatch {
         case let .singleRoute(route):

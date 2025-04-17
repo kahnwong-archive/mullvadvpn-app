@@ -3,13 +3,14 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 14/11/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadSettings
 import UIKit
 
 /// Type implementing the shadowsocks cipher picker.
+@MainActor
 struct ShadowsocksCipherPicker {
     /// The navigation controller used for presenting the picker.
     let navigationController: UINavigationController

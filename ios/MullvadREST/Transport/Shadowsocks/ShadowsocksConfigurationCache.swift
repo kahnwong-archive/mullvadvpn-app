@@ -3,20 +3,20 @@
 //  MullvadTransport
 //
 //  Created by Marco Nikic on 2023-06-05.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import MullvadTypes
 
-public protocol ShadowsocksConfigurationCacheProtocol {
+public protocol ShadowsocksConfigurationCacheProtocol: Sendable {
     func read() throws -> ShadowsocksConfiguration
     func write(_ configuration: ShadowsocksConfiguration) throws
     func clear() throws
 }
 
 /// Holds a shadowsocks configuration object backed by a caching mechanism shared across processes
-public final class ShadowsocksConfigurationCache: ShadowsocksConfigurationCacheProtocol {
+public final class ShadowsocksConfigurationCache: ShadowsocksConfigurationCacheProtocol, @unchecked Sendable {
     private let configurationLock = NSLock()
     private var cachedConfiguration: ShadowsocksConfiguration?
     private let fileCache: FileCache<ShadowsocksConfiguration>

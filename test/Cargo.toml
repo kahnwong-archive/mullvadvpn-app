@@ -3,16 +3,16 @@ authors = ["Mullvad VPN"]
 repository = "https://github.com/mullvad/mullvadvpn-app/"
 license = "GPL-3.0"
 edition = "2021"
-rust-version = "1.80.0"
+rust-version = "1.83.0"
 
 [workspace]
 resolver = "2"
 members = [
-    "test-manager",
-    "test-runner",
-    "test-rpc",
-    "socks-server",
-    "connection-checker",
+  "test-manager",
+  "test-runner",
+  "test-rpc",
+  "socks-server",
+  "connection-checker",
 ]
 
 # Keep all lints in sync with `../Cargo.toml`
@@ -34,10 +34,11 @@ single_use_lifetimes = "warn"
 
 [workspace.lints.clippy]
 unused_async = "deny"
+implicit_clone = "warn"
 
 [workspace.dependencies]
 futures = "0.3"
-tokio = { version = "1.42", features = [
+tokio = { version = "1.44", features = [
   "macros",
   "rt",
   "process",
@@ -60,11 +61,15 @@ tower = "0.5.1"
 prost = "0.13.3"
 prost-types = "0.13.3"
 tarpc = { version = "0.30", features = ["tokio1", "serde-transport", "serde1"] }
-hyper-util = {version = "0.1.8", features = ["client", "client-legacy", "http2"]}
+hyper-util = { version = "0.1.8", features = [
+  "client",
+  "client-legacy",
+  "http2",
+] }
 
 # Logging
-env_logger = "0.11.0"
-thiserror = "1.0.57"
+env_logger = "0.11.7"
+thiserror = "2.0"
 log = "0.4"
 colored = "2.0.0"
 
@@ -77,5 +82,6 @@ chrono = { version = "0.4.26", default-features = false }
 clap = { version = "4.2.7", features = ["cargo", "derive"] }
 bytes = "1.3.0"
 async-trait = "0.1.58"
+socket2 = "0.5.7"
 surge-ping = "0.8"
 nix = { version = "0.29", features = ["ioctl", "socket", "net"] }

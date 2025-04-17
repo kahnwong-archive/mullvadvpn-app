@@ -76,11 +76,12 @@ fun NavigationComposeCell(
     testTag: String = "",
 ) {
     BaseCell(
+        modifier = modifier,
         onCellClicked = onClick,
         headlineContent = {
             NavigationTitleView(
                 title = title,
-                modifier = modifier.weight(1f, true),
+                modifier = Modifier.weight(1f, true),
                 showWarning = showWarning,
             )
         },
@@ -136,7 +137,7 @@ internal fun NavigationCellBody(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier.wrapContentWidth().wrapContentHeight(),
     ) {
-        Text(text = content, style = MaterialTheme.typography.bodyMedium, color = textColor)
+        Text(text = content, style = MaterialTheme.typography.titleMedium, color = textColor)
         Spacer(modifier = Modifier.width(Dimens.sideMargin))
         if (isExternalLink) {
             DefaultExternalLinkView(content, tint = contentColor)

@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 08/11/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadSettings
@@ -130,7 +130,7 @@ class ListAccessMethodCoordinator: Coordinator, Presenting, SettingsChildCoordin
     }
 }
 
-extension ListAccessMethodCoordinator: ListAccessMethodViewControllerDelegate {
+extension ListAccessMethodCoordinator: @preconcurrency ListAccessMethodViewControllerDelegate {
     func controllerShouldShowAbout(_ controller: ListAccessMethodViewController) {
         about()
     }

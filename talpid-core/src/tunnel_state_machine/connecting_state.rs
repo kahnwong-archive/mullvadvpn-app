@@ -9,7 +9,9 @@ use futures::{FutureExt, StreamExt};
 use talpid_routing::RouteManagerHandle;
 use talpid_tunnel::tun_provider::TunProvider;
 use talpid_tunnel::{EventHook, TunnelArgs, TunnelEvent, TunnelMetadata};
-use talpid_types::net::{AllowedClients, AllowedEndpoint, AllowedTunnelTraffic, TunnelParameters};
+use talpid_types::net::{
+    AllowedClients, AllowedEndpoint, AllowedTunnelTraffic, IpAvailability, TunnelParameters,
+};
 use talpid_types::tunnel::{ErrorStateCause, FirewallPolicyError};
 use talpid_types::ErrorExt;
 
@@ -73,19 +75,24 @@ impl ConnectingState {
                 });
         }
 
-        if shared_values.connectivity.is_offline() {
-            // FIXME: Temporary: Nudge route manager to update the default interface
-            #[cfg(target_os = "macos")]
-            {
-                log::debug!("Poking route manager to update default routes");
-                let _ = shared_values.route_manager.refresh_routes();
+        let ip_availability = match shared_values.connectivity {
+            talpid_types::net::Connectivity::Offline => {
+                // FIXME: Temporary: Nudge route manager to update the default interface
+                #[cfg(target_os = "macos")]
+                {
+                    log::debug!("Poking route manager to update default routes");
+                    let _ = shared_values.route_manager.refresh_routes();
+                }
+                return ErrorState::enter(shared_values, ErrorStateCause::IsOffline);
             }
-            return ErrorState::enter(shared_values, ErrorStateCause::IsOffline);
-        }
+            talpid_types::net::Connectivity::PresumeOnline => IpAvailability::Ipv4,
+            talpid_types::net::Connectivity::Online(ip_availability) => ip_availability,
+        };
+
         match shared_values.runtime.block_on(
             shared_values
                 .tunnel_parameters_generator
-                .generate(retry_attempt, shared_values.connectivity.has_ipv6()),
+                .generate(retry_attempt, ip_availability),
         ) {
             Err(err) => {
                 ErrorState::enter(shared_values, ErrorStateCause::TunnelParameterError(err))
@@ -114,6 +121,10 @@ impl ConnectingState {
                         ErrorStateCause::SetFirewallPolicyError(error),
                     )
                 } else {
+                    // HACK: On Android, DNS is part of creating the VPN interface, this call
+                    // ensures that the vpn_config is prepared with correct DNS servers in case they
+                    // previously set to something else, e.g. in the case of blocking. This call
+                    // should probably be part of start_tunnel call.
                     #[cfg(target_os = "android")]
                     {
                         shared_values.prepare_tun_config(false);
@@ -138,6 +149,7 @@ impl ConnectingState {
                         &shared_values.route_manager,
                         retry_attempt,
                     );
+
                     let params = connecting_state.tunnel_parameters.clone();
                     (
                         Box::new(connecting_state),
@@ -385,14 +397,7 @@ impl ConnectingState {
                 let consequence = if shared_values.set_allow_lan(allow_lan) {
                     #[cfg(target_os = "android")]
                     {
-                        if let Err(_err) = shared_values.restart_tunnel(false) {
-                            self.disconnect(
-                                shared_values,
-                                AfterDisconnect::Block(ErrorStateCause::StartTunnelError),
-                            )
-                        } else {
-                            self.disconnect(shared_values, AfterDisconnect::Reconnect(0))
-                        }
+                        self.disconnect(shared_values, AfterDisconnect::Reconnect(0))
                     }
                     #[cfg(not(target_os = "android"))]
                     self.reset_firewall(shared_values)
@@ -426,14 +431,7 @@ impl ConnectingState {
                 let consequence = if shared_values.set_dns_config(servers) {
                     #[cfg(target_os = "android")]
                     {
-                        if let Err(_err) = shared_values.restart_tunnel(false) {
-                            self.disconnect(
-                                shared_values,
-                                AfterDisconnect::Block(ErrorStateCause::StartTunnelError),
-                            )
-                        } else {
-                            self.disconnect(shared_values, AfterDisconnect::Reconnect(0))
-                        }
+                        self.disconnect(shared_values, AfterDisconnect::Reconnect(0))
                     }
                     #[cfg(not(target_os = "android"))]
                     SameState(self)
@@ -483,17 +481,8 @@ impl ConnectingState {
             #[cfg(target_os = "android")]
             Some(TunnelCommand::SetExcludedApps(result_tx, paths)) => {
                 if shared_values.set_excluded_paths(paths) {
-                    if let Err(err) = shared_values.restart_tunnel(false) {
-                        let _ =
-                            result_tx.send(Err(crate::split_tunnel::Error::SetExcludedApps(err)));
-                        self.disconnect(
-                            shared_values,
-                            AfterDisconnect::Block(ErrorStateCause::SplitTunnelError),
-                        )
-                    } else {
-                        let _ = result_tx.send(Ok(()));
-                        self.disconnect(shared_values, AfterDisconnect::Reconnect(0))
-                    }
+                    let _ = result_tx.send(Ok(()));
+                    self.disconnect(shared_values, AfterDisconnect::Reconnect(0))
                 } else {
                     let _ = result_tx.send(Ok(()));
                     SameState(self)

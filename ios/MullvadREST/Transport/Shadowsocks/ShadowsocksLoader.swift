@@ -3,25 +3,25 @@
 //  MullvadREST
 //
 //  Created by Mojgan on 2024-01-08.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import MullvadSettings
 import MullvadTypes
 
-public protocol ShadowsocksLoaderProtocol {
+public protocol ShadowsocksLoaderProtocol: Sendable {
     func load() throws -> ShadowsocksConfiguration
     func clear() throws
 }
 
-public class ShadowsocksLoader: ShadowsocksLoaderProtocol {
+public final class ShadowsocksLoader: ShadowsocksLoaderProtocol, Sendable {
     let cache: ShadowsocksConfigurationCacheProtocol
     let relaySelector: ShadowsocksRelaySelectorProtocol
     let settingsUpdater: SettingsUpdater
 
-    private var observer: SettingsObserverBlock!
-    private var tunnelSettings = LatestTunnelSettings()
+    nonisolated(unsafe) private var observer: SettingsObserverBlock!
+    nonisolated(unsafe) private var tunnelSettings = LatestTunnelSettings()
     private let settingsStrategy = TunnelSettingsStrategy()
 
     deinit {

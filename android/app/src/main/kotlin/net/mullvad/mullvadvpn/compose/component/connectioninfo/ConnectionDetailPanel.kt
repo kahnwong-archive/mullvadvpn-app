@@ -105,7 +105,7 @@ fun ConnectionDetails(
                     buildString {
                         append(stringResource(R.string.connection_details_out))
                         append(SPACE_CHAR)
-                        append(stringResource(R.string.connection_details_ipv4))
+                        append(stringResource(R.string.ipv4))
                     },
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,
@@ -150,7 +150,7 @@ fun ConnectionDetails(
                     buildString {
                         append(stringResource(R.string.connection_details_out))
                         append(SPACE_CHAR)
-                        append(stringResource(R.string.connection_details_ipv6))
+                        append(stringResource(R.string.ipv6))
                     },
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,
@@ -192,7 +192,11 @@ fun ConnectionDetails(
 
 @Composable
 fun TunnelEndpoint.toInAddress(): String {
-    val relayEndpoint = this.obfuscation?.endpoint ?: this.endpoint
+    // Order is important
+    // First we check for obfuscation (Shadowsocks, UDP-Over-UDP)
+    // Then we check for entry if we have multihop
+    // Finally we check for exit endpoint
+    val relayEndpoint = obfuscation?.endpoint ?: entryEndpoint ?: endpoint
 
     val host = relayEndpoint.address.address.hostAddress ?: ""
     val port = relayEndpoint.address.port

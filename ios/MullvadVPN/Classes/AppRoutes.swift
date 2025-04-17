@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 17/08/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Routing
@@ -83,12 +83,17 @@ enum AppRoute: AppRouteProtocol {
     case settings(SettingsNavigationRoute?)
 
     /**
+     DAITA standalone route (not subsetting).
+     */
+    case daita
+
+    /**
      Select location route.
      */
     case selectLocation
 
     /**
-     Changelog route.
+     Changelog standalone route (not subsetting).
      */
     case changelog
 
@@ -105,7 +110,7 @@ enum AppRoute: AppRouteProtocol {
 
     var isExclusive: Bool {
         switch self {
-        case .account, .settings, .changelog, .alert:
+        case .account, .settings, .alert:
             return true
         default:
             return false
@@ -124,13 +129,11 @@ enum AppRoute: AppRouteProtocol {
         switch self {
         case .tos, .login, .main, .revoked, .outOfTime, .welcome:
             return .primary
-        case .changelog:
-            return .changelog
         case .selectLocation:
             return .selectLocation
         case .account:
             return .account
-        case .settings:
+        case .settings, .daita, .changelog:
             return .settings
         case let .alert(id):
             return .alert(id)

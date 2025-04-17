@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 16/12/2021.
-//  Copyright © 2021 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -12,7 +12,7 @@ import MullvadSettings
 import MullvadTypes
 import Operations
 
-class LoadTunnelConfigurationOperation: ResultOperation<Void> {
+class LoadTunnelConfigurationOperation: ResultOperation<Void>, @unchecked Sendable {
     private let logger = Logger(label: "LoadTunnelConfigurationOperation")
     private let interactor: TunnelInteractor
 

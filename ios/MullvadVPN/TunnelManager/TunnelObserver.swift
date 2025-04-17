@@ -3,13 +3,13 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 19/08/2021.
-//  Copyright © 2021 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import MullvadSettings
 
-protocol TunnelObserver: AnyObject {
+protocol TunnelObserver: AnyObject, Sendable {
     func tunnelManagerDidLoadConfiguration(_ manager: TunnelManager)
     func tunnelManager(_ manager: TunnelManager, didUpdateTunnelStatus tunnelStatus: TunnelStatus)
     func tunnelManager(

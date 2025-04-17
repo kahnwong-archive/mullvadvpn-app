@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 29/03/2022.
-//  Copyright © 2022 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -13,7 +13,8 @@ import MullvadTypes
 import Operations
 import StoreKit
 
-class SendStoreReceiptOperation: ResultOperation<REST.CreateApplePaymentResponse>, SKRequestDelegate {
+class SendStoreReceiptOperation: ResultOperation<REST.CreateApplePaymentResponse>, SKRequestDelegate,
+    @unchecked Sendable {
     private let apiProxy: APIQuerying
     private let accountNumber: String
 

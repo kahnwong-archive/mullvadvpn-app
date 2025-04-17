@@ -19,16 +19,12 @@ import androidx.compose.ui.focus.focusProperties
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Dp
-import androidx.core.text.HtmlCompat
-import androidx.core.text.HtmlCompat.FROM_HTML_MODE_COMPACT
 import net.mullvad.mullvadvpn.R
 import net.mullvad.mullvadvpn.compose.component.MullvadSwitch
 import net.mullvad.mullvadvpn.compose.component.SpacedColumn
 import net.mullvad.mullvadvpn.compose.component.textResource
-import net.mullvad.mullvadvpn.compose.extensions.toAnnotatedString
 import net.mullvad.mullvadvpn.lib.theme.AppTheme
 import net.mullvad.mullvadvpn.lib.theme.Dimens
 import net.mullvad.mullvadvpn.lib.theme.color.AlphaDisabled
@@ -60,6 +56,7 @@ private fun PreviewSwitchComposeCell() {
 fun NormalSwitchComposeCell(
     title: String,
     isToggled: Boolean,
+    modifier: Modifier = Modifier,
     startPadding: Dp = Dimens.indentedCellStartPadding,
     isEnabled: Boolean = true,
     background: Color = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -83,6 +80,7 @@ fun NormalSwitchComposeCell(
         onBackground = onBackground,
         onCellClicked = onCellClicked,
         onInfoClicked = onInfoClicked,
+        modifier = modifier,
     )
 }
 
@@ -177,26 +175,23 @@ fun SwitchCellView(
             }
         }
 
-        MullvadSwitch(checked = isToggled, enabled = isEnabled, onCheckedChange = onSwitchClicked)
+        MullvadSwitch(checked = isToggled, onCheckedChange = onSwitchClicked, enabled = isEnabled)
     }
 }
 
 @Composable
 fun CustomDnsCellSubtitle(isCellClickable: Boolean, modifier: Modifier) {
-    val spanned =
-        HtmlCompat.fromHtml(
-            if (isCellClickable) {
-                textResource(id = R.string.custom_dns_footer)
-            } else {
-                textResource(
-                    id = R.string.custom_dns_disable_mode_subtitle,
-                    textResource(id = R.string.dns_content_blockers_title),
-                )
-            },
-            FROM_HTML_MODE_COMPACT,
-        )
+    val text =
+        if (isCellClickable) {
+            textResource(id = R.string.custom_dns_footer)
+        } else {
+            textResource(
+                id = R.string.custom_dns_disable_mode_subtitle,
+                textResource(id = R.string.dns_content_blockers),
+            )
+        }
     Text(
-        text = spanned.toAnnotatedString(boldFontWeight = FontWeight.ExtraBold),
+        text = text,
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = modifier,

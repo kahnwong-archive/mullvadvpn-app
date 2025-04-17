@@ -3,23 +3,25 @@ import { useParams } from 'react-router';
 import { sprintf } from 'sprintf-js';
 import styled from 'styled-components';
 
-import { colors, links } from '../../config.json';
 import { formatDate } from '../../shared/account-expiry';
+import { urls } from '../../shared/constants';
 import { formatRelativeDate } from '../../shared/date-helper';
 import { messages } from '../../shared/gettext';
 import { useAppContext } from '../context';
 import useActions from '../lib/actionsHook';
+import { Flex, Icon } from '../lib/components';
+import { Colors } from '../lib/foundations';
 import { transitions, useHistory } from '../lib/history';
+import { IconBadge } from '../lib/icon-badge';
 import { generateRoutePath } from '../lib/routeHelpers';
 import { RoutePath } from '../lib/routes';
 import account from '../redux/account/actions';
 import { useSelector } from '../redux/store';
+import { AppMainHeader } from './app-main-header';
 import * as AppButton from './AppButton';
 import { AriaDescribed, AriaDescription, AriaDescriptionGroup } from './AriaGroup';
 import { hugeText, measurements, tinyText } from './common-styles';
 import CustomScrollbars from './CustomScrollbars';
-import { calculateHeaderBarStyle, DefaultHeaderBar, HeaderBarStyle } from './HeaderBar';
-import ImageView from './ImageView';
 import { Container, Footer, Layout } from './Layout';
 import {
   RedeemVoucherContainer,
@@ -28,10 +30,6 @@ import {
   RedeemVoucherSubmitButton,
 } from './RedeemVoucher';
 
-export const StyledHeader = styled(DefaultHeaderBar)({
-  flex: 0,
-});
-
 export const StyledCustomScrollbars = styled(CustomScrollbars)({
   flex: 1,
 });
@@ -39,7 +37,7 @@ export const StyledCustomScrollbars = styled(CustomScrollbars)({
 export const StyledContainer = styled(Container)({
   paddingTop: '22px',
   minHeight: '100%',
-  backgroundColor: colors.darkBlue,
+  backgroundColor: Colors.darkBlue,
 });
 
 export const StyledBody = styled.div({
@@ -57,7 +55,7 @@ export const StyledTitle = styled.span(hugeText, {
 
 export const StyledLabel = styled.span(tinyText, {
   lineHeight: '20px',
-  color: colors.white,
+  color: Colors.white,
   marginBottom: '9px',
 });
 
@@ -168,9 +166,9 @@ export function TimeAdded(props: ITimeAddedProps) {
       <StyledCustomScrollbars fillContainer>
         <StyledContainer>
           <StyledBody>
-            <StyledStatusIcon>
-              <ImageView source="icon-success" height={60} width={60} />
-            </StyledStatusIcon>
+            <Flex $justifyContent="center" $margin={{ bottom: 'medium' }}>
+              <IconBadge state="positive" />
+            </Flex>
             <StyledTitle>
               {props.title ?? messages.pgettext('connect-view', 'Time was successfully added')}
             </StyledTitle>
@@ -204,7 +202,7 @@ export function SetupFinished() {
   const finish = useFinishedCallback();
   const { openUrl } = useAppContext();
 
-  const openPrivacyLink = useCallback(() => openUrl(links.privacyGuide), [openUrl]);
+  const openPrivacyLink = useCallback(() => openUrl(urls.privacyGuide), [openUrl]);
 
   return (
     <Layout>
@@ -236,10 +234,8 @@ export function SetupFinished() {
                       {messages.pgettext('connect-view', 'Learn about privacy')}
                     </AppButton.Label>
                     <AriaDescription>
-                      <AppButton.Icon
-                        height={16}
-                        width={16}
-                        source="icon-extLink"
+                      <Icon
+                        icon="external"
                         aria-label={messages.pgettext('accessibility', 'Opens externally')}
                       />
                     </AriaDescription>
@@ -261,12 +257,15 @@ function HeaderBar() {
   const isNewAccount = useSelector(
     (state) => state.account.status.type === 'ok' && state.account.status.method === 'new_account',
   );
-  const tunnelState = useSelector((state) => state.connection.status);
-  const headerBarStyle = isNewAccount
-    ? HeaderBarStyle.default
-    : calculateHeaderBarStyle(tunnelState);
 
-  return <StyledHeader barStyle={headerBarStyle} />;
+  return (
+    <AppMainHeader
+      variant={isNewAccount ? 'default' : 'basedOnConnectionStatus'}
+      size="basedOnLoginStatus">
+      <AppMainHeader.AccountButton />
+      <AppMainHeader.SettingsButton />
+    </AppMainHeader>
+  );
 }
 
 function useFinishedCallback() {

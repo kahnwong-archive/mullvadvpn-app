@@ -3,13 +3,13 @@
 //  MullvadTypes
 //
 //  Created by pronebird on 06/12/2019.
-//  Copyright © 2019 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import Network
 
-public struct IPv4Endpoint: Hashable, Equatable, Codable, CustomStringConvertible {
+public struct IPv4Endpoint: Hashable, Equatable, Codable, CustomStringConvertible, Sendable {
     public let ip: IPv4Address
     public let port: UInt16
 

@@ -2,22 +2,23 @@ package net.mullvad.mullvadvpn.test.e2e
 
 import kotlin.time.Duration.Companion.milliseconds
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.runTest
 import net.mullvad.mullvadvpn.BuildConfig
 import net.mullvad.mullvadvpn.test.common.constant.EXTREMELY_LONG_TIMEOUT
 import net.mullvad.mullvadvpn.test.common.page.ConnectPage
 import net.mullvad.mullvadvpn.test.common.page.SelectLocationPage
 import net.mullvad.mullvadvpn.test.common.page.SettingsPage
 import net.mullvad.mullvadvpn.test.common.page.SystemVpnConfigurationAlert
-import net.mullvad.mullvadvpn.test.common.page.TopBar
 import net.mullvad.mullvadvpn.test.common.page.VpnSettingsPage
+import net.mullvad.mullvadvpn.test.common.page.disableObfuscationStory
+import net.mullvad.mullvadvpn.test.common.page.enableLocalNetworkSharingStory
+import net.mullvad.mullvadvpn.test.common.page.enableShadowsocksStory
 import net.mullvad.mullvadvpn.test.common.page.on
 import net.mullvad.mullvadvpn.test.common.rule.ForgetAllVpnAppsInSettingsTestRule
 import net.mullvad.mullvadvpn.test.e2e.annotations.HasDependencyOnLocalAPI
+import net.mullvad.mullvadvpn.test.e2e.api.connectioncheck.ConnectionCheckApi
 import net.mullvad.mullvadvpn.test.e2e.misc.AccountTestRule
 import net.mullvad.mullvadvpn.test.e2e.misc.ClearFirewallRules
-import net.mullvad.mullvadvpn.test.e2e.misc.ConnCheckState
-import net.mullvad.mullvadvpn.test.e2e.misc.SimpleMullvadHttpClient
 import net.mullvad.mullvadvpn.test.e2e.router.firewall.DropRule
 import net.mullvad.mullvadvpn.test.e2e.router.firewall.FirewallClient
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -32,6 +33,7 @@ class ConnectionTest : EndToEndTest(BuildConfig.FLAVOR_infrastructure) {
     @JvmField
     val forgetAllVpnAppsInSettingsTestRule = ForgetAllVpnAppsInSettingsTestRule()
 
+    private val connCheckClient = ConnectionCheckApi()
     private val firewallClient = FirewallClient()
 
     @Test
@@ -47,7 +49,7 @@ class ConnectionTest : EndToEndTest(BuildConfig.FLAVOR_infrastructure) {
     }
 
     @Test
-    fun testConnectAndVerifyWithConnectionCheck() {
+    fun testConnectAndVerifyWithConnectionCheck() = runTest {
         // Given
         app.launchAndEnsureLoggedIn(accountTestRule.validAccountNumber)
 
@@ -55,24 +57,25 @@ class ConnectionTest : EndToEndTest(BuildConfig.FLAVOR_infrastructure) {
 
         on<SystemVpnConfigurationAlert> { clickOk() }
 
-        var expectedConnectionState: ConnCheckState? = null
+        var outIpv4Address = ""
 
         on<ConnectPage> {
             waitForConnectedLabel()
-            expectedConnectionState = ConnCheckState(true, extractOutIpv4Address())
+            outIpv4Address = extractOutIpv4Address()
         }
 
         // Then
-        val result = SimpleMullvadHttpClient(targetContext).runConnectionCheck()
-        assertEquals(expectedConnectionState, result)
+        val result = connCheckClient.connectionCheck()
+
+        assertEquals(result.ip, outIpv4Address)
     }
 
     @Test
     @HasDependencyOnLocalAPI
     @ClearFirewallRules
-    fun testWireGuardObfuscationAutomatic() = runBlocking {
+    fun testWireGuardObfuscationAutomatic() = runTest {
         app.launchAndEnsureLoggedIn(accountTestRule.validAccountNumber)
-        enableLocalNetworkSharing()
+        on<ConnectPage> { enableLocalNetworkSharingStory() }
 
         on<ConnectPage> { clickSelectLocation() }
 
@@ -107,9 +110,9 @@ class ConnectionTest : EndToEndTest(BuildConfig.FLAVOR_infrastructure) {
     @Test
     @HasDependencyOnLocalAPI
     @ClearFirewallRules
-    fun testWireGuardObfuscationOff() = runBlocking {
+    fun testWireGuardObfuscationOff() = runTest {
         app.launchAndEnsureLoggedIn(accountTestRule.validAccountNumber)
-        enableLocalNetworkSharing()
+        on<ConnectPage> { enableLocalNetworkSharingStory() }
 
         on<ConnectPage> { clickSelectLocation() }
 
@@ -134,13 +137,13 @@ class ConnectionTest : EndToEndTest(BuildConfig.FLAVOR_infrastructure) {
         firewallClient.createRule(firewallRule)
 
         // Enable UDP-over-TCP
-        on<TopBar> { clickSettings() }
+        on<ConnectPage> { clickSettings() }
 
         on<SettingsPage> { clickVpnSettings() }
 
         on<VpnSettingsPage> {
-            scrollUntilWireguardObfuscationOffCell()
-            clickWireguardObfuscationOffCell()
+            scrollUntilWireGuardObfuscationOffCell()
+            clickWireGuardObfuscationOffCell()
         }
 
         device.pressBack()
@@ -159,66 +162,89 @@ class ConnectionTest : EndToEndTest(BuildConfig.FLAVOR_infrastructure) {
     @Test
     @HasDependencyOnLocalAPI
     @ClearFirewallRules
-    fun testUDPOverTCP() =
-        runBlocking<Unit> {
-            app.launchAndEnsureLoggedIn(accountTestRule.validAccountNumber)
-            enableLocalNetworkSharing()
+    fun testUDPOverTCP() = runTest {
+        app.launchAndEnsureLoggedIn(accountTestRule.validAccountNumber)
+        on<ConnectPage> { enableLocalNetworkSharingStory() }
 
-            on<ConnectPage> { clickSelectLocation() }
+        on<ConnectPage> { clickSelectLocation() }
 
-            on<SelectLocationPage> {
-                clickLocationExpandButton(DEFAULT_COUNTRY)
-                clickLocationExpandButton(DEFAULT_CITY)
-                clickLocationCell(DEFAULT_RELAY)
-            }
-
-            on<SystemVpnConfigurationAlert> { clickOk() }
-
-            var relayIpAddress: String? = null
-
-            on<ConnectPage> {
-                waitForConnectedLabel()
-                relayIpAddress = extractInIpv4Address()
-                clickDisconnect()
-            }
-
-            // Block UDP traffic to the relay
-            val firewallRule = DropRule.blockUDPTrafficRule(relayIpAddress!!)
-            firewallClient.createRule(firewallRule)
-
-            // Enable UDP-over-TCP
-            on<TopBar> { clickSettings() }
-
-            on<SettingsPage> { clickVpnSettings() }
-
-            on<VpnSettingsPage> {
-                scrollUntilWireguardObfuscationUdpOverTcpCell()
-                clickWireguardObfuscationUdpOverTcpCell()
-            }
-
-            device.pressBack()
-            device.pressBack()
-
-            on<ConnectPage> {
-                clickConnect()
-                waitForConnectedLabel(timeout = EXTREMELY_LONG_TIMEOUT)
-                clickDisconnect()
-            }
+        on<SelectLocationPage> {
+            clickLocationExpandButton(DEFAULT_COUNTRY)
+            clickLocationExpandButton(DEFAULT_CITY)
+            clickLocationCell(DEFAULT_RELAY)
         }
 
-    private fun enableLocalNetworkSharing() {
-        on<TopBar> { clickSettings() }
+        on<SystemVpnConfigurationAlert> { clickOk() }
+
+        var relayIpAddress: String? = null
+
+        on<ConnectPage> {
+            waitForConnectedLabel()
+            relayIpAddress = extractInIpv4Address()
+            clickDisconnect()
+        }
+
+        // Block UDP traffic to the relay
+        val firewallRule = DropRule.blockUDPTrafficRule(relayIpAddress!!)
+        firewallClient.createRule(firewallRule)
+
+        // Enable UDP-over-TCP
+        on<ConnectPage> { clickSettings() }
 
         on<SettingsPage> { clickVpnSettings() }
 
-        on<VpnSettingsPage> { clickLocalNetworkSharingSwitch() }
+        on<VpnSettingsPage> {
+            scrollUntilWireGuardObfuscationUdpOverTcpCell()
+            clickWireguardObfuscationUdpOverTcpCell()
+        }
 
         device.pressBack()
         device.pressBack()
+
+        on<ConnectPage> {
+            clickConnect()
+            waitForConnectedLabel(timeout = EXTREMELY_LONG_TIMEOUT)
+            clickDisconnect()
+        }
+    }
+
+    @Test
+    @HasDependencyOnLocalAPI
+    @ClearFirewallRules
+    fun testShadowsocks() = runTest {
+        app.launchAndEnsureLoggedIn(accountTestRule.validAccountNumber)
+        on<ConnectPage> { enableLocalNetworkSharingStory() }
+
+        on<ConnectPage> { disableObfuscationStory() }
+
+        // Block all WireGuard traffic
+        val firewallRule = DropRule.blockWireGuardTrafficRule(ANY_IP_ADDRESS)
+        firewallClient.createRule(firewallRule)
+
+        on<ConnectPage> { clickConnect() }
+
+        on<SystemVpnConfigurationAlert> { clickOk() }
+
+        // Ensure it is not possible to connect to relay
+        on<ConnectPage> {
+            delay(UNSUCCESSFUL_CONNECTION_TIMEOUT.milliseconds)
+            waitForConnectingLabel()
+            clickCancel()
+        }
+
+        on<ConnectPage> { enableShadowsocksStory() }
+
+        // Ensure we can now connect with Shadowsocks enabled
+        on<ConnectPage> {
+            clickConnect()
+            waitForConnectedLabel(timeout = EXTREMELY_LONG_TIMEOUT)
+            clickDisconnect()
+        }
     }
 
     companion object {
         const val VERY_FORGIVING_WIREGUARD_OFF_CONNECTION_TIMEOUT = 60000L
         const val UNSUCCESSFUL_CONNECTION_TIMEOUT = 60000L
+        const val ANY_IP_ADDRESS = "0.0.0.0/0"
     }
 }

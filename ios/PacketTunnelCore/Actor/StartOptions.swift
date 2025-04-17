@@ -3,14 +3,14 @@
 //  PacketTunnel
 //
 //  Created by pronebird on 03/08/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import MullvadREST
 
 /// Packet tunnel start options parsed from dictionary passed to packet tunnel with a call to `startTunnel()`.
-public struct StartOptions {
+public struct StartOptions: Sendable {
     /// The system that triggered the launch of packet tunnel.
     public var launchSource: LaunchSource
 
@@ -36,7 +36,7 @@ public struct StartOptions {
 }
 
 /// The source facility that triggered a launch of packet tunnel extension.
-public enum LaunchSource: String, CustomStringConvertible {
+public enum LaunchSource: String, CustomStringConvertible, Sendable {
     /// Launched by the main bundle app using network extension framework.
     case app
 

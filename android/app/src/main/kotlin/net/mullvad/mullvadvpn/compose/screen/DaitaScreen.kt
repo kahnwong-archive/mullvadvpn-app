@@ -1,5 +1,9 @@
 package net.mullvad.mullvadvpn.compose.screen
 
+import android.os.Parcelable
+import androidx.compose.animation.AnimatedVisibilityScope
+import androidx.compose.animation.ExperimentalSharedTransitionApi
+import androidx.compose.animation.SharedTransitionScope
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -23,6 +27,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -34,14 +39,18 @@ import com.ramcosta.composedestinations.generated.destinations.DaitaDirectOnlyCo
 import com.ramcosta.composedestinations.generated.destinations.DaitaDirectOnlyInfoDestination
 import com.ramcosta.composedestinations.navigation.DestinationsNavigator
 import com.ramcosta.composedestinations.result.ResultRecipient
+import kotlinx.parcelize.Parcelize
 import net.mullvad.mullvadvpn.R
 import net.mullvad.mullvadvpn.compose.cell.HeaderSwitchComposeCell
 import net.mullvad.mullvadvpn.compose.cell.SwitchComposeSubtitleCell
 import net.mullvad.mullvadvpn.compose.component.NavigateBackIconButton
+import net.mullvad.mullvadvpn.compose.component.NavigateCloseIconButton
 import net.mullvad.mullvadvpn.compose.component.ScaffoldWithMediumTopBar
 import net.mullvad.mullvadvpn.compose.state.DaitaUiState
+import net.mullvad.mullvadvpn.compose.test.DAITA_SCREEN_TEST_TAG
 import net.mullvad.mullvadvpn.compose.transitions.SlideInFromRightTransition
 import net.mullvad.mullvadvpn.compose.util.OnNavResultValue
+import net.mullvad.mullvadvpn.lib.model.FeatureIndicator
 import net.mullvad.mullvadvpn.lib.theme.AppTheme
 import net.mullvad.mullvadvpn.lib.theme.Dimens
 import net.mullvad.mullvadvpn.viewmodel.DaitaViewModel
@@ -61,10 +70,14 @@ private fun PreviewDaitaScreen() {
     }
 }
 
-@Destination<RootGraph>(style = SlideInFromRightTransition::class)
+@Parcelize data class DaitaNavArgs(val isModal: Boolean = false) : Parcelable
+
+@OptIn(ExperimentalSharedTransitionApi::class)
+@Destination<RootGraph>(style = SlideInFromRightTransition::class, navArgs = DaitaNavArgs::class)
 @Composable
-fun Daita(
+fun SharedTransitionScope.Daita(
     navigator: DestinationsNavigator,
+    animatedVisibilityScope: AnimatedVisibilityScope,
     daitaConfirmationDialogResult: ResultRecipient<DaitaDirectOnlyConfirmationDestination, Boolean>,
 ) {
     val viewModel = koinViewModel<DaitaViewModel>()
@@ -78,6 +91,12 @@ fun Daita(
 
     DaitaScreen(
         state = state,
+        modifier =
+            Modifier.testTag(DAITA_SCREEN_TEST_TAG)
+                .sharedBounds(
+                    rememberSharedContentState(key = FeatureIndicator.DAITA),
+                    animatedVisibilityScope = animatedVisibilityScope,
+                ),
         onDaitaEnabled = viewModel::setDaita,
         onDirectOnlyClick = { enable ->
             if (enable) {
@@ -99,10 +118,18 @@ fun DaitaScreen(
     onDirectOnlyClick: (enable: Boolean) -> Unit,
     onDirectOnlyInfoClick: () -> Unit,
     onBackClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     ScaffoldWithMediumTopBar(
         appBarTitle = stringResource(id = R.string.daita),
-        navigationIcon = { NavigateBackIconButton { onBackClick() } },
+        modifier = modifier,
+        navigationIcon = {
+            if (state.isModal) {
+                NavigateCloseIconButton { onBackClick() }
+            } else {
+                NavigateBackIconButton { onBackClick() }
+            }
+        },
     ) { modifier ->
         Column(modifier = modifier) {
             val pagerState = rememberPagerState(pageCount = { DaitaPages.entries.size })
@@ -204,22 +231,17 @@ private enum class DaitaPages(
     FIRST(
         image = R.drawable.daita_illustration_1,
         textFirstParagraph =
+            @Composable { stringResource(R.string.daita_description_slide_1_first_paragraph) },
+        textSecondParagraph =
             @Composable {
                 stringResource(
-                    R.string.daita_description_slide_1_first_paragraph,
+                    R.string.daita_description_slide_1_second_paragraph,
                     stringResource(id = R.string.daita),
                     stringResource(id = R.string.daita_full),
                 )
             },
-        textSecondParagraph =
-            @Composable { stringResource(R.string.daita_description_slide_1_second_paragraph) },
         textThirdParagraph =
-            @Composable {
-                stringResource(
-                    R.string.daita_description_slide_1_third_paragraph,
-                    stringResource(id = R.string.daita),
-                )
-            },
+            @Composable { stringResource(R.string.daita_description_slide_1_third_paragraph) },
     ),
     SECOND(
         image = R.drawable.daita_illustration_2,
@@ -234,9 +256,6 @@ private enum class DaitaPages(
             @Composable {
                 stringResource(
                     R.string.daita_description_slide_2_second_paragraph,
-                    // Duplicated argument to keep compatibility with our common string template
-                    // (messages.pot) while also keeping lint happy.
-                    stringResource(id = R.string.daita),
                     stringResource(id = R.string.daita),
                 )
             },

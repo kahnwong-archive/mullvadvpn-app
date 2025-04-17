@@ -1,20 +1,16 @@
 import styled from 'styled-components';
 
-import { colors } from '../../config.json';
 import { messages } from '../../shared/gettext';
 import { useAppContext } from '../context';
+import { Flex } from '../lib/components';
+import { Colors } from '../lib/foundations';
+import { IconBadge } from '../lib/icon-badge';
 import { useSelector } from '../redux/store';
+import { AppMainHeader } from './app-main-header';
 import * as AppButton from './AppButton';
 import { bigText, measurements, smallText } from './common-styles';
 import CustomScrollbars from './CustomScrollbars';
-import { calculateHeaderBarStyle, DefaultHeaderBar } from './HeaderBar';
-import ImageView from './ImageView';
-import { Container, Footer } from './Layout';
-import { Layout } from './Layout';
-
-export const StyledHeader = styled(DefaultHeaderBar)({
-  flex: 0,
-});
+import { Container, Footer, Layout } from './Layout';
 
 export const StyledCustomScrollbars = styled(CustomScrollbars)({
   flex: 1,
@@ -23,7 +19,7 @@ export const StyledCustomScrollbars = styled(CustomScrollbars)({
 export const StyledContainer = styled(Container)({
   paddingTop: '22px',
   minHeight: '100%',
-  backgroundColor: colors.darkBlue,
+  backgroundColor: Colors.darkBlue,
 });
 
 export const StyledBody = styled.div({
@@ -33,22 +29,15 @@ export const StyledBody = styled.div({
   padding: `0 ${measurements.horizontalViewMargin}`,
 });
 
-export const StyledStatusIcon = styled.div({
-  alignSelf: 'center',
-  width: '60px',
-  height: '60px',
-  marginBottom: '18px',
-});
-
 export const StyledTitle = styled.span(bigText, {
   lineHeight: '38px',
   marginBottom: '8px',
-  color: colors.white,
+  color: Colors.white,
 });
 
 export const StyledMessage = styled.span(smallText, {
   marginBottom: measurements.rowVerticalMargin,
-  color: colors.white,
+  color: Colors.white,
 });
 
 export function DeviceRevokedView() {
@@ -59,13 +48,16 @@ export function DeviceRevokedView() {
 
   return (
     <Layout>
-      <StyledHeader barStyle={calculateHeaderBarStyle(tunnelState)} />
+      <AppMainHeader variant="basedOnConnectionStatus" size="basedOnLoginStatus">
+        <AppMainHeader.AccountButton />
+        <AppMainHeader.SettingsButton />
+      </AppMainHeader>
       <StyledCustomScrollbars fillContainer>
         <StyledContainer>
           <StyledBody>
-            <StyledStatusIcon>
-              <ImageView source="icon-fail" height={60} width={60} />
-            </StyledStatusIcon>
+            <Flex $justifyContent="center" $margin={{ bottom: 'medium' }}>
+              <IconBadge state="negative" />
+            </Flex>
             <StyledTitle data-testid="title">
               {messages.pgettext('device-management', 'Device is inactive')}
             </StyledTitle>

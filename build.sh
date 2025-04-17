@@ -101,11 +101,17 @@ fi
 if [[ "$OPTIMIZE" == "true" ]]; then
     CARGO_ARGS+=(--release)
     RUST_BUILD_MODE="release"
-    CPP_BUILD_MODE="Release"
     NPM_PACK_ARGS+=(--release)
 else
     RUST_BUILD_MODE="debug"
     NPM_PACK_ARGS+=(--no-compression)
+fi
+# The cargo builds that are part of the C++ builds only enforce `--locked` when built
+# in release mode. And we must enforce `--locked` for all signed builds. So we enable
+# release mode if either optimizations or signing is enabled.
+if [[ "$OPTIMIZE" == "true" || "$SIGN" == "true" ]]; then
+    CPP_BUILD_MODE="Release"
+else
     CPP_BUILD_MODE="Debug"
 fi
 
@@ -115,6 +121,11 @@ if [[ "$SIGN" == "true" ]]; then
         log_error "Will only build a signed app in a clean working directory"
         exit 1
     fi
+
+    # Will not allow an outdated lockfile when building with signatures
+    # (The build servers should never build without --locked for
+    # reproducibility and supply chain security)
+    CARGO_ARGS+=(--locked)
 
     if [[ "$(uname -s)" == "Darwin" ]]; then
         log_info "Configuring environment for signing of binaries"
@@ -156,9 +167,6 @@ fi
 if [[ "$IS_RELEASE" == "true" ]]; then
     log_info "Removing old Rust build artifacts..."
     cargo clean
-
-    # Will not allow an outdated lockfile in releases
-    CARGO_ARGS+=(--locked)
 else
     # Allow dev builds to override which API server to use at runtime.
     CARGO_ARGS+=(--features api-override)
@@ -265,6 +273,8 @@ function build {
             mullvad-problem-report.exe
             talpid_openvpn_plugin.dll
             mullvad-setup.exe
+            libwg.dll
+            maybenot_ffi.dll
         )
     fi
 
@@ -312,6 +322,12 @@ function build {
 }
 
 if [[ "$(uname -s)" == "MINGW"* ]]; then
+    if [[ "$IS_RELEASE" == "true" ]]; then
+        ./build-windows-modules.sh clean
+    else
+        echo "Will NOT clean intermediate files in ./windows/**/bin/ in dev builds"
+    fi
+
     for t in "${TARGETS[@]:-"$HOST"}"; do
         case "${t:-"$HOST"}" in
             x86_64-pc-windows-msvc) CPP_BUILD_TARGET=x64;;
@@ -323,7 +339,7 @@ if [[ "$(uname -s)" == "MINGW"* ]]; then
         esac
 
         log_header "Building C++ code in $CPP_BUILD_MODE mode for $CPP_BUILD_TARGET"
-        CPP_BUILD_MODES=$CPP_BUILD_MODE CPP_BUILD_TARGETS=$CPP_BUILD_TARGET IS_RELEASE=$IS_RELEASE ./build-windows-modules.sh
+        CPP_BUILD_MODES=$CPP_BUILD_MODE CPP_BUILD_TARGETS=$CPP_BUILD_TARGET ./build-windows-modules.sh
 
         if [[ "$SIGN" == "true" ]]; then
             CPP_BINARIES=(
@@ -361,7 +377,7 @@ else
 fi
 
 log_info "Updating relays.json..."
-cargo run --bin relay_list "${CARGO_ARGS[@]}" > build/relays.json
+cargo run -p mullvad-api --bin relay_list "${CARGO_ARGS[@]}" > build/relays.json
 
 
 log_header "Installing JavaScript dependencies"

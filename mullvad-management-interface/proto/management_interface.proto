@@ -127,6 +127,10 @@ service ManagementService {
 
   // Get current feature indicators
   rpc GetFeatureIndicators(google.protobuf.Empty) returns (FeatureIndicators) {}
+
+  // Debug features
+  rpc DisableRelay(google.protobuf.StringValue) returns (google.protobuf.Empty) {}
+  rpc EnableRelay(google.protobuf.StringValue) returns (google.protobuf.Empty) {}
 }
 
 message UUID { string value = 1; }
@@ -183,6 +187,8 @@ message ErrorState {
     NO_MATCHING_BRIDGE_RELAY = 1;
     NO_WIREGUARD_KEY = 2;
     CUSTOM_TUNNEL_HOST_RESOLUTION_ERROR = 3;
+    NETWORK_IPV4_UNAVAILABLE = 4;
+    NETWORK_IPV6_UNAVAILABLE = 5;
   }
 
   message FirewallPolicyError {
@@ -283,6 +289,7 @@ enum FeatureIndicator {
   CUSTOM_MTU = 11;
   CUSTOM_MSS_FIX = 12;
   DAITA = 13;
+  DAITA_MULTIHOP = 14;
 }
 
 message ObfuscationEndpoint {
@@ -496,7 +503,7 @@ message RelaySettings {
 message NormalRelaySettings {
   LocationConstraint location = 1;
   repeated string providers = 2;
-  optional TunnelType tunnel_type = 3;
+  TunnelType tunnel_type = 3;
   WireguardConstraints wireguard_constraints = 4;
   OpenvpnConstraints openvpn_constraints = 5;
   Ownership ownership = 6;

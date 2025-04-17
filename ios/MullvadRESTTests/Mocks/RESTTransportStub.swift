@@ -3,7 +3,7 @@
 //  MullvadRESTTests
 //
 //  Created by Marco Nikic on 2024-01-22.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 @testable import MullvadREST
@@ -19,7 +19,7 @@ struct RESTTransportStub: RESTTransport {
 
     func sendRequest(
         _ request: URLRequest,
-        completion: @escaping (Data?, URLResponse?, Error?) -> Void
+        completion: @escaping @Sendable (Data?, URLResponse?, Error?) -> Void
     ) -> Cancellable {
         completion(data, response, error)
         return AnyCancellable()

@@ -1,16 +1,16 @@
 import { useCallback, useMemo } from 'react';
 import { sprintf } from 'sprintf-js';
+import styled from 'styled-components';
 
 import { ICustomList } from '../../../shared/daemon-rpc-types';
 import { messages, relayLocations } from '../../../shared/gettext';
 import log from '../../../shared/logging';
 import { useAppContext } from '../../context';
-import { Button, ButtonProps } from '../../lib/components';
+import { Button, ButtonProps, Icon } from '../../lib/components';
 import { transitions, useHistory } from '../../lib/history';
 import { RoutePath } from '../../lib/routes';
 import { IRelayLocationCountryRedux, RelaySettingsRedux } from '../../redux/settings/reducers';
 import { useSelector } from '../../redux/store';
-import ImageView from '../ImageView';
 import { MultiButton } from '../MultiButton';
 
 export default function SelectLocationButtons() {
@@ -42,17 +42,17 @@ function SelectLocationButton(props: ButtonProps) {
 
   return (
     <Button
-      variant="primary"
-      size="full"
       onClick={onSelectLocation}
       aria-label={sprintf(
         messages.pgettext('accessibility', 'Select location. Current location is %(location)s'),
         { location: selectedRelayName },
       )}
       {...props}>
-      {tunnelState === 'disconnected'
-        ? selectedRelayName
-        : messages.pgettext('tunnel-control', 'Switch location')}
+      <Button.Text>
+        {tunnelState === 'disconnected'
+          ? selectedRelayName
+          : messages.pgettext('tunnel-control', 'Switch location')}
+      </Button.Text>
     </Button>
   );
 }
@@ -111,6 +111,10 @@ function getRelayName(
   }
 }
 
+const StyledReconnectButton = styled(Button)({
+  minWidth: '40px',
+});
+
 function ReconnectButton(props: ButtonProps) {
   const { reconnectTunnel } = useAppContext();
 
@@ -124,8 +128,12 @@ function ReconnectButton(props: ButtonProps) {
   }, [reconnectTunnel]);
 
   return (
-    <Button onClick={onReconnect} size="tiny" aria-label={messages.gettext('Reconnect')} {...props}>
-      <ImageView height={24} width={24} source="icon-reload" tintColor="white" />
-    </Button>
+    <StyledReconnectButton
+      onClick={onReconnect}
+      size="auto"
+      aria-label={messages.gettext('Reconnect')}
+      {...props}>
+      <Icon icon="reconnect" />
+    </StyledReconnectButton>
   );
 }

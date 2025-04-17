@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by Jon Petersson on 2024-04-23.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadREST
@@ -48,48 +48,55 @@ final class LocationViewControllerWrapper: UIViewController {
     private let exitLocationViewController: LocationViewController
     private let segmentedControl = UISegmentedControl()
     private let locationViewContainer = UIView()
+    private var settings: LatestTunnelSettings
+    private var relaySelectorWrapper: RelaySelectorWrapper
 
+    private var multihopContext: MultihopContext = .exit
     private var selectedEntry: UserSelectedRelays?
     private var selectedExit: UserSelectedRelays?
-    private let multihopEnabled: Bool
-    private var multihopContext: MultihopContext = .exit
-    private var daitaSettings: DAITASettings
 
     weak var delegate: LocationViewControllerWrapperDelegate?
 
+    var onNewSettings: ((LatestTunnelSettings) -> Void)?
+
+    private var relayFilter: RelayFilter {
+        settings.relayConstraints.filter.value ?? RelayFilter()
+    }
+
     init(
+        settings: LatestTunnelSettings,
+        relaySelectorWrapper: RelaySelectorWrapper,
         customListRepository: CustomListRepositoryProtocol,
-        constraints: RelayConstraints,
-        multihopEnabled: Bool,
-        daitaSettings: DAITASettings,
         startContext: MultihopContext
     ) {
-        self.multihopEnabled = multihopEnabled
-        self.daitaSettings = daitaSettings
-        multihopContext = startContext
+        self.selectedEntry = settings.relayConstraints.entryLocations.value
+        self.selectedExit = settings.relayConstraints.exitLocations.value
+        self.settings = settings
+        self.relaySelectorWrapper = relaySelectorWrapper
+        self.multihopContext = startContext
 
-        selectedEntry = constraints.entryLocations.value
-        selectedExit = constraints.exitLocations.value
-
-        if multihopEnabled {
-            entryLocationViewController = LocationViewController(
-                customListRepository: customListRepository,
-                selectedRelays: RelaySelection(),
-                shouldFilterDaita: daitaSettings.isDirectOnly
-            )
-
-            if daitaSettings.isAutomaticRouting {
-                entryLocationViewController?.enableDaitaAutomaticRouting()
-            }
-        }
+        entryLocationViewController = LocationViewController(
+            customListRepository: customListRepository,
+            selectedRelays: RelaySelection(),
+            shouldFilterDaita: false,
+            shouldFilterObfuscation: false
+        )
 
         exitLocationViewController = LocationViewController(
             customListRepository: customListRepository,
             selectedRelays: RelaySelection(),
-            shouldFilterDaita: daitaSettings.isDirectOnly && !multihopEnabled
+            shouldFilterDaita: false,
+            shouldFilterObfuscation: false
         )
 
         super.init(nibName: nil, bundle: nil)
+
+        self.onNewSettings = { [weak self] newSettings in
+            self?.settings = newSettings
+            self?.setRelaysWithLocation()
+        }
+
+        setRelaysWithLocation()
 
         updateViewControllers {
             $0.delegate = self
@@ -116,39 +123,41 @@ final class LocationViewControllerWrapper: UIViewController {
         swapViewController()
     }
 
-    func setRelaysWithLocation(_ relaysWithLocation: LocationRelays, filter: RelayFilter) {
-        var daitaFilteredRelays = relaysWithLocation
-        if daitaSettings.daitaState.isEnabled && daitaSettings.directOnlyState.isEnabled {
-            daitaFilteredRelays.relays = relaysWithLocation.relays.filter { relay in
-                relay.daita == true
-            }
+    private func setRelaysWithLocation() {
+        let emptyResult = LocationRelays(relays: [], locations: [:])
+        let relaysCandidates = try? relaySelectorWrapper.findCandidates(tunnelSettings: settings)
+
+        let isMultihop = settings.tunnelMultihopState.isEnabled
+        let isDirectOnly = settings.daita.isDirectOnly
+        let isAutomaticRouting = settings.daita.isAutomaticRouting
+        let isObfuscation = settings.wireGuardObfuscation.state.affectsRelaySelection
+
+        if isMultihop {
+            entryLocationViewController?.setObfuscationChip(isObfuscation && !isAutomaticRouting)
+            entryLocationViewController?.setDaitaChip(isDirectOnly)
+            entryLocationViewController?.toggleDaitaAutomaticRouting(isEnabled: isAutomaticRouting)
+        } else {
+            exitLocationViewController.setObfuscationChip(isObfuscation)
+            exitLocationViewController.setDaitaChip(isDirectOnly)
         }
 
-        if multihopEnabled {
-            entryLocationViewController?.setRelaysWithLocation(daitaFilteredRelays, filter: filter)
-            exitLocationViewController.setRelaysWithLocation(relaysWithLocation, filter: filter)
+        if let entryRelays = relaysCandidates?.entryRelays {
+            entryLocationViewController?.setRelaysWithLocation(entryRelays.toLocationRelays(), filter: relayFilter)
         } else {
-            exitLocationViewController.setRelaysWithLocation(daitaFilteredRelays, filter: filter)
+            entryLocationViewController?.setRelaysWithLocation(
+                emptyResult,
+                filter: relayFilter
+            )
         }
+        exitLocationViewController.setRelaysWithLocation(
+            relaysCandidates?.exitRelays.toLocationRelays() ?? emptyResult,
+            filter: relayFilter
+        )
     }
 
     func refreshCustomLists() {
         updateViewControllers {
             $0.refreshCustomLists()
-        }
-    }
-
-    func onDaitaSettingsUpdate(_ settings: DAITASettings, relaysWithLocation: LocationRelays, filter: RelayFilter) {
-        daitaSettings = settings
-        guard multihopEnabled else { return }
-
-        setRelaysWithLocation(relaysWithLocation, filter: filter)
-        entryLocationViewController?.setShouldFilterDaita(settings.isDirectOnly)
-
-        if daitaSettings.isAutomaticRouting {
-            entryLocationViewController?.enableDaitaAutomaticRouting()
-        } else {
-            entryLocationViewController?.disableDaitaAutomaticRouting()
         }
     }
 
@@ -176,7 +185,8 @@ final class LocationViewControllerWrapper: UIViewController {
                 comment: ""
             ),
             primaryAction: UIAction(handler: { [weak self] _ in
-                self?.delegate?.navigateToFilter()
+                guard let self = self else { return }
+                delegate?.navigateToFilter()
             })
         )
         navigationItem.leftBarButtonItem?.setAccessibilityIdentifier(.selectLocationFilterButton)
@@ -220,7 +230,7 @@ final class LocationViewControllerWrapper: UIViewController {
 
             locationViewContainer.pinEdgesToSuperview(.all().excluding(.top))
 
-            if multihopEnabled {
+            if settings.tunnelMultihopState.isEnabled {
                 locationViewContainer.topAnchor.constraint(equalTo: segmentedControl.bottomAnchor, constant: 4)
             } else {
                 locationViewContainer.pinEdgeToSuperviewMargin(.top(0))
@@ -263,7 +273,7 @@ final class LocationViewControllerWrapper: UIViewController {
             (
                 RelaySelection(
                     selected: selectedExit,
-                    excluded: multihopEnabled ? selectedEntry : nil,
+                    excluded: settings.tunnelMultihopState.isEnabled ? selectedEntry : nil,
                     excludedTitle: MultihopContext.entry.description
                 ),
                 entryLocationViewController,
@@ -280,7 +290,7 @@ final class LocationViewControllerWrapper: UIViewController {
     }
 }
 
-extension LocationViewControllerWrapper: LocationViewControllerDelegate {
+extension LocationViewControllerWrapper: @preconcurrency LocationViewControllerDelegate {
     func navigateToCustomLists(nodes: [LocationNode]) {
         delegate?.navigateToCustomLists(nodes: nodes)
     }
@@ -306,5 +316,16 @@ extension LocationViewControllerWrapper: LocationViewControllerDelegate {
 
     func didUpdateFilter(filter: RelayFilter) {
         delegate?.didUpdateFilter(filter)
+    }
+}
+
+private extension WireGuardObfuscationState {
+    var affectsRelaySelection: Bool {
+        switch self {
+        case .shadowsocks:
+            true
+        case .on, .off, .automatic, .udpOverTcp:
+            false
+        }
     }
 }

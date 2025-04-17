@@ -3,13 +3,13 @@
 //  MullvadRustRuntimeTests
 //
 //  Created by pronebird on 27/06/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Network
 
 /// > Warning: Do not use this implementation in production code. See the warning in `start()`.
-class UnsafeListener<T: Connection> {
+class UnsafeListener<T: Connection>: @unchecked Sendable {
     private let dispatchQueue = DispatchQueue(label: "com.test.unsafeListener")
     private let listener: NWListener
 

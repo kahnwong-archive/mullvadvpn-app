@@ -3,12 +3,12 @@
 //  Operations
 //
 //  Created by pronebird on 31/05/2022.
-//  Copyright © 2022 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 
-public final class GroupOperation: AsyncOperation {
+public final class GroupOperation: AsyncOperation, @unchecked Sendable {
     private let operationQueue = AsyncOperationQueue()
     private let children: [Operation]
 

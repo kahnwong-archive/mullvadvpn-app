@@ -3,13 +3,13 @@
 //  MullvadTypes
 //
 //  Created by pronebird on 20/10/2022.
-//  Copyright © 2022 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import protocol Network.IPAddress
 
-public enum AnyIPEndpoint: Hashable, Equatable, Codable, CustomStringConvertible {
+public enum AnyIPEndpoint: Hashable, Equatable, Codable, CustomStringConvertible, @unchecked Sendable {
     case ipv4(IPv4Endpoint)
     case ipv6(IPv6Endpoint)
 

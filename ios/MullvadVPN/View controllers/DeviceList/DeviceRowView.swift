@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 26/07/2022.
-//  Copyright © 2022 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import UIKit
@@ -35,7 +35,7 @@ class DeviceRowView: UIView {
     }()
 
     let removeButton: UIButton = {
-        let image = UIImage(named: "IconClose")?
+        let image = UIImage.Buttons.close
             .withTintColor(
                 .white.withAlphaComponent(0.4),
                 renderingMode: .alwaysOriginal

@@ -3,14 +3,15 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 15/12/2021.
-//  Copyright © 2021 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import Operations
 
-class StopTunnelOperation: ResultOperation<Void> {
+class StopTunnelOperation: ResultOperation<Void>, @unchecked Sendable {
     private let interactor: TunnelInteractor
+    var isOnDemandEnabled = false
 
     init(
         dispatchQueue: DispatchQueue,
@@ -50,8 +51,7 @@ class StopTunnelOperation: ResultOperation<Void> {
             return
         }
 
-        // Disable on-demand when stopping the tunnel to prevent it from coming back up
-        tunnel.isOnDemandEnabled = false
+        tunnel.isOnDemandEnabled = isOnDemandEnabled
 
         tunnel.saveToPreferences { error in
             self.dispatchQueue.async {

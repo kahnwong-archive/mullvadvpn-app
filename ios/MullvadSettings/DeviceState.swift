@@ -3,12 +3,12 @@
 //  MullvadVPN
 //
 //  Created by Marco Nikic on 2023-07-31.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 
-public enum DeviceState: Codable, Equatable {
+public enum DeviceState: Codable, Equatable, Sendable {
     case loggedIn(StoredAccountData, StoredDeviceData)
     case loggedOut
     case revoked

@@ -3,11 +3,12 @@
 //  MullvadMockData
 //
 //  Created by Mojgan on 2024-05-03.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import MullvadREST
+import MullvadRustRuntime
 import MullvadTypes
 import WireGuardKitTypes
 
@@ -28,10 +29,12 @@ public struct MockProxyFactory: ProxyFactoryProtocol {
 
     public static func makeProxyFactory(
         transportProvider: any RESTTransportProvider,
+        apiTransportProvider: any APITransportProviderProtocol,
         addressCache: REST.AddressCache
     ) -> any ProxyFactoryProtocol {
         let basicConfiguration = REST.ProxyConfiguration(
             transportProvider: transportProvider,
+            apiTransportProvider: apiTransportProvider,
             addressCacheStore: addressCache
         )
 

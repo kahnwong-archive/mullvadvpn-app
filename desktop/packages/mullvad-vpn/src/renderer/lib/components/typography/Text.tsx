@@ -1,45 +1,37 @@
-import { forwardRef } from 'react';
+import React from 'react';
 import styled from 'styled-components';
 
-import { Colors, Typography, typography, TypographyProperties } from '../../foundations';
-import { TransientProps } from '../../types';
+import { Colors, Typography, typography } from '../../foundations';
+import { PolymorphicProps, TransientProps } from '../../types';
 
-export type TextProps = React.PropsWithChildren<{
+type TextBaseProps = {
   variant?: Typography;
   color?: Colors;
-  as?: React.ElementType;
-  style?: React.CSSProperties;
-}>;
+};
 
-const StyledText = styled.span<TransientProps<TypographyProperties>>((props) => ({
-  color: 'var(--color)',
-  fontFamily: props.$fontFamily,
-  fontWeight: props.$fontWeight,
-  fontSize: props.$fontSize,
-  lineHeight: props.$lineHeight,
-}));
+export type TextProps<T extends React.ElementType = 'span'> = PolymorphicProps<T, TextBaseProps>;
 
-export const Text = forwardRef(
-  ({ variant = 'bodySmall', color = Colors.white, children, style, ...props }: TextProps, ref) => {
-    const { fontFamily, fontSize, fontWeight, lineHeight } = typography[variant];
-    return (
-      <StyledText
-        ref={ref}
-        style={
-          {
-            '--color': color,
-            ...style,
-          } as React.CSSProperties
-        }
-        $fontFamily={fontFamily}
-        $fontWeight={fontWeight}
-        $fontSize={fontSize}
-        $lineHeight={lineHeight}
-        {...props}>
-        {children}
-      </StyledText>
-    );
+const StyledText = styled.span<TransientProps<TextBaseProps>>(
+  ({ $variant = 'bodySmall', $color = Colors.white }) => {
+    const { fontFamily, fontSize, fontWeight, lineHeight } = typography[$variant];
+    return `
+      --color: ${$color};
+      
+      color: var(--color);
+      font-family: ${fontFamily};
+      font-size: ${fontSize};
+      font-weight: ${fontWeight};
+      line-height: ${lineHeight};
+    `;
   },
 );
+
+export const Text = <T extends React.ElementType = 'span'>({
+  variant,
+  color,
+  ...props
+}: TextProps<T>) => {
+  return <StyledText $variant={variant} $color={color} {...props} />;
+};
 
 Text.displayName = 'Text';

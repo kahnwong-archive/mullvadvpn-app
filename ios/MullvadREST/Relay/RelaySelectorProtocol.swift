@@ -3,7 +3,7 @@
 //  PacketTunnel
 //
 //  Created by pronebird on 08/08/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -12,14 +12,19 @@ import MullvadTypes
 
 /// Protocol describing a type that can select a relay.
 public protocol RelaySelectorProtocol {
+    var relayCache: RelayCacheProtocol { get }
     func selectRelays(
         tunnelSettings: LatestTunnelSettings,
         connectionAttemptCount: UInt
     ) throws -> SelectedRelays
+
+    func findCandidates(
+        tunnelSettings: LatestTunnelSettings
+    ) throws -> RelayCandidates
 }
 
 /// Struct describing the selected relay.
-public struct SelectedRelay: Equatable, Codable {
+public struct SelectedRelay: Equatable, Codable, Sendable {
     /// Selected relay endpoint.
     public let endpoint: MullvadEndpoint
 
@@ -43,7 +48,7 @@ extension SelectedRelay: CustomDebugStringConvertible {
     }
 }
 
-public struct SelectedRelays: Equatable, Codable {
+public struct SelectedRelays: Equatable, Codable, Sendable {
     public let entry: SelectedRelay?
     public let exit: SelectedRelay
     public let retryAttempt: UInt

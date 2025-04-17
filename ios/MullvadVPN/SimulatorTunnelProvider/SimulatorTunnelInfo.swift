@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by Jon Petersson on 2023-09-07.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 #if targetEnvironment(simulator)
@@ -11,7 +11,8 @@
 import Foundation
 import NetworkExtension
 
-final class SimulatorTunnelProviderSession: SimulatorVPNConnection, VPNTunnelProviderSessionProtocol {
+final class SimulatorTunnelProviderSession: SimulatorVPNConnection, VPNTunnelProviderSessionProtocol,
+    @unchecked Sendable {
     func sendProviderMessage(_ messageData: Data, responseHandler: ((Data?) -> Void)?) throws {
         SimulatorTunnelProvider.shared.handleAppMessage(
             messageData,

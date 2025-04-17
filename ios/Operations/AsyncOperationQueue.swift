@@ -3,12 +3,12 @@
 //  Operations
 //
 //  Created by pronebird on 30/05/2022.
-//  Copyright © 2022 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 
-public final class AsyncOperationQueue: OperationQueue {
+public final class AsyncOperationQueue: OperationQueue, @unchecked Sendable {
     override public func addOperation(_ operation: Operation) {
         if let operation = operation as? AsyncOperation {
             let categories = operation.conditions
@@ -50,7 +50,7 @@ public final class AsyncOperationQueue: OperationQueue {
     }
 }
 
-private final class ExclusivityManager {
+private final class ExclusivityManager: @unchecked Sendable {
     static let shared = ExclusivityManager()
 
     private var operationsByCategory = [String: [Operation]]()

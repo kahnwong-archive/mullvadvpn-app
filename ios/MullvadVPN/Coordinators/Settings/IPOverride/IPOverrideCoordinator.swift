@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by Jon Petersson on 2024-01-15.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadSettings
@@ -40,7 +40,7 @@ class IPOverrideCoordinator: Coordinator, Presenting, SettingsChildCoordinator {
     }
 }
 
-extension IPOverrideCoordinator: IPOverrideViewControllerDelegate {
+extension IPOverrideCoordinator: @preconcurrency IPOverrideViewControllerDelegate {
     func presentImportTextController() {
         let viewController = IPOverrideTextViewController(interactor: interactor)
         let customNavigationController = CustomNavigationController(rootViewController: viewController)
@@ -52,7 +52,7 @@ extension IPOverrideCoordinator: IPOverrideViewControllerDelegate {
         let header = NSLocalizedString(
             "IP_OVERRIDE_HEADER",
             tableName: "IPOverride",
-            value: "IP Override",
+            value: "Server IP override",
             comment: ""
         )
         let body = [

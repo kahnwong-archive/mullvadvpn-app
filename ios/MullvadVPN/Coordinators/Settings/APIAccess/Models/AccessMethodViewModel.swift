@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 14/11/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -224,7 +224,7 @@ extension AccessMethodViewModel {
                         value: """
                         If you are not connected to our VPN, then the Encrypted DNS proxy will use your own non-VPN IP \
                         when connecting.
-                        The DoH servers are hosted by one of the following providers: Quad9, Cloudflare, or Google.
+                        The DoH servers are hosted by one of the following providers: Quad9 or Cloudflare.
                         """,
                         comment: ""
                     ),

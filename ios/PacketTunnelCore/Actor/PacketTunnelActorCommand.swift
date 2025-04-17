@@ -3,16 +3,17 @@
 //  PacketTunnelCore
 //
 //  Created by pronebird on 27/09/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import MullvadTypes
+import Network
 import WireGuardKitTypes
 
 extension PacketTunnelActor {
     /// Describes events that the state machine handles. These can be user commands or non-user-initiated events
-    enum Event {
+    enum Event: Sendable {
         /// Start tunnel.
         case start(StartOptions)
 
@@ -35,7 +36,7 @@ extension PacketTunnelActor {
         case monitorEvent(_ event: TunnelMonitorEvent)
 
         /// Network reachability events.
-        case networkReachability(NetworkPath)
+        case networkReachability(Network.NWPath.Status)
 
         /// Update the device private key, as per post-quantum protocols
         case ephemeralPeerNegotiationStateChanged(EphemeralPeerNegotiationState, OneshotChannel)

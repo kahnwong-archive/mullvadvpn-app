@@ -3,7 +3,6 @@
 mod api;
 mod classes;
 mod problem_report;
-mod talpid_vpn_service;
 
 use jnix::{
     jni::{
@@ -12,12 +11,16 @@ use jnix::{
     },
     FromJava, JnixEnv,
 };
+use mullvad_api::ApiEndpoint;
 use mullvad_daemon::{
     cleanup_old_rpc_socket, exception_logging, logging, runtime::new_multi_thread, version, Daemon,
-    DaemonCommandChannel, DaemonCommandSender,
+    DaemonCommandChannel, DaemonCommandSender, DaemonConfig,
 };
+use std::collections::HashMap;
 use std::{
+    ffi::CString,
     io,
+    os::unix::ffi::OsStrExt,
     path::{Path, PathBuf},
     sync::{Arc, Mutex, Once, OnceLock},
 };
@@ -73,7 +76,7 @@ struct DaemonContext {
 
 /// Spawn Mullvad daemon. There can only be a single instance, which must be shut down using
 /// `MullvadDaemon.shutdown`. On success, nothing is returned. On error, an exception is thrown.
-#[no_mangle]
+#[unsafe(no_mangle)]
 pub extern "system" fn Java_net_mullvad_mullvadvpn_service_MullvadDaemon_initialize(
     env: JNIEnv<'_>,
     _class: JClass<'_>,
@@ -82,22 +85,33 @@ pub extern "system" fn Java_net_mullvad_mullvadvpn_service_MullvadDaemon_initial
     files_directory: JObject<'_>,
     cache_directory: JObject<'_>,
     api_endpoint: JObject<'_>,
+    extra_metadata: JObject<'_>,
 ) {
     let mut ctx = DAEMON_CONTEXT.lock().unwrap();
     assert!(ctx.is_none(), "multiple calls to MullvadDaemon.initialize");
 
     let env = JnixEnv::from(env);
+    let files_dir = pathbuf_from_java(&env, files_directory);
+    start_logging(&files_dir)
+        .map_err(Error::InitializeLogging)
+        .unwrap();
+    version::log_version();
 
+    log::info!("Pre-loading classes!");
     LOAD_CLASSES.call_once(|| env.preload_classes(classes::CLASSES.iter().cloned()));
+    log::info!("Done loading classes");
+
+    talpid_platform_metadata::set_extra_metadata(HashMap::from_java(&env, extra_metadata));
 
     let rpc_socket = pathbuf_from_java(&env, rpc_socket_path);
-    let files_dir = pathbuf_from_java(&env, files_directory);
     let cache_dir = pathbuf_from_java(&env, cache_directory);
 
     let android_context = ok_or_throw!(&env, create_android_context(&env, vpn_service));
+    log::info!("Created Android Context");
 
     let api_endpoint = api::api_endpoint_from_java(&env, api_endpoint);
 
+    log::info!("Starting daemon");
     let daemon = ok_or_throw!(
         &env,
         start(
@@ -113,7 +127,7 @@ pub extern "system" fn Java_net_mullvad_mullvadvpn_service_MullvadDaemon_initial
 }
 
 /// Shut down Mullvad daemon that was initialized using `MullvadDaemon.initialize`.
-#[no_mangle]
+#[unsafe(no_mangle)]
 #[allow(non_snake_case)]
 pub extern "system" fn Java_net_mullvad_mullvadvpn_service_MullvadDaemon_shutdown(
     _: JNIEnv<'_>,
@@ -133,24 +147,20 @@ fn start(
     rpc_socket: PathBuf,
     files_dir: PathBuf,
     cache_dir: PathBuf,
-    api_endpoint: Option<mullvad_api::ApiEndpoint>,
+    api_endpoint: Option<ApiEndpoint>,
 ) -> Result<DaemonContext, Error> {
-    start_logging(&files_dir).map_err(Error::InitializeLogging)?;
-    version::log_version();
-
-    #[cfg(feature = "api-override")]
-    if let Some(api_endpoint) = api_endpoint {
-        log::debug!("Overriding API endpoint: {api_endpoint:?}");
-        if mullvad_api::API.override_init(api_endpoint).is_err() {
-            log::warn!("Ignoring API settings (already initialized)");
-        }
-    }
     #[cfg(not(feature = "api-override"))]
     if api_endpoint.is_some() {
         log::warn!("api_endpoint will be ignored since 'api-override' is not enabled");
     }
 
-    spawn_daemon(android_context, rpc_socket, files_dir, cache_dir)
+    spawn_daemon(
+        android_context,
+        rpc_socket,
+        files_dir,
+        cache_dir,
+        api_endpoint.unwrap_or(ApiEndpoint::from_env_vars()),
+    )
 }
 
 fn spawn_daemon(
@@ -158,19 +168,25 @@ fn spawn_daemon(
     rpc_socket: PathBuf,
     files_dir: PathBuf,
     cache_dir: PathBuf,
+    endpoint: ApiEndpoint,
 ) -> Result<DaemonContext, Error> {
     let daemon_command_channel = DaemonCommandChannel::new();
     let daemon_command_tx = daemon_command_channel.sender();
 
     let runtime = new_multi_thread().build().map_err(Error::InitTokio)?;
 
-    let running_daemon = runtime.block_on(spawn_daemon_inner(
-        rpc_socket,
-        files_dir,
+    let daemon_config = DaemonConfig {
+        rpc_socket_path: rpc_socket,
+        log_dir: Some(files_dir.clone()),
+        resource_dir: files_dir.clone(),
+        settings_dir: files_dir,
         cache_dir,
-        daemon_command_channel,
         android_context,
-    ))?;
+        endpoint,
+    };
+
+    let running_daemon =
+        runtime.block_on(spawn_daemon_inner(daemon_config, daemon_command_channel))?;
 
     Ok(DaemonContext {
         runtime,
@@ -180,25 +196,14 @@ fn spawn_daemon(
 }
 
 async fn spawn_daemon_inner(
-    rpc_socket: PathBuf,
-    files_dir: PathBuf,
-    cache_dir: PathBuf,
+    daemon_config: DaemonConfig,
     daemon_command_channel: DaemonCommandChannel,
-    android_context: AndroidContext,
 ) -> Result<tokio::task::JoinHandle<()>, Error> {
-    cleanup_old_rpc_socket(&rpc_socket).await;
+    cleanup_old_rpc_socket(&daemon_config.rpc_socket_path).await;
 
-    let daemon = Daemon::start(
-        Some(files_dir.clone()),
-        files_dir.clone(),
-        files_dir,
-        cache_dir,
-        rpc_socket,
-        daemon_command_channel,
-        android_context,
-    )
-    .await
-    .map_err(Error::InitializeDaemon)?;
+    let daemon = Daemon::start(daemon_config, daemon_command_channel)
+        .await
+        .map_err(Error::InitializeDaemon)?;
 
     let running_daemon = tokio::spawn(async move {
         match daemon.run().await {
@@ -216,16 +221,21 @@ async fn spawn_daemon_inner(
 fn start_logging(log_dir: &Path) -> Result<(), String> {
     static LOGGER_RESULT: OnceLock<Result<(), String>> = OnceLock::new();
     LOGGER_RESULT
-        .get_or_init(|| start_logging_inner(log_dir).map_err(|e| e.display_chain()))
+        .get_or_init(|| start_logging_inner(log_dir))
         .to_owned()
 }
 
-fn start_logging_inner(log_dir: &Path) -> Result<(), logging::Error> {
+fn start_logging_inner(log_dir: &Path) -> Result<(), String> {
     let log_file = log_dir.join(LOG_FILENAME);
 
-    logging::init_logger(log::LevelFilter::Debug, Some(&log_file), true)?;
-    exception_logging::enable();
+    logging::init_logger(log::LevelFilter::Debug, Some(&log_file), true)
+        .map_err(|e| e.display_chain())?;
     log_panics::init();
+    exception_logging::set_log_file(
+        CString::new(log_file.as_os_str().as_bytes())
+            .map_err(|_| "Log file path contained interior null bytes: {log_file:?}")?,
+    );
+    exception_logging::enable();
 
     Ok(())
 }

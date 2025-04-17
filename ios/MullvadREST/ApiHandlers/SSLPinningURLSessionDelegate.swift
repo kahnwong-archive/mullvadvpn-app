@@ -3,7 +3,7 @@
 //  MullvadREST
 //
 //  Created by pronebird on 17/05/2021.
-//  Copyright © 2021 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -11,7 +11,7 @@ import MullvadLogging
 import Network
 import Security
 
-final class SSLPinningURLSessionDelegate: NSObject, URLSessionDelegate {
+final class SSLPinningURLSessionDelegate: NSObject, URLSessionDelegate, @unchecked Sendable {
     private let sslHostname: String
     private let trustedRootCertificates: [SecCertificate]
     private let addressCache: REST.AddressCache
@@ -29,7 +29,7 @@ final class SSLPinningURLSessionDelegate: NSObject, URLSessionDelegate {
     func urlSession(
         _ session: URLSession,
         didReceive challenge: URLAuthenticationChallenge,
-        completionHandler: @escaping (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
+        completionHandler: @escaping @Sendable (URLSession.AuthChallengeDisposition, URLCredential?) -> Void
     ) {
         if challenge.protectionSpace.authenticationMethod == NSURLAuthenticationMethodServerTrust,
            let serverTrust = challenge.protectionSpace.serverTrust {

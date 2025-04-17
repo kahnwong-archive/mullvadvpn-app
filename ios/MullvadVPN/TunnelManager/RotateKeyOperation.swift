@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 15/12/2021.
-//  Copyright © 2021 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -14,7 +14,7 @@ import MullvadTypes
 import Operations
 import WireGuardKitTypes
 
-class RotateKeyOperation: ResultOperation<Void> {
+class RotateKeyOperation: ResultOperation<Void>, @unchecked Sendable {
     private let logger = Logger(label: "RotateKeyOperation")
     private let interactor: TunnelInteractor
     private let devicesProxy: DeviceHandling
@@ -35,7 +35,7 @@ class RotateKeyOperation: ResultOperation<Void> {
         }
 
         // Create key rotation.
-        var keyRotation = WgKeyRotation(data: deviceData)
+        nonisolated(unsafe) var keyRotation = WgKeyRotation(data: deviceData)
 
         // Check if key rotation can take place.
         guard keyRotation.shouldRotate else {

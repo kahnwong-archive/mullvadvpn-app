@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 22/05/2019.
-//  Copyright © 2019 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import UIKit
@@ -31,11 +31,11 @@ extension UINavigationBar {
     }
 
     private func makeNavigationBarAppearance(isTransparent: Bool) -> UINavigationBarAppearance {
-        let backIndicatorImage = UIImage(named: "IconBack")?.withTintColor(
+        let backIndicatorImage = UIImage.Buttons.back.withTintColor(
             UIColor.NavigationBar.buttonColor,
             renderingMode: .alwaysOriginal
         )
-        let backIndicatorTransitionMask = UIImage(named: "IconBackTransitionMask")
+        let backIndicatorTransitionMask = UIImage.backTransitionMask
 
         let titleTextAttributes: [NSAttributedString.Key: Any] = [
             .foregroundColor: UIColor.NavigationBar.titleColor,

@@ -76,7 +76,7 @@ fun NegativeButton(
         ),
     isEnabled: Boolean = true,
     isLoading: Boolean = false,
-    icon: @Composable (() -> Unit)? = null,
+    content: @Composable (() -> Unit)? = null,
 ) {
     BaseButton(
         onClick = onClick,
@@ -85,7 +85,7 @@ fun NegativeButton(
         modifier = modifier,
         isEnabled = isEnabled,
         isLoading = isLoading,
-        trailingIcon = icon,
+        trailingIcon = content,
     )
 }
 
@@ -190,7 +190,7 @@ private fun BaseButton(
             Text(
                 text = text,
                 textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.bodyMedium,
+                style = MaterialTheme.typography.titleMedium,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),

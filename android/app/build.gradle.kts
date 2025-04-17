@@ -13,15 +13,15 @@ plugins {
     alias(libs.plugins.kotlin.ksp)
     alias(libs.plugins.compose)
     alias(libs.plugins.protobuf.core)
+    alias(libs.plugins.rust.android.gradle)
 
     id(Dependencies.junit5AndroidPluginId) version Versions.junit5Plugin
 }
 
 val repoRootPath = rootProject.projectDir.absoluteFile.parentFile.absolutePath
-val extraAssetsDirectory = layout.buildDirectory.dir("extraAssets").get()
-val relayListPath = extraAssetsDirectory.file("relays.json").asFile
+val relayListDirectory = file("$repoRootPath/dist-assets/relays/").absolutePath
 val defaultChangelogAssetsDirectory = "$repoRootPath/android/src/main/play/release-notes/"
-val extraJniDirectory = layout.buildDirectory.dir("extraJni").get()
+val rustJniLibsDir = layout.buildDirectory.dir("rustJniLibs/android").get()
 
 val credentialsPath = "${rootProject.projectDir}/credentials"
 val keystorePropertiesFile = file("$credentialsPath/keystore.properties")
@@ -35,6 +35,7 @@ android {
     namespace = "net.mullvad.mullvadvpn"
     compileSdk = Versions.compileSdkVersion
     buildToolsVersion = Versions.buildToolsVersion
+    ndkVersion = Versions.ndkVersion
 
     defaultConfig {
         val localProperties = gradleLocalProperties(rootProject.projectDir, providers)
@@ -56,7 +57,10 @@ android {
         }
     }
 
-    playConfigs { register("playStagemoleRelease") { enabled = true } }
+    playConfigs {
+        register("playDevmoleRelease") { enabled = true }
+        register("playStagemoleRelease") { enabled = true }
+    }
 
     androidResources {
         @Suppress("UnstableApiUsage")
@@ -83,6 +87,15 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro",
             )
+        }
+        getByName(BuildTypes.DEBUG) {
+            if (
+                gradleLocalProperties(rootProject.projectDir, providers)
+                    .getProperty("KEEP_DEBUG_SYMBOLS")
+                    .toBoolean()
+            ) {
+                packaging { jniLibs.keepDebugSymbols.add("**/*.so") }
+            }
         }
         create(BuildTypes.FDROID) {
             initWith(buildTypes.getByName(BuildTypes.RELEASE))
@@ -125,8 +138,7 @@ android {
                 gradleLocalProperties(rootProject.projectDir, providers)
                     .getOrDefault("OVERRIDE_CHANGELOG_DIR", defaultChangelogAssetsDirectory)
 
-            assets.srcDirs(extraAssetsDirectory, changelogDir)
-            jniLibs.srcDirs(extraJniDirectory)
+            assets.srcDirs(relayListDirectory, changelogDir)
         }
     }
 
@@ -182,12 +194,6 @@ android {
     }
 
     applicationVariants.configureEach {
-        val alwaysShowChangelog =
-            gradleLocalProperties(rootProject.projectDir, providers)
-                .getProperty("ALWAYS_SHOW_CHANGELOG") ?: "false"
-
-        buildConfigField("boolean", "ALWAYS_SHOW_CHANGELOG", alwaysShowChangelog)
-
         val enableInAppVersionNotifications =
             gradleLocalProperties(rootProject.projectDir, providers)
                 .getProperty("ENABLE_IN_APP_VERSION_NOTIFICATIONS") ?: "true"
@@ -239,12 +245,17 @@ android {
 
         createDistBundle.dependsOn("bundle$capitalizedVariantName")
 
-        // Ensure all relevant assemble tasks depend on our ensure tasks.
-        tasks["assemble$capitalizedVariantName"].apply {
-            dependsOn(tasks["ensureRelayListExist"])
-            dependsOn(tasks["ensureJniDirectoryExist"])
-            dependsOn(tasks["ensureValidVersionCode"])
+        // Ensure that we have all the JNI libs before merging them.
+        tasks["merge${capitalizedVariantName}JniLibFolders"].apply {
+            // This is required for the merge task to run every time the .so files are updated.
+            // See this comment for more information:
+            // https://github.com/mozilla/rust-android-gradle/issues/118#issuecomment-1569407058
+            inputs.dir(rustJniLibsDir)
+            dependsOn("cargoBuild")
         }
+
+        // Ensure all relevant assemble tasks depend on our ensure task.
+        tasks["assemble$capitalizedVariantName"].dependsOn(tasks["ensureValidVersionCode"])
     }
 }
 
@@ -253,6 +264,53 @@ junitPlatform {
         version.set(Versions.junit5Android)
         includeExtensions.set(true)
     }
+}
+
+cargo {
+    val localProperties = gradleLocalProperties(rootProject.projectDir, providers)
+    val isReleaseBuild = isReleaseBuild()
+    val enableApiOverride =
+        !isReleaseBuild || isDevBuild(localProperties) || isAlphaBuild(localProperties)
+    module = repoRootPath
+    libname = "mullvad-jni"
+    // All available targets:
+    // https://github.com/mozilla/rust-android-gradle/tree/master?tab=readme-ov-file#targets
+    targets =
+        gradleLocalProperties(rootProject.projectDir, providers)
+            .getProperty("CARGO_TARGETS")
+            ?.split(",") ?: listOf("arm", "arm64", "x86", "x86_64")
+    profile =
+        if (isReleaseBuild) {
+            "release"
+        } else {
+            "debug"
+        }
+    prebuiltToolchains = true
+    targetDirectory = "$repoRootPath/target"
+    features {
+        if (enableApiOverride) {
+            defaultAnd(arrayOf("api-override"))
+        }
+    }
+    targetIncludes = arrayOf("libmullvad_jni.so")
+    extraCargoBuildArguments = buildList {
+        add("--package=mullvad-jni")
+        add("--locked")
+    }
+    exec = { spec, _ -> spec.environment("RUSTFLAGS", generateRemapArguments()) }
+}
+
+tasks.register<Exec>("cargoClean") {
+    workingDir = File(repoRootPath)
+    commandLine("cargo", "clean")
+}
+
+if (
+    gradleLocalProperties(rootProject.projectDir, providers)
+        .getProperty("CLEAN_CARGO_BUILD")
+        ?.toBoolean() != false
+) {
+    tasks["clean"].dependsOn("cargoClean")
 }
 
 androidComponents {
@@ -265,30 +323,6 @@ androidComponents {
                     }
                 enabledVariants.contains(currentVariant.name)
             }
-    }
-}
-
-configure<org.owasp.dependencycheck.gradle.extension.DependencyCheckExtension> {
-    // Skip the lintClassPath configuration, which relies on many dependencies that has been flagged
-    // to have CVEs, as it's related to the lint tooling rather than the project's compilation class
-    // path. The alternative would be to suppress specific CVEs, however that could potentially
-    // result in suppressed CVEs in project compilation class path.
-    skipConfigurations = listOf("lintClassPath")
-}
-
-tasks.register("ensureRelayListExist") {
-    doLast {
-        if (!relayListPath.exists()) {
-            throw GradleException("Missing relay list: $relayListPath")
-        }
-    }
-}
-
-tasks.register("ensureJniDirectoryExist") {
-    doLast {
-        if (!extraJniDirectory.asFile.exists()) {
-            throw GradleException("Missing JNI directory: $extraJniDirectory")
-        }
     }
 }
 
@@ -346,6 +380,8 @@ dependencies {
     implementation(projects.lib.resource)
     implementation(projects.lib.shared)
     implementation(projects.lib.talpid)
+    implementation(projects.lib.tv)
+    implementation(projects.lib.ui.component)
     implementation(projects.tile)
     implementation(projects.lib.theme)
     implementation(projects.service)
@@ -356,11 +392,13 @@ dependencies {
     implementation(libs.commons.validator)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.datastore)
-    implementation(libs.androidx.ktx)
     implementation(libs.androidx.coresplashscreen)
+    implementation(libs.androidx.credentials)
+    implementation(libs.androidx.ktx)
     implementation(libs.androidx.lifecycle.runtime)
     implementation(libs.androidx.lifecycle.viewmodel)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.tv)
     implementation(libs.arrow)
     implementation(libs.arrow.optics)
     implementation(libs.arrow.resilience)
@@ -373,7 +411,8 @@ dependencies {
     implementation(libs.compose.destinations)
     ksp(libs.compose.destinations.ksp)
 
-    implementation(libs.jodatime)
+    implementation(libs.accompanist.drawablepainter)
+
     implementation(libs.kermit)
     implementation(libs.koin)
     implementation(libs.koin.android)
@@ -406,6 +445,7 @@ dependencies {
     androidTestImplementation(libs.koin.test)
     androidTestImplementation(libs.kotlin.test)
     androidTestImplementation(libs.mockk.android)
+    androidTestImplementation(libs.turbine)
     androidTestImplementation(Dependencies.junitJupiterApi)
     androidTestImplementation(Dependencies.junit5AndroidTestCompose)
 }

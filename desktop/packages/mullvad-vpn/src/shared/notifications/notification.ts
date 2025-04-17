@@ -1,8 +1,10 @@
-import { LinkProps } from '../../renderer/lib/components';
+import { ExternalLinkProps } from '../../renderer/components/ExternalLink';
+import { InternalLinkProps } from '../../renderer/components/InternalLink';
+import { Url } from '../constants';
 
 export type NotificationAction = {
   type: 'open-url';
-  url: string;
+  url: Url;
   text?: string;
   withAuth?: boolean;
 };
@@ -30,8 +32,12 @@ export type InAppNotificationAction =
       close: () => void;
     }
   | {
-      type: 'navigate';
-      link: Pick<LinkProps, 'to' | 'onClick' | 'aria-label'>;
+      type: 'navigate-internal';
+      link: Pick<InternalLinkProps, 'to' | 'onClick' | 'aria-label'>;
+    }
+  | {
+      type: 'navigate-external';
+      link: Pick<ExternalLinkProps, 'to' | 'onClick' | 'aria-label'>;
     };
 
 export type InAppNotificationIndicatorType = 'success' | 'warning' | 'error';
@@ -68,8 +74,12 @@ export interface InAppNotification {
   indicator?: InAppNotificationIndicatorType;
   action?: InAppNotificationAction;
   title: string;
-  subtitle?: string;
-  subtitleAction?: InAppNotificationAction;
+  subtitle?: string | InAppNotificationSubtitle[];
+}
+
+export interface InAppNotificationSubtitle {
+  content: string;
+  action?: InAppNotificationAction;
 }
 
 export interface SystemNotificationProvider extends NotificationProvider {

@@ -1,32 +1,19 @@
 import React, { useEffect, useState } from 'react';
 import styled from 'styled-components';
 
-import { colors } from '../../config.json';
 import { messages } from '../../shared/gettext';
 import { InAppNotificationIndicatorType } from '../../shared/notifications/notification';
-import { IconButton } from '../lib/components';
+import { Icon, IconButton } from '../lib/components';
+import { Colors } from '../lib/foundations';
 import { useEffectEvent, useLastDefinedValue, useStyledRef } from '../lib/utility-hooks';
 import * as AppButton from './AppButton';
 import { tinyText } from './common-styles';
-import ImageView from './ImageView';
 
 const NOTIFICATION_AREA_ID = 'notification-area';
 
 export const NotificationTitle = styled.span(tinyText, {
-  color: colors.white,
+  color: Colors.white,
 });
-
-export const NotificationSubtitleText = styled.span(tinyText, {
-  color: colors.white60,
-});
-
-interface INotificationSubtitleProps {
-  children?: React.ReactNode;
-}
-
-export function NotificationSubtitle(props: INotificationSubtitleProps) {
-  return React.Children.count(props.children) > 0 ? <NotificationSubtitleText {...props} /> : null;
-}
 
 export const NotificationActionButton = styled(AppButton.SimpleButton)({
   flex: 1,
@@ -37,9 +24,9 @@ export const NotificationActionButton = styled(AppButton.SimpleButton)({
   border: 'none',
 });
 
-export const NotificationActionButtonInner = styled(ImageView)({
+export const NotificationActionButtonInner = styled(Icon)({
   [NotificationActionButton + ':hover &&']: {
-    backgroundColor: colors.white80,
+    backgroundColor: Colors.white80,
   },
 });
 
@@ -53,12 +40,7 @@ export function NotificationOpenLinkAction(props: NotificationActionProps) {
       <NotificationActionButton
         aria-describedby={NOTIFICATION_AREA_ID}
         aria-label={messages.gettext('Open URL')}>
-        <NotificationActionButtonInner
-          height={12}
-          width={12}
-          tintColor={colors.white60}
-          source="icon-extLink"
-        />
+        <NotificationActionButtonInner size="small" icon="external" color={Colors.white60} />
       </NotificationActionButton>
     </AppButton.BlockingButton>
   );
@@ -70,12 +52,7 @@ export function NotificationTroubleshootDialogAction(props: NotificationActionPr
       aria-describedby={NOTIFICATION_AREA_ID}
       aria-label={messages.gettext('Troubleshoot')}
       onClick={props.onClick}>
-      <NotificationActionButtonInner
-        height={12}
-        width={12}
-        tintColor={colors.white60}
-        source="icon-info"
-      />
+      <NotificationActionButtonInner size="small" icon="info-circle" />
     </NotificationActionButton>
   );
 }
@@ -84,12 +61,12 @@ export function NotificationCloseAction(props: NotificationActionProps) {
   return (
     <IconButton
       aria-describedby={NOTIFICATION_AREA_ID}
+      variant="secondary"
       aria-label={messages.pgettext('accessibility', 'Close notification')}
       onClick={props.onClick}
-      icon="icon-close"
-      size="small"
-      variant="secondary"
-    />
+      size="small">
+      <IconButton.Icon icon="cross-circle" />
+    </IconButton>
   );
 }
 
@@ -112,9 +89,9 @@ interface INotificationIndicatorProps {
 }
 
 const notificationIndicatorTypeColorMap = {
-  success: colors.green,
-  warning: colors.yellow,
-  error: colors.red,
+  success: Colors.green,
+  warning: Colors.yellow,
+  error: Colors.red,
 };
 
 export const NotificationIndicator = styled.div<INotificationIndicatorProps>((props) => ({
@@ -136,7 +113,7 @@ const Collapsible = styled.div<ICollapsibleProps>((props) => {
     display: 'flex',
     flexDirection: 'column',
     justifyContent: props.$alignBottom ? 'flex-end' : 'flex-start',
-    backgroundColor: colors.darkerBlue,
+    backgroundColor: Colors.darkerBlue,
     overflow: 'hidden',
     // Using auto as the initial value prevents transition if a notification is visible on mount.
     height: props.$height === undefined ? 'auto' : `${props.$height}px`,

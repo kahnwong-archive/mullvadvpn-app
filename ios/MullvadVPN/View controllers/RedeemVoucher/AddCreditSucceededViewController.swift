@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by Sajad Vishkai on 2022-09-23.
-//  Copyright © 2022 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import UIKit
@@ -60,10 +60,6 @@ class AddCreditSucceededViewController: UIViewController, RootContainment {
     }
 
     var prefersDeviceInfoBarHidden: Bool {
-        true
-    }
-
-    var prefersNotificationBarHidden: Bool {
         true
     }
 

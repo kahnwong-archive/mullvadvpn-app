@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by Mojgan on 2023-07-13.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -14,8 +14,8 @@ final class AccountDeletionCoordinator: Coordinator, Presentable {
     private let navigationController: UINavigationController
     private let interactor: AccountDeletionInteractor
 
-    var didCancel: ((AccountDeletionCoordinator) -> Void)?
-    var didFinish: ((AccountDeletionCoordinator) -> Void)?
+    var didCancel: (@MainActor (AccountDeletionCoordinator) -> Void)?
+    var didFinish: (@MainActor (AccountDeletionCoordinator) -> Void)?
 
     var presentedViewController: UIViewController {
         navigationController
@@ -37,7 +37,7 @@ final class AccountDeletionCoordinator: Coordinator, Presentable {
     }
 }
 
-extension AccountDeletionCoordinator: AccountDeletionViewControllerDelegate {
+extension AccountDeletionCoordinator: @preconcurrency AccountDeletionViewControllerDelegate {
     func deleteAccountDidSucceed(controller: AccountDeletionViewController) {
         didFinish?(self)
     }

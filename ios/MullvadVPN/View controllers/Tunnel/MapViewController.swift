@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 03/01/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -233,8 +233,9 @@ final class MapViewController: UIViewController, MKMapViewDelegate {
         cancelOtherAnimations: Bool,
         block: @escaping (_ finish: @escaping () -> Void) -> Void
     ) {
+        nonisolated(unsafe) let nonisolatedBlock = block
         let operation = AsyncBlockOperation(dispatchQueue: .main) { finish in
-            block {
+            nonisolatedBlock {
                 finish(nil)
             }
         }

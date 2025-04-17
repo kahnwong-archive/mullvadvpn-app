@@ -3,15 +3,16 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 29/03/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import Routing
 import SafariServices
 
-class SafariCoordinator: Coordinator, Presentable, SFSafariViewControllerDelegate {
-    var didFinish: (() -> Void)?
+@MainActor
+class SafariCoordinator: Coordinator, Presentable, @preconcurrency SFSafariViewControllerDelegate {
+    nonisolated(unsafe) var didFinish: (@Sendable () -> Void)?
 
     var presentedViewController: UIViewController {
         safariController

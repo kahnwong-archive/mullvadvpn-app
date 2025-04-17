@@ -3,14 +3,14 @@
 //  MullvadREST
 //
 //  Created by pronebird on 16/04/2022.
-//  Copyright © 2022 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import MullvadTypes
 
 extension REST {
-    public final class AuthenticationProxy: Proxy<ProxyConfiguration> {
+    public final class AuthenticationProxy: Proxy<ProxyConfiguration>, @unchecked Sendable {
         public init(configuration: ProxyConfiguration) {
             super.init(
                 name: "AuthenticationProxy",
@@ -57,12 +57,12 @@ extension REST {
         }
     }
 
-    public struct AccessTokenData: Decodable {
+    public struct AccessTokenData: Decodable, Sendable {
         let accessToken: String
         let expiry: Date
     }
 
-    private struct AccessTokenRequest: Encodable {
+    private struct AccessTokenRequest: Encodable, Sendable {
         let accountNumber: String
     }
 }

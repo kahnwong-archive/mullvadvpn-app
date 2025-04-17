@@ -10,8 +10,16 @@ Rust should be installed via [rustup](https://rustup.rs). Once rust is
 installed, do not forget to install the iOS targets:
 
 ```bash
-rustup target install aarch64-apple-ios aarch64-apple-ios-sim
+./scripts/setup-rust ios
 ```
+
+(Optional) Run the following to install a git `post-checkout` hook that will automatically
+run the `setup-rust` script when the Rust version specified in the `rust-toolchain.toml` file changes:
+
+```bash
+.scripts/setup-rust install-hook
+```
+
 You only need to install the ARM simulator target, which matches the current Apple Silicon architecture.
 
 Once both rust and go are installed, ensure they are available in your path.
@@ -19,6 +27,14 @@ Once both rust and go are installed, ensure they are available in your path.
 A protobuf compiler is also required in order to build some of the rust dependencies.
 ```bash
 brew install protobuf
+```
+
+## Submodules
+
+The iOS app imports Mullvad's version of `wireguard-go` as a Git submodule. Before building, this must be checked out with
+
+```bash
+git submodule update --init --recursive ios/wireguard-apple
 ```
 
 ## Configure Xcode project

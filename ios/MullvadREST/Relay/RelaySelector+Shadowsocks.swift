@@ -3,7 +3,7 @@
 //  MullvadREST
 //
 //  Created by Mojgan on 2024-05-17.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -42,7 +42,10 @@ extension RelaySelector {
             filter: RelayConstraint<RelayFilter>,
             in relaysResponse: REST.ServerRelaysResponse
         ) -> REST.BridgeRelay? {
-            let mappedBridges = mapRelays(relays: relaysResponse.bridge.relays, locations: relaysResponse.locations)
+            let mappedBridges = RelayWithLocation.locateRelays(
+                relays: relaysResponse.bridge.relays,
+                locations: relaysResponse.locations
+            )
             let filteredRelays = (try? applyConstraints(
                 location,
                 filterConstraint: filter,

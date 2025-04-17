@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 20/02/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import UIKit
@@ -15,7 +15,7 @@ import UIKit
 final class PresentationControllerDismissalInterceptor: NSObject,
     UIAdaptivePresentationControllerDelegate {
     private let dismissHandler: (UIPresentationController) -> Void
-    private let forwardingTarget: UIAdaptivePresentationControllerDelegate?
+    nonisolated(unsafe) private let forwardingTarget: UIAdaptivePresentationControllerDelegate?
     private let protocolSelectors: [Selector]
 
     init(

@@ -3,17 +3,17 @@
 //  TunnelState
 //
 //  Created by pronebird on 11/08/2021.
-//  Copyright © 2021 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import MullvadREST
 import MullvadTypes
 import PacketTunnelCore
-import WireGuardKitTypes
+@preconcurrency import WireGuardKitTypes
 
 /// A struct describing the tunnel status.
-struct TunnelStatus: Equatable, CustomStringConvertible {
+struct TunnelStatus: Equatable, CustomStringConvertible, Sendable {
     /// Tunnel status returned by tunnel process.
     var observedState: ObservedState = .disconnected
 
@@ -38,7 +38,7 @@ struct TunnelStatus: Equatable, CustomStringConvertible {
 }
 
 /// An enum that describes the tunnel state.
-enum TunnelState: Equatable, CustomStringConvertible {
+enum TunnelState: Equatable, CustomStringConvertible, Sendable {
     enum WaitingForConnectionReason {
         /// Tunnel connection is down.
         case noConnection
@@ -144,6 +144,35 @@ enum TunnelState: Equatable, CustomStringConvertible {
         case .disconnecting, .disconnected, .waitingForConnectivity, .pendingReconnect, .error:
             nil
         }
+    }
+
+    // the two accessors below return a Bool?, to differentiate known
+    // truth values from undefined/meaningless values, which the caller
+    // may want to interpret differently
+    var isPostQuantum: Bool? {
+        switch self {
+        case let .connecting(_, isPostQuantum: isPostQuantum, isDaita: _),
+             let .connected(_, isPostQuantum: isPostQuantum, isDaita: _),
+             let .reconnecting(_, isPostQuantum: isPostQuantum, isDaita: _):
+            isPostQuantum
+        default:
+            nil
+        }
+    }
+
+    var isDaita: Bool? {
+        switch self {
+        case let .connecting(_, isPostQuantum: _, isDaita: isDaita),
+             let .connected(_, isPostQuantum: _, isDaita: isDaita),
+             let .reconnecting(_, isPostQuantum: _, isDaita: isDaita):
+            isDaita
+        default:
+            nil
+        }
+    }
+
+    var isMultihop: Bool {
+        relays?.entry != nil
     }
 }
 

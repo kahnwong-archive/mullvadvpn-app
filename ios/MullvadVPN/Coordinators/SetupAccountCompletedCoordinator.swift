@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by Mojgan on 2023-07-03.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -34,7 +34,7 @@ class SetupAccountCompletedCoordinator: Coordinator, Presenting {
     }
 }
 
-extension SetupAccountCompletedCoordinator: SetupAccountCompletedControllerDelegate {
+extension SetupAccountCompletedCoordinator: @preconcurrency SetupAccountCompletedControllerDelegate {
     func didRequestToSeePrivacy(controller: SetupAccountCompletedController) {
         presentChild(SafariCoordinator(url: ApplicationConfiguration.privacyGuidesURL), animated: true)
     }

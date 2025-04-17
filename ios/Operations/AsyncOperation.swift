@@ -3,7 +3,7 @@
 //  Operations
 //
 //  Created by pronebird on 01/06/2020.
-//  Copyright © 2020 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -39,7 +39,7 @@ import Foundation
 }
 
 /// A base implementation of an asynchronous operation
-open class AsyncOperation: Operation {
+open class AsyncOperation: Operation, @unchecked Sendable {
     /// Mutex lock used for guarding critical sections of operation lifecycle.
     private let operationLock = NSRecursiveLock()
 
@@ -199,7 +199,7 @@ open class AsyncOperation: Operation {
 
         state = .evaluatingConditions
 
-        var results = [Bool](repeating: false, count: _conditions.count)
+        nonisolated(unsafe) var results = [Bool](repeating: false, count: _conditions.count)
         let group = DispatchGroup()
 
         for (index, condition) in _conditions.enumerated() {

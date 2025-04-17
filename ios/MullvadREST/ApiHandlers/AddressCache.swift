@@ -3,7 +3,7 @@
 //  MullvadREST
 //
 //  Created by pronebird on 08/12/2021.
-//  Copyright © 2021 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -11,7 +11,7 @@ import MullvadLogging
 import MullvadTypes
 
 extension REST {
-    public final class AddressCache {
+    public final class AddressCache: @unchecked Sendable {
         /// Logger.
         private let logger = Logger(label: "AddressCache")
 

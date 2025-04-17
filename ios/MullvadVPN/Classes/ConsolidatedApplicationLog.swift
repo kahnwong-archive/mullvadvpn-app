@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 29/10/2020.
-//  Copyright © 2020 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -13,7 +13,7 @@ private let kRedactedPlaceholder = "[REDACTED]"
 private let kRedactedAccountPlaceholder = "[REDACTED ACCOUNT NUMBER]"
 private let kRedactedContainerPlaceholder = "[REDACTED CONTAINER PATH]"
 
-class ConsolidatedApplicationLog: TextOutputStreamable {
+class ConsolidatedApplicationLog: TextOutputStreamable, @unchecked Sendable {
     typealias Metadata = KeyValuePairs<MetadataKey, String>
     private let bufferSize: UInt64
 
@@ -50,7 +50,7 @@ class ConsolidatedApplicationLog: TextOutputStreamable {
             }
     }
 
-    func addLogFiles(fileURLs: [URL], completion: (() -> Void)? = nil) {
+    func addLogFiles(fileURLs: [URL], completion: (@Sendable () -> Void)? = nil) {
         logQueue.async(flags: .barrier) {
             for fileURL in fileURLs {
                 self.addSingleLogFile(fileURL)
@@ -61,7 +61,7 @@ class ConsolidatedApplicationLog: TextOutputStreamable {
         }
     }
 
-    func addError(message: String, error: String, completion: (() -> Void)? = nil) {
+    func addError(message: String, error: String, completion: (@Sendable () -> Void)? = nil) {
         let redactedError = redact(string: error)
         logQueue.async(flags: .barrier) {
             self.logs.append(LogAttachment(label: message, content: redactedError))

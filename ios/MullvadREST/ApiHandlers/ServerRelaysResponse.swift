@@ -3,7 +3,7 @@
 //  MullvadREST
 //
 //  Created by pronebird on 27/07/2021.
-//  Copyright © 2021 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -11,7 +11,7 @@ import MullvadTypes
 import Network
 
 extension REST {
-    public struct ServerLocation: Codable, Equatable {
+    public struct ServerLocation: Codable, Equatable, Sendable {
         public let country: String
         public let city: String
         public let latitude: Double
@@ -25,11 +25,11 @@ extension REST {
         }
     }
 
-    public struct BridgeRelay: Codable, Equatable {
+    public struct BridgeRelay: Codable, Equatable, Sendable {
         public let hostname: String
         public let active: Bool
         public let owned: Bool
-        public let location: String
+        public let location: LocationIdentifier
         public let provider: String
         public let ipv4AddrIn: IPv4Address
         public let weight: UInt64
@@ -50,11 +50,11 @@ extension REST {
         }
     }
 
-    public struct ServerRelay: Codable, Equatable {
+    public struct ServerRelay: Codable, Equatable, Sendable {
         public let hostname: String
         public let active: Bool
         public let owned: Bool
-        public let location: String
+        public let location: LocationIdentifier
         public let provider: String
         public let weight: UInt64
         public let ipv4AddrIn: IPv4Address
@@ -77,7 +77,16 @@ extension REST {
                 publicKey: publicKey,
                 includeInCountry: includeInCountry,
                 daita: daita,
-                shadowsocksExtraAddrIn: shadowsocksExtraAddrIn
+                shadowsocksExtraAddrIn: shadowsocksExtraAddrIn?.filter { address in
+                    return switch address {
+                    case let ip where IPv4Address(ip) != nil:
+                        ipv4AddrIn == nil
+                    case let ip where IPv6Address(ip) != nil:
+                        ipv6AddrIn == nil
+                    default:
+                        true
+                    }
+                }
             )
         }
 
@@ -99,7 +108,7 @@ extension REST {
         }
     }
 
-    public struct ServerWireguardTunnels: Codable, Equatable {
+    public struct ServerWireguardTunnels: Codable, Equatable, Sendable {
         public let ipv4Gateway: IPv4Address
         public let ipv6Gateway: IPv6Address
         public let portRanges: [[UInt16]]
@@ -121,24 +130,28 @@ extension REST {
         }
     }
 
-    public struct ServerShadowsocks: Codable, Equatable {
+    public struct ServerShadowsocks: Codable, Equatable, Sendable {
         public let `protocol`: String
         public let port: UInt16
         public let cipher: String
         public let password: String
     }
 
-    public struct ServerBridges: Codable, Equatable {
+    public struct ServerBridges: Codable, Equatable, Sendable {
         public let shadowsocks: [ServerShadowsocks]
         public let relays: [BridgeRelay]
     }
 
-    public struct ServerRelaysResponse: Codable, Equatable {
+    public struct ServerRelaysResponse: Codable, Equatable, Sendable {
         public let locations: [String: ServerLocation]
         public let wireguard: ServerWireguardTunnels
         public let bridge: ServerBridges
 
-        public init(locations: [String: ServerLocation], wireguard: ServerWireguardTunnels, bridge: ServerBridges) {
+        public init(
+            locations: [String: ServerLocation],
+            wireguard: ServerWireguardTunnels,
+            bridge: ServerBridges
+        ) {
             self.locations = locations
             self.wireguard = wireguard
             self.bridge = bridge

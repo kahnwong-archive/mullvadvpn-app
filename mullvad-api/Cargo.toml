@@ -15,6 +15,7 @@ workspace = true
 api-override = []
 
 [dependencies]
+anyhow = { workspace = true }
 async-trait = "0.1"
 libc = "0.2"
 chrono = { workspace = true }
@@ -22,17 +23,30 @@ thiserror = { workspace = true }
 futures = { workspace = true }
 http = "1.1.0"
 hyper = { version = "1.4.1", features = ["client", "http1"] }
-hyper-util = { workspace = true}
+hyper-util = { workspace = true }
 http-body-util = "0.1.2"
 tower = { workspace = true }
 ipnetwork = { workspace = true }
 log = { workspace = true }
 serde = { workspace = true }
 serde_json = { workspace = true }
-tokio = { workspace = true, features = ["macros", "time", "rt-multi-thread", "net", "io-std", "io-util", "fs"] }
-tokio-rustls = { version = "0.26.0", features = ["logging", "tls12", "ring"], default-features = false}
+tokio = { workspace = true, features = [
+    "macros",
+    "time",
+    "rt-multi-thread",
+    "net",
+    "io-std",
+    "io-util",
+    "fs",
+] }
+tokio-rustls = { version = "0.26.0", features = [
+    "logging",
+    "tls12",
+    "ring",
+], default-features = false }
 tokio-socks = "0.5.1"
 rustls-pemfile = "2.1.3"
+uuid = { version = "1.4.1", features = ["v4"] }
 
 mullvad-encrypted-dns-proxy = { path = "../mullvad-encrypted-dns-proxy" }
 mullvad-fs = { path = "../mullvad-fs" }
@@ -40,18 +54,19 @@ mullvad-types = { path = "../mullvad-types" }
 talpid-types = { path = "../talpid-types" }
 talpid-time = { path = "../talpid-time" }
 
-shadowsocks = { workspace = true,  features = [ "stream-cipher" ] }
+shadowsocks = { workspace = true, features = ["stream-cipher"] }
+
+[target.'cfg(not(target_os = "ios"))'.dependencies]
+mullvad-update = { path = "../mullvad-update", features = ["client"] }
 
 [dev-dependencies]
 talpid-time = { path = "../talpid-time", features = ["test"] }
 tokio = { workspace = true, features = ["test-util", "time"] }
+mockito = "1.6.1"
 
 [build-dependencies]
-cbindgen = { version = "0.24.3", default-features = false }
-
-[target.'cfg(target_os = "ios")'.dependencies]
-uuid = { version = "1.4.1", features = ["v4"] }
+cbindgen = { version = "0.28.0", default-features = false }
 
 [lib]
-crate-type = [ "rlib", "staticlib" ]
+crate-type = ["rlib", "staticlib"]
 bench = false

@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by Jon Petersson on 2024-02-22.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -25,12 +25,15 @@ class AllLocationDataSource: LocationDataSourceProtocol {
         let expandedRelays = nodes.flatMap { [$0] + $0.flattened }.filter { $0.showsChildren }.map { $0.code }
 
         for relay in relays.relays {
-            guard case
-                let .city(countryCode, cityCode) = RelayLocation(dashSeparatedString: relay.location),
-                let serverLocation = relays.locations[relay.location]
+            guard
+                let serverLocation = relays.locations[relay.location.rawValue]
             else { continue }
 
-            let relayLocation = RelayLocation.hostname(countryCode, cityCode, relay.hostname)
+            let relayLocation = RelayLocation.hostname(
+                String(relay.location.country),
+                String(relay.location.city),
+                relay.hostname
+            )
 
             for ancestorOrSelf in relayLocation.ancestors + [relayLocation] {
                 addLocation(

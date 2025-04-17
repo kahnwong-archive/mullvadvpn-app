@@ -3,10 +3,12 @@
 //  MullvadREST
 //
 //  Created by pronebird on 19/04/2022.
-//  Copyright © 2022 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
+import MullvadRustRuntime
+
 public protocol ProxyFactoryProtocol {
     var configuration: REST.AuthProxyConfiguration { get }
 
@@ -16,6 +18,7 @@ public protocol ProxyFactoryProtocol {
 
     static func makeProxyFactory(
         transportProvider: RESTTransportProvider,
+        apiTransportProvider: APITransportProviderProtocol,
         addressCache: REST.AddressCache
     ) -> ProxyFactoryProtocol
 }
@@ -26,10 +29,12 @@ extension REST {
 
         public static func makeProxyFactory(
             transportProvider: any RESTTransportProvider,
+            apiTransportProvider: any APITransportProviderProtocol,
             addressCache: REST.AddressCache
         ) -> any ProxyFactoryProtocol {
             let basicConfiguration = REST.ProxyConfiguration(
                 transportProvider: transportProvider,
+                apiTransportProvider: apiTransportProvider,
                 addressCacheStore: addressCache
             )
 

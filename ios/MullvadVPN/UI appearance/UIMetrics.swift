@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 10/03/2021.
-//  Copyright © 2021 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadTypes
@@ -68,7 +68,8 @@ enum UIMetrics {
     }
 
     enum Button {
-        static let barButtonSize: CGFloat = 44
+        static let barButtonSize: CGFloat = 32
+        static let accountInfoSize: CGFloat = 18
         static let minimumTappableAreaSize = CGSize(width: 44, height: 44)
     }
 
@@ -137,6 +138,11 @@ enum UIMetrics {
 
     enum MainButton {
         static let cornerRadius: CGFloat = 4
+    }
+
+    enum FeatureIndicators {
+        static let chipViewHorisontalPadding: CGFloat = 8
+        static let chipViewTrailingMargin: CGFloat = 6
     }
 }
 

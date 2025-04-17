@@ -1,11 +1,11 @@
 import { useCallback, useEffect } from 'react';
 import styled from 'styled-components';
 
-import { colors } from '../../config.json';
 import { messages } from '../../shared/gettext';
+import { Icon, IconButton } from '../lib/components';
+import { Colors } from '../lib/foundations';
 import { useEffectEvent, useStyledRef } from '../lib/utility-hooks';
 import { normalText } from './common-styles';
-import ImageView from './ImageView';
 
 export const StyledSearchContainer = styled.div({
   position: 'relative',
@@ -20,49 +20,38 @@ export const StyledSearchInput = styled.input.attrs({ type: 'text' })({
   padding: '9px 38px',
   margin: 0,
   lineHeight: '24px',
-  color: colors.white60,
-  backgroundColor: colors.white10,
+  color: Colors.white60,
+  backgroundColor: Colors.white10,
   '&&::placeholder': {
-    color: colors.white60,
+    color: Colors.white60,
   },
   '&&:focus': {
-    color: colors.blue,
-    backgroundColor: colors.white,
+    color: Colors.blue,
+    backgroundColor: Colors.white,
   },
   '&&:focus::placeholder': {
-    color: colors.blue40,
+    color: Colors.blue40,
   },
 });
 
-export const StyledClearButton = styled.button({
+// TODO: The focus styling can be removed once we implement the new colors from foundations
+export const StyledClearButton = styled(IconButton)({
   position: 'absolute',
   top: '50%',
   transform: 'translateY(-50%)',
   right: '9px',
-  border: 'none',
-  background: 'none',
-  padding: 0,
+  [`${StyledSearchInput}:focus ~ && > div`]: {
+    backgroundColor: Colors.blue40,
+  },
 });
 
-export const StyledSearchIcon = styled(ImageView)({
+export const StyledSearchIcon = styled(Icon)({
   position: 'absolute',
   top: '50%',
   transform: 'translateY(-50%)',
-  left: '9px',
+  left: '8px',
   [`${StyledSearchInput}:focus ~ &&`]: {
-    backgroundColor: colors.blue,
-  },
-});
-
-export const StyledClearIcon = styled(ImageView)({
-  '&&:hover': {
-    backgroundColor: colors.white60,
-  },
-  [`${StyledSearchInput}:focus ~ ${StyledClearButton} &&`]: {
-    backgroundColor: colors.blue40,
-  },
-  [`${StyledSearchInput}:focus ~ ${StyledClearButton} &&:hover`]: {
-    backgroundColor: colors.blue,
+    backgroundColor: Colors.blue,
   },
 });
 
@@ -107,10 +96,10 @@ export default function SearchBar(props: ISearchBarProps) {
         onInput={onInput}
         placeholder={messages.gettext('Search for...')}
       />
-      <StyledSearchIcon source="icon-search" width={24} tintColor={colors.white60} />
+      <StyledSearchIcon icon="search" color={Colors.white60} />
       {props.searchTerm.length > 0 && (
-        <StyledClearButton onClick={onClear}>
-          <StyledClearIcon source="icon-close" width={18} tintColor={colors.white40} />
+        <StyledClearButton variant="secondary" onClick={onClear}>
+          <IconButton.Icon icon="cross-circle" />
         </StyledClearButton>
       )}
     </StyledSearchContainer>

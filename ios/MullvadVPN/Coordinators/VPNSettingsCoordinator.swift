@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by Jon Petersson on 2024-03-18.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadSettings
@@ -42,7 +42,7 @@ class VPNSettingsCoordinator: Coordinator, Presenting, SettingsChildCoordinator 
     }
 }
 
-extension VPNSettingsCoordinator: VPNSettingsViewControllerDelegate {
+extension VPNSettingsCoordinator: @preconcurrency VPNSettingsViewControllerDelegate {
     func showIPOverrides() {
         let coordinator = IPOverrideCoordinator(
             navigationController: navigationController,

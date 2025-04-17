@@ -3,13 +3,14 @@
 //  MullvadVPN
 //
 //  Created by Jon Petersson on 2024-02-14.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Combine
 import MullvadTypes
 import UIKit
 
+@MainActor
 struct CustomListCellConfiguration {
     let tableView: UITableView
     let subject: CurrentValueSubject<CustomListViewModel, Never>

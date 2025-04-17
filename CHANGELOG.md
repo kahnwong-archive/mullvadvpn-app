@@ -23,14 +23,96 @@ Line wrap the file at 100 chars.                                              Th
 
 ## [Unreleased]
 ### Added
+- Add a notification for notifying users about the sunsetting of OpenVPN.
+
+### Changed
 #### Windows
-- Add experimental support for Windows ARM64.
+- Rename `win-shortcuts` native module to `windows-utils`.
+
+### Removed
+- Remove "Automatic" option for tunnel protocol. The default is now WireGuard.
+
+### Fixed
+- Fix `mullvad-cli` panicking if it tried to write to a closed pipe on Linux and macOS.
+- Fix bug where new users are not forwarded to the main view after payment.
+- Will no longer try to connect over IPv4 if IPv4 is not available.
+
+#### Linux
+- Fix syntax error in Apparmor profile.
+
+#### Windows
+- Fix error setting up tunnel when MTU was incorrectly set to a value below 1280 for IPv6.
+- Fix node native module being unpacked to a temporary folder.
+- Fix BSOD caused by routing loop in wireguard-nt.
+
+#### macOS
+- Fix bug in parsing of network services from SCDynamicStore.
+
+
+## [2025.5] - 2025-03-26
+This release is identical to 2025.5-beta1
+
+
+## [2025.5-beta1] - 2025-03-11
+### Added
+#### Windows
+- Add support for DAITA V2.
+- Add back wireguard-go (userspace WireGuard) support.
+
+### Removed
+- Stop bundling https://github.com/mullvad/apisocks5 as a standalone binary.
+- Remove Google's resolvers from encrypted DNS proxy.
+
+### Fixed
+#### macOS
+- Fix daemon ending up in blocked state if the user toggled split tunneling without having granted
+  Full Disk Access to `mullvad-daemon`. This could only ever be accomplished from the CLI.
+- Fix routing issue caused by upgrading `tun`.
+
+
+## [2025.4] - 2025-02-12
+This release is identical to 2025.4-beta1
+
+
+## [2025.4-beta1] - 2025-02-11
+### Changed
+#### Windows
+- Replace the Electron API `shell.readShortcutLink` with a custom, native rust module
+  `win-shortcuts`.
+
+### Fixed
+#### Windows
+- Fix GUI crashing at launch on some systems by replacing Electron's shortcut parser.
+
+
+## [2025.3] - 2025-02-07
+### Changed
+- Change order of items in settings view to show DAITA and multihop at the top.
+- Update Electron from 33.2.1 to 33.4.0.
+
+
+## [2025.3-beta1] - 2025-01-21
+### Added
+#### Windows
+- Add support for Windows ARM64.
 
 ### Changed
 - (Linux and macOS only) Update to DAITA v2. The main difference is that many different machines are
   provided by relays instead of a bundled list. The bundled `maybenot_machines` file was removed.
 - Update Electron from 30.0.4 to 33.2.1.
+- Move changelog from a dialog to a separate view.
+- Reduce the setup time of PQ tunnels by pre-computing McEliece keys.
 
+### Fixed
+- (macOS and Windows only) Add the correct route when using obfuscation with Wireguard.
+
+
+## [2025.2] - 2025-01-08
+### Fixed
+- Fix crash when Wireguard tunnel setup timed out.
+
+
+## [2025.1] - 2025-01-02
 ### Fixed
 #### macOS
 - Fix GUI getting stuck when opening the split tunneling view.

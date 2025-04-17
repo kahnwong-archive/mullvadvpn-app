@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 24/03/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import UIKit
@@ -19,8 +19,8 @@ protocol AutoLayoutAnchorsProtocol {
     var trailingAnchor: NSLayoutXAxisAnchor { get }
 }
 
-extension UIView: AutoLayoutAnchorsProtocol {}
-extension UILayoutGuide: AutoLayoutAnchorsProtocol {}
+extension UIView: @preconcurrency AutoLayoutAnchorsProtocol {}
+extension UILayoutGuide: @preconcurrency AutoLayoutAnchorsProtocol {}
 
 extension UIView {
     /**
@@ -139,6 +139,7 @@ extension UIView {
     /**
      Add subviews using AutoLayout and configure constraints.
      */
+    @MainActor
     func addConstrainedSubviews(
         _ subviews: [UIView],
         @AutoLayoutBuilder builder: () -> [NSLayoutConstraint]
@@ -201,6 +202,7 @@ struct PinnableEdges {
             lhs.rectEdge == rhs.rectEdge
         }
 
+        @MainActor
         func makeConstraint(
             firstView: AutoLayoutAnchorsProtocol,
             secondView: AutoLayoutAnchorsProtocol
@@ -256,6 +258,7 @@ struct PinnableEdges {
     /**
      Returns new constraints pinning edges of the corresponding views.
      */
+    @MainActor
     func makeConstraints(
         firstView: AutoLayoutAnchorsProtocol,
         secondView: AutoLayoutAnchorsProtocol

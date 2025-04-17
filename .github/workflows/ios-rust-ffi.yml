@@ -20,17 +20,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Checkout submodules
+        run: |
+          git config --global --add safe.directory '*'
+          git submodule update --init --recursive ios/wireguard-apple
+
       - name: Install Protoc
         uses: arduino/setup-protoc@v3
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1.0.6
-        with:
-          toolchain: stable
-          target: ${{ matrix.target }}
-          default: true
+        run: rustup target add ${{ matrix.target }}
 
       - name: Build and test crates
         shell: bash
@@ -58,11 +59,7 @@ jobs:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Rust
-        uses: actions-rs/toolchain@v1.0.6
-        with:
-          toolchain: stable
-          target: ${{ matrix.target }}
-          default: true
+        run: rustup target add ${{ matrix.target }}
 
       - name: Clippy check
         shell: bash

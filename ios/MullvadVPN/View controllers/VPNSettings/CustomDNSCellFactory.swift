@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by Jon Petersson on 2023-11-09.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadSettings
@@ -16,7 +16,8 @@ protocol CustomDNSCellEventHandler {
     func showInfo(for button: VPNSettingsInfoButtonItem)
 }
 
-final class CustomDNSCellFactory: CellFactoryProtocol {
+@MainActor
+final class CustomDNSCellFactory: @preconcurrency CellFactoryProtocol {
     let tableView: UITableView
     var viewModel: VPNSettingsViewModel
     var delegate: CustomDNSCellEventHandler?

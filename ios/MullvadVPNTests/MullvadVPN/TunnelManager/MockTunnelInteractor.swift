@@ -3,7 +3,7 @@
 //  MullvadVPNTests
 //
 //  Created by Andrew Bulhak on 2024-02-02.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -12,7 +12,7 @@ import MullvadSettings
 import MullvadTypes
 
 // this is still very minimal, and will be fleshed out as needed.
-class MockTunnelInteractor: TunnelInteractor {
+final class MockTunnelInteractor: TunnelInteractor, @unchecked Sendable {
     var isConfigurationLoaded: Bool
 
     var settings: LatestTunnelSettings

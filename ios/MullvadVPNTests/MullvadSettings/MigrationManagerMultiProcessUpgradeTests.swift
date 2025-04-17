@@ -3,7 +3,7 @@
 //  MullvadVPNTests
 //
 //  Created by Marco Nikic on 2024-10-03.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 @testable import MullvadMockData
@@ -47,7 +47,7 @@ extension MigrationManagerTests {
             }
         }
 
-        wait(for: [backgroundMigrationExpectation, foregroundMigrationExpectation], timeout: .UnitTest.invertedTimeout)
+        wait(for: [backgroundMigrationExpectation, foregroundMigrationExpectation], timeout: .UnitTest.timeout)
 
         // Migration happens either in one process, or the other.
         // This check guarantees it didn't happen in both simultaneously.

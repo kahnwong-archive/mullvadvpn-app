@@ -170,6 +170,7 @@ class MullvadVpnService : TalpidVpnService() {
                 filesDirectory = filesDir.absolutePath,
                 cacheDirectory = cacheDir.absolutePath,
                 apiEndpointOverride = apiEndpointOverride,
+                extraMetadata = mapOf("flavor" to BuildConfig.FLAVOR),
             )
             Logger.i("MullvadVpnService: Daemon initialized")
         }
@@ -220,7 +221,10 @@ class MullvadVpnService : TalpidVpnService() {
     }
 
     private fun Context.prepareFiles() {
-        extractAndOverwriteIfAssetMoreRecent(RELAY_LIST_ASSET_NAME)
+        extractAndOverwriteIfAssetMoreRecent(
+            RELAY_LIST_ASSET_NAME,
+            BuildConfig.REQUIRE_BUNDLED_RELAY_FILE,
+        )
     }
 
     companion object {

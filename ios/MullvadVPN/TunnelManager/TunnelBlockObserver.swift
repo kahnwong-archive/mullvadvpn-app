@@ -3,13 +3,13 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 26/10/2022.
-//  Copyright © 2022 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import MullvadSettings
 
-final class TunnelBlockObserver: TunnelObserver {
+final class TunnelBlockObserver: TunnelObserver, @unchecked Sendable {
     typealias DidLoadConfigurationHandler = (TunnelManager) -> Void
     typealias DidUpdateTunnelStatusHandler = (TunnelManager, TunnelStatus) -> Void
     typealias DidUpdateDeviceStateHandler = (

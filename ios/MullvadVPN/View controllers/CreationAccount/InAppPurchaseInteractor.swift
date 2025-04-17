@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by Mojgan on 2023-07-21.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -14,7 +14,7 @@ protocol InAppPurchaseViewControllerDelegate: AnyObject {
     func didEndPayment()
 }
 
-class InAppPurchaseInteractor {
+class InAppPurchaseInteractor: @unchecked Sendable {
     let storePaymentManager: StorePaymentManager
     var didFinishPayment: ((InAppPurchaseInteractor, StorePaymentEvent) -> Void)?
     weak var viewControllerDelegate: InAppPurchaseViewControllerDelegate?

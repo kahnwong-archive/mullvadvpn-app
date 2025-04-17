@@ -200,6 +200,7 @@ impl std::fmt::Debug for dyn WintunContext {
         write!(
             f,
             "WintunContext {{ luid: {}, ipv6: {} }}",
+            // SAFETY: It's always safe to interpet a LUID as an u64
             unsafe { self.luid().Value },
             self.ipv6()
         )
@@ -621,7 +622,7 @@ impl<C: OpenVpnBuilder + Send + 'static> OpenVpnMonitor<C> {
             .ca(resource_dir.join("ca.crt"));
         #[cfg(windows)]
         cmd.tunnel_alias(Some(alias));
-        if let Some(proxy_settings) = params.proxy.clone().take() {
+        if let Some(proxy_settings) = params.proxy.clone() {
             cmd.proxy_settings(proxy_settings);
         }
         if let Some(proxy_auth_file) = proxy_auth_file {

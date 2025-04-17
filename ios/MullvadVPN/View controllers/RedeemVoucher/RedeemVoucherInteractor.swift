@@ -3,14 +3,14 @@
 //  MullvadVPN
 //
 //  Created by Mojgan on 2023-08-30.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
 import MullvadREST
 import MullvadTypes
 
-final class RedeemVoucherInteractor {
+final class RedeemVoucherInteractor: @unchecked Sendable {
     private let tunnelManager: TunnelManager
     private let accountsProxy: RESTAccountHandling
     private let shouldVerifyVoucherAsAccount: Bool
@@ -33,7 +33,7 @@ final class RedeemVoucherInteractor {
 
     func redeemVoucher(
         code: String,
-        completion: @escaping ((Result<REST.SubmitVoucherResponse, Error>) -> Void)
+        completion: @escaping (@Sendable (Result<REST.SubmitVoucherResponse, Error>) -> Void)
     ) {
         tasks.append(tunnelManager.redeemVoucher(code) { [weak self] result in
             guard let self else { return }
@@ -57,15 +57,19 @@ final class RedeemVoucherInteractor {
     }
 
     private func verifyVoucherAsAccount(code: String) {
-        let executer = accountsProxy.getAccountData(accountNumber: code)
-        tasks.append(executer.execute { [weak self] result in
+        let task = accountsProxy.getAccountData(
+            accountNumber: code,
+            retryStrategy: .noRetry
+        ) { [weak self] result in
             guard let self,
                   case .success = result else {
                 return
             }
             showLogoutDialog?()
             preferredAccountNumber = code
-        })
+        }
+
+        tasks.append(task)
     }
 }
 

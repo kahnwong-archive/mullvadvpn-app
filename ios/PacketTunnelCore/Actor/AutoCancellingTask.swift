@@ -3,7 +3,7 @@
 //  PacketTunnel
 //
 //  Created by pronebird on 31/08/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -13,7 +13,7 @@ import Foundation
 
  It behaves identical to `Combine.AnyCancellable`.
  */
-public final class AutoCancellingTask {
+public final class AutoCancellingTask: Sendable {
     private let task: AnyTask
 
     init(_ task: AnyTask) {

@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 28/11/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Combine
@@ -22,7 +22,7 @@ class ProxyConfigurationTester: ProxyConfigurationTesterProtocol {
         self.transportProvider = transportProvider
     }
 
-    func start(configuration: PersistentProxyConfiguration, completion: @escaping (Error?) -> Void) {
+    func start(configuration: PersistentProxyConfiguration, completion: @escaping @Sendable (Error?) -> Void) {
         do {
             let transport = try transportProvider.makeTransport(with: configuration)
             let request = REST.APIAvailabilityTestRequest(transport: transport)

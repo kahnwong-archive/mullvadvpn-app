@@ -1,29 +1,24 @@
 import { useCallback, useState } from 'react';
 import { sprintf } from 'sprintf-js';
 
-import { colors, strings } from '../../../config.json';
+import { strings } from '../../../shared/constants';
 import { Ownership } from '../../../shared/daemon-rpc-types';
 import { messages } from '../../../shared/gettext';
+import { FilterChip, Flex, IconButton, LabelTiny } from '../../lib/components';
 import { useRelaySettingsUpdater } from '../../lib/constraint-updater';
 import { daitaFilterActive, filterSpecialLocations } from '../../lib/filter-locations';
 import { useHistory } from '../../lib/history';
 import { formatHtml } from '../../lib/html-formatter';
-import { useNormalRelaySettings } from '../../lib/relay-settings-hooks';
+import { useNormalRelaySettings, useTunnelProtocol } from '../../lib/relay-settings-hooks';
 import { RoutePath } from '../../lib/routes';
 import { useSelector } from '../../redux/store';
+import { AppNavigationHeader } from '../';
 import * as Cell from '../cell';
 import { useFilteredProviders } from '../Filter';
-import ImageView from '../ImageView';
 import { BackAction } from '../KeyboardNavigation';
 import { Layout, SettingsContainer } from '../Layout';
-import {
-  NavigationBar,
-  NavigationBarButton,
-  NavigationContainer,
-  NavigationItems,
-  NavigationScrollbars,
-  TitleBarItem,
-} from '../NavigationBar';
+import { NavigationContainer } from '../NavigationContainer';
+import { NavigationScrollbars } from '../NavigationScrollbars';
 import CombinedLocationList, { CombinedLocationListProps } from './CombinedLocationList';
 import CustomLists from './CustomLists';
 import { useRelayListContext } from './RelayListContext';
@@ -37,11 +32,8 @@ import {
 import { LocationType, SpecialBridgeLocationType, SpecialLocation } from './select-location-types';
 import { useSelectLocationContext } from './SelectLocationContainer';
 import {
-  StyledClearFilterButton,
   StyledContent,
   StyledDaitaSettingsButton,
-  StyledFilter,
-  StyledFilterRow,
   StyledNavigationBarAttachment,
   StyledScopeBar,
   StyledSearchBar,
@@ -64,6 +56,7 @@ export default function SelectLocation() {
   const { expandSearchResults } = useRelayListContext();
 
   const relaySettings = useNormalRelaySettings();
+  const tunnelProtocol = useTunnelProtocol();
   const ownership = relaySettings?.ownership ?? Ownership.any;
   const providers = relaySettings?.providers ?? [];
   const filteredProviders = useFilteredProviders(providers, ownership);
@@ -73,7 +66,7 @@ export default function SelectLocation() {
     daita,
     directOnly,
     locationType,
-    relaySettings?.tunnelProtocol ?? 'any',
+    tunnelProtocol,
     relaySettings?.wireguard.useMultihop ?? false,
   );
 
@@ -82,7 +75,6 @@ export default function SelectLocation() {
   const onClose = useCallback(() => history.pop(), [history]);
   const onViewFilter = useCallback(() => history.push(RoutePath.filter), [history]);
 
-  const tunnelProtocol = relaySettings?.tunnelProtocol ?? 'any';
   const bridgeState = useSelector((state) => state.settings.bridgeState);
   const allowEntrySelection =
     (tunnelProtocol === 'openvpn' && bridgeState === 'on') ||
@@ -133,26 +125,19 @@ export default function SelectLocation() {
       <Layout>
         <SettingsContainer>
           <NavigationContainer>
-            <NavigationBar alwaysDisplayBarTitle>
-              <NavigationItems>
-                <TitleBarItem>
-                  {
-                    // TRANSLATORS: Title label in navigation bar
-                    messages.pgettext('select-location-nav', 'Select location')
-                  }
-                </TitleBarItem>
-
-                <NavigationBarButton onClick={onViewFilter} aria-label={messages.gettext('Filter')}>
-                  <ImageView
-                    source="icon-filter-round"
-                    tintColor={colors.white40}
-                    tintHoverColor={colors.white60}
-                    height={24}
-                    width={24}
-                  />
-                </NavigationBarButton>
-              </NavigationItems>
-            </NavigationBar>
+            <AppNavigationHeader
+              title={
+                // TRANSLATORS: Title label in navigation bar
+                messages.pgettext('select-location-nav', 'Select location')
+              }
+              titleVisible>
+              <IconButton
+                variant="secondary"
+                onClick={onViewFilter}
+                aria-label={messages.gettext('Filter')}>
+                <IconButton.Icon icon="filter-circle" />
+              </IconButton>
+            </AppNavigationHeader>
 
             <StyledNavigationBarAttachment>
               {allowEntrySelection && (
@@ -169,58 +154,52 @@ export default function SelectLocation() {
               {locationType === LocationType.entry && daita && !directOnly ? null : (
                 <>
                   {showFilters && (
-                    <StyledFilterRow>
-                      {messages.pgettext('select-location-view', 'Filtered:')}
+                    <Flex
+                      $gap="small"
+                      $alignItems="center"
+                      $flexWrap="wrap"
+                      $margin={{ horizontal: 'small', bottom: 'medium' }}>
+                      <LabelTiny>
+                        {messages.pgettext('select-location-view', 'Filtered:')}
+                      </LabelTiny>
 
                       {showOwnershipFilter && (
-                        <StyledFilter>
-                          {ownershipFilterLabel(ownership)}
-                          <StyledClearFilterButton
-                            aria-label={messages.gettext('Clear')}
-                            onClick={onClearOwnership}>
-                            <ImageView
-                              height={16}
-                              width={16}
-                              source="icon-close"
-                              tintColor={colors.white60}
-                              tintHoverColor={colors.white80}
-                            />
-                          </StyledClearFilterButton>
-                        </StyledFilter>
+                        <FilterChip
+                          aria-label={messages.gettext('Clear')}
+                          onClick={onClearOwnership}>
+                          <FilterChip.Text>{ownershipFilterLabel(ownership)}</FilterChip.Text>
+                          <FilterChip.Icon icon="cross" />
+                        </FilterChip>
                       )}
 
                       {showProvidersFilter && (
-                        <StyledFilter>
-                          {sprintf(
-                            messages.pgettext(
-                              'select-location-view',
-                              'Providers: %(numberOfProviders)d',
-                            ),
-                            { numberOfProviders: filteredProviders.length },
-                          )}
-                          <StyledClearFilterButton
-                            aria-label={messages.gettext('Clear')}
-                            onClick={onClearProviders}>
-                            <ImageView
-                              height={16}
-                              width={16}
-                              source="icon-close"
-                              tintColor={colors.white60}
-                              tintHoverColor={colors.white80}
-                            />
-                          </StyledClearFilterButton>
-                        </StyledFilter>
+                        <FilterChip
+                          aria-label={messages.gettext('Clear')}
+                          onClick={onClearProviders}>
+                          <FilterChip.Text>
+                            {sprintf(
+                              messages.pgettext(
+                                'select-location-view',
+                                'Providers: %(numberOfProviders)d',
+                              ),
+                              { numberOfProviders: filteredProviders.length },
+                            )}
+                          </FilterChip.Text>
+                          <FilterChip.Icon icon="cross" />
+                        </FilterChip>
                       )}
 
                       {showDaitaFilter && (
-                        <StyledFilter>
-                          {sprintf(
-                            messages.pgettext('select-location-view', 'Setting: %(settingName)s'),
-                            { settingName: 'DAITA' },
-                          )}
-                        </StyledFilter>
+                        <FilterChip as="div">
+                          <FilterChip.Text>
+                            {sprintf(
+                              messages.pgettext('select-location-view', 'Setting: %(settingName)s'),
+                              { settingName: 'DAITA' },
+                            )}
+                          </FilterChip.Text>
+                        </FilterChip>
                       )}
-                    </StyledFilterRow>
+                    </Flex>
                   )}
 
                   <StyledSearchBar searchTerm={searchValue} onSearch={updateSearchTerm} />

@@ -1,35 +1,34 @@
 use super::TunConfig;
-use nix::fcntl;
 use std::{
-    io,
     net::IpAddr,
     ops::Deref,
-    os::unix::io::{AsRawFd, IntoRawFd, RawFd},
+    os::unix::io::{AsRawFd, RawFd},
+    process::Command,
 };
-use tun::{platform, Configuration, Device};
+use tun::{Configuration, Device};
 
 /// Errors that can occur while setting up a tunnel device.
 #[derive(Debug, thiserror::Error)]
 pub enum Error {
-    /// Failed to set IP address
+    /// Failed to set IPv4 address on tunnel device
     #[error("Failed to set IPv4 address")]
     SetIpv4(#[source] tun::Error),
 
-    /// Failed to set IP address
+    /// Failed to set IPv6 address on tunnel device
     #[error("Failed to set IPv6 address")]
-    SetIpv6(#[source] io::Error),
+    SetIpv6(#[source] std::io::Error),
 
     /// Unable to open a tunnel device
     #[error("Unable to open a tunnel device")]
     CreateDevice(#[source] tun::Error),
 
-    /// Failed to apply async flags to tunnel device
-    #[error("Failed to apply async flags to tunnel device")]
-    SetDeviceAsync(#[source] nix::Error),
-
     /// Failed to enable/disable link device
     #[error("Failed to enable/disable link device")]
     ToggleDevice(#[source] tun::Error),
+
+    /// Failed to get device name
+    #[error("Failed to get tunnel device name")]
+    GetDeviceName(#[source] tun::Error),
 }
 
 /// Factory of tunnel devices on Unix systems.
@@ -54,10 +53,11 @@ impl UnixTunProvider {
             #[allow(unused_mut)]
             let mut builder = TunnelDeviceBuilder::default();
             #[cfg(target_os = "linux")]
-            builder.enable_packet_information();
-            #[cfg(target_os = "linux")]
-            if let Some(ref name) = self.config.name {
-                builder.name(name);
+            {
+                builder.enable_packet_information();
+                if let Some(ref name) = self.config.name {
+                    builder.name(name);
+                }
             }
             builder.create()?
         };
@@ -79,7 +79,7 @@ pub struct UnixTun(TunnelDevice);
 
 impl UnixTun {
     /// Retrieve the tunnel interface name.
-    pub fn interface_name(&self) -> &str {
+    pub fn interface_name(&self) -> Result<String, Error> {
         self.get_name()
     }
 }
@@ -94,12 +94,13 @@ impl Deref for UnixTun {
 
 /// A tunnel device
 pub struct TunnelDevice {
-    dev: platform::Device,
+    dev: tun::AsyncDevice,
 }
 
 /// A tunnel device builder.
 ///
 /// Call [`Self::create`] to create [`TunnelDevice`] from the config.
+#[derive(Default)]
 pub struct TunnelDeviceBuilder {
     config: Configuration,
 }
@@ -107,15 +108,7 @@ pub struct TunnelDeviceBuilder {
 impl TunnelDeviceBuilder {
     /// Create a [`TunnelDevice`] from this builder.
     pub fn create(self) -> Result<TunnelDevice, Error> {
-        fn apply_async_flags(fd: RawFd) -> Result<(), nix::Error> {
-            fcntl::fcntl(fd, fcntl::FcntlArg::F_GETFL)?;
-            let arg = fcntl::FcntlArg::F_SETFL(fcntl::OFlag::O_RDWR | fcntl::OFlag::O_NONBLOCK);
-            fcntl::fcntl(fd, arg)?;
-            Ok(())
-        }
-
-        let dev = platform::create(&self.config).map_err(Error::CreateDevice)?;
-        apply_async_flags(dev.as_raw_fd()).map_err(Error::SetDeviceAsync)?;
+        let dev = tun::create_as_async(&self.config).map_err(Error::CreateDevice)?;
         Ok(TunnelDevice { dev })
     }
 
@@ -130,74 +123,67 @@ impl TunnelDeviceBuilder {
     /// When enabled the first 4 bytes of each packet is a header with flags and protocol type.
     #[cfg(target_os = "linux")]
     pub fn enable_packet_information(&mut self) -> &mut Self {
-        self.config.platform(|platform_config| {
-            platform_config.packet_information(true);
+        self.config.platform(|config| {
+            #[allow(deprecated)]
+            // NOTE: This function does seemingly have an effect on Linux, despite what the deprecation
+            // warning says.
+            config.packet_information(true);
         });
         self
     }
 }
 
-impl Default for TunnelDeviceBuilder {
-    fn default() -> Self {
-        let config = Configuration::default();
-        Self { config }
-    }
-}
-
 impl AsRawFd for TunnelDevice {
     fn as_raw_fd(&self) -> RawFd {
-        self.dev.as_raw_fd()
-    }
-}
-
-impl IntoRawFd for TunnelDevice {
-    fn into_raw_fd(self) -> RawFd {
-        self.dev.into_raw_fd()
+        self.dev.get_ref().as_raw_fd()
     }
 }
 
 impl TunnelDevice {
     fn set_ip(&mut self, ip: IpAddr) -> Result<(), Error> {
         match ip {
-            IpAddr::V4(ipv4) => self.dev.set_address(ipv4).map_err(Error::SetIpv4),
+            IpAddr::V4(ipv4) => {
+                self.dev
+                    .get_mut()
+                    .set_address(ipv4)
+                    .map_err(Error::SetIpv4)?;
+            }
+
+            // NOTE: On MacOs, As of `tun 0.7`, `Device::set_address` accepts an `IpAddr` but
+            // only supports the `IpAddr::V4` address kind and panics if you pass it an
+            // `IpAddr::V6` value.
+            #[cfg(target_os = "macos")]
             IpAddr::V6(ipv6) => {
-                #[cfg(target_os = "linux")]
-                {
-                    duct::cmd!(
-                        "ip",
-                        "-6",
-                        "addr",
-                        "add",
-                        ipv6.to_string(),
-                        "dev",
-                        self.dev.name()
-                    )
-                    .run()
-                    .map(|_| ())
-                    .map_err(Error::SetIpv6)
-                }
-                #[cfg(target_os = "macos")]
-                {
-                    duct::cmd!(
-                        "ifconfig",
-                        self.dev.name(),
-                        "inet6",
-                        ipv6.to_string(),
-                        "alias"
-                    )
-                    .run()
-                    .map(|_| ())
-                    .map_err(Error::SetIpv6)
-                }
+                // ifconfig <device> inet6 <ipv6 address> alias
+                let ipv6 = ipv6.to_string();
+                let device = self.dev.get_ref().name();
+                Command::new("ifconfig")
+                    .args([device, "inet6", &ipv6, "alias"])
+                    .output()
+                    .map_err(Error::SetIpv6)?;
+            }
+
+            // NOTE: On Linux, As of `tun 0.7`, `Device::set_address` throws an I/O error if you
+            // pass it an IPv6-address.
+            #[cfg(target_os = "linux")]
+            IpAddr::V6(ipv6) => {
+                // ip -6 addr add <ipv6 address> dev <device>
+                let ipv6 = ipv6.to_string();
+                let device = self.dev.get_ref().name();
+                Command::new("ip")
+                    .args(["-6", "addr", "add", &ipv6, "dev", device])
+                    .output()
+                    .map_err(Error::SetIpv6)?;
             }
         }
+        Ok(())
     }
 
     fn set_up(&mut self, up: bool) -> Result<(), Error> {
-        self.dev.enabled(up).map_err(Error::ToggleDevice)
+        self.dev.get_mut().enabled(up).map_err(Error::ToggleDevice)
     }
 
-    fn get_name(&self) -> &str {
-        self.dev.name()
+    fn get_name(&self) -> Result<String, Error> {
+        Ok(self.dev.get_ref().name().to_owned())
     }
 }

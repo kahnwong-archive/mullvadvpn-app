@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 29/01/2023.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadREST
@@ -15,9 +15,8 @@ import UIKit
 class LocationCoordinator: Coordinator, Presentable, Presenting {
     private let tunnelManager: TunnelManager
     private var tunnelObserver: TunnelObserver?
-    private let relayCacheTracker: RelayCacheTracker
+    private let relaySelectorWrapper: RelaySelectorWrapper
     private let customListRepository: CustomListRepositoryProtocol
-    private var locationRelays: LocationRelays?
 
     let navigationController: UINavigationController
 
@@ -31,26 +30,17 @@ class LocationCoordinator: Coordinator, Presentable, Presenting {
         } as? LocationViewControllerWrapper
     }
 
-    var relayFilter: RelayFilter {
-        switch tunnelManager.settings.relayConstraints.filter {
-        case .any:
-            return RelayFilter()
-        case let .only(filter):
-            return filter
-        }
-    }
-
     var didFinish: ((LocationCoordinator) -> Void)?
 
     init(
         navigationController: UINavigationController,
         tunnelManager: TunnelManager,
-        relayCacheTracker: RelayCacheTracker,
+        relaySelectorWrapper: RelaySelectorWrapper,
         customListRepository: CustomListRepositoryProtocol
     ) {
         self.navigationController = navigationController
         self.tunnelManager = tunnelManager
-        self.relayCacheTracker = relayCacheTracker
+        self.relaySelectorWrapper = relaySelectorWrapper
         self.customListRepository = customListRepository
     }
 
@@ -64,12 +54,12 @@ class LocationCoordinator: Coordinator, Presentable, Presenting {
         }
 
         let locationViewControllerWrapper = LocationViewControllerWrapper(
+            settings: tunnelManager.settings,
+            relaySelectorWrapper: relaySelectorWrapper,
             customListRepository: customListRepository,
-            constraints: tunnelManager.settings.relayConstraints,
-            multihopEnabled: tunnelManager.settings.tunnelMultihopState.isEnabled,
-            daitaSettings: tunnelManager.settings.daita,
             startContext: startContext
         )
+
         locationViewControllerWrapper.delegate = self
 
         locationViewControllerWrapper.didFinish = { [weak self] in
@@ -82,15 +72,6 @@ class LocationCoordinator: Coordinator, Presentable, Presenting {
         }
 
         addTunnelObserver()
-        relayCacheTracker.addObserver(self)
-
-        if let cachedRelays = try? relayCacheTracker.getCachedRelays() {
-            updateRelaysWithLocationFrom(
-                cachedRelays: cachedRelays,
-                filter: relayFilter,
-                controllerWrapper: locationViewControllerWrapper
-            )
-        }
 
         navigationController.pushViewController(locationViewControllerWrapper, animated: false)
     }
@@ -99,63 +80,13 @@ class LocationCoordinator: Coordinator, Presentable, Presenting {
         let tunnelObserver =
             TunnelBlockObserver(
                 didUpdateTunnelSettings: { [weak self] _, settings in
-                    guard let self, let locationRelays else { return }
-                    locationViewControllerWrapper?.onDaitaSettingsUpdate(
-                        settings.daita,
-                        relaysWithLocation: locationRelays,
-                        filter: relayFilter
-                    )
+                    guard let self else { return }
+                    locationViewControllerWrapper?.onNewSettings?(settings)
                 }
             )
 
         tunnelManager.addObserver(tunnelObserver)
         self.tunnelObserver = tunnelObserver
-    }
-
-    private func updateRelaysWithLocationFrom(
-        cachedRelays: CachedRelays,
-        filter: RelayFilter,
-        controllerWrapper: LocationViewControllerWrapper
-    ) {
-        var relaysWithLocation = LocationRelays(
-            relays: cachedRelays.relays.wireguard.relays,
-            locations: cachedRelays.relays.locations
-        )
-        relaysWithLocation.relays = relaysWithLocation.relays.filter { relay in
-            RelaySelector.relayMatchesFilter(relay, filter: filter)
-        }
-
-        locationRelays = relaysWithLocation
-
-        controllerWrapper.setRelaysWithLocation(relaysWithLocation, filter: filter)
-    }
-
-    private func makeRelayFilterCoordinator(forModalPresentation isModalPresentation: Bool)
-        -> RelayFilterCoordinator {
-        let navigationController = CustomNavigationController()
-
-        let relayFilterCoordinator = RelayFilterCoordinator(
-            navigationController: navigationController,
-            tunnelManager: tunnelManager,
-            relayCacheTracker: relayCacheTracker
-        )
-
-        relayFilterCoordinator.didFinish = { [weak self] coordinator, filter in
-            guard let self else { return }
-
-            if let cachedRelays = try? relayCacheTracker.getCachedRelays(), let locationViewControllerWrapper,
-               let filter {
-                updateRelaysWithLocationFrom(
-                    cachedRelays: cachedRelays,
-                    filter: filter,
-                    controllerWrapper: locationViewControllerWrapper
-                )
-            }
-
-            coordinator.dismiss(animated: true)
-        }
-
-        return relayFilterCoordinator
     }
 
     private func showAddCustomList(nodes: [LocationNode]) {
@@ -204,22 +135,22 @@ extension LocationCoordinator: UIAdaptivePresentationControllerDelegate {
     }
 }
 
-extension LocationCoordinator: RelayCacheTrackerObserver {
-    func relayCacheTracker(
-        _ tracker: RelayCacheTracker,
-        didUpdateCachedRelays cachedRelays: CachedRelays
-    ) {
-        let locationRelays = LocationRelays(
-            relays: cachedRelays.relays.wireguard.relays,
-            locations: cachedRelays.relays.locations
+extension LocationCoordinator: @preconcurrency LocationViewControllerWrapperDelegate {
+    func navigateToFilter() {
+        let relayFilterCoordinator = RelayFilterCoordinator(
+            navigationController: CustomNavigationController(),
+            tunnelManager: tunnelManager,
+            relaySelectorWrapper: relaySelectorWrapper
         )
-        self.locationRelays = locationRelays
 
-        locationViewControllerWrapper?.setRelaysWithLocation(locationRelays, filter: relayFilter)
+        relayFilterCoordinator.didFinish = { coordinator, _ in
+            coordinator.dismiss(animated: true)
+        }
+        relayFilterCoordinator.start()
+
+        presentChild(relayFilterCoordinator, animated: true)
     }
-}
 
-extension LocationCoordinator: LocationViewControllerWrapperDelegate {
     func didSelectEntryRelays(_ relays: UserSelectedRelays) {
         var relayConstraints = tunnelManager.settings.relayConstraints
         relayConstraints.entryLocations = .only(relays)
@@ -230,7 +161,7 @@ extension LocationCoordinator: LocationViewControllerWrapperDelegate {
     }
 
     func navigateToDaitaSettings() {
-        applicationRouter?.present(.settings(nil))
+        applicationRouter?.present(.daita)
     }
 
     func didSelectExitRelays(_ relays: UserSelectedRelays) {
@@ -245,23 +176,7 @@ extension LocationCoordinator: LocationViewControllerWrapperDelegate {
     func didUpdateFilter(_ filter: RelayFilter) {
         var relayConstraints = tunnelManager.settings.relayConstraints
         relayConstraints.filter = .only(filter)
-
         tunnelManager.updateSettings([.relayConstraints(relayConstraints)])
-
-        if let cachedRelays = try? relayCacheTracker.getCachedRelays(), let locationViewControllerWrapper {
-            updateRelaysWithLocationFrom(
-                cachedRelays: cachedRelays,
-                filter: filter,
-                controllerWrapper: locationViewControllerWrapper
-            )
-        }
-    }
-
-    func navigateToFilter() {
-        let coordinator = makeRelayFilterCoordinator(forModalPresentation: true)
-        coordinator.start()
-
-        presentChild(coordinator, animated: true)
     }
 
     func navigateToCustomLists(nodes: [LocationNode]) {
@@ -273,7 +188,7 @@ extension LocationCoordinator: LocationViewControllerWrapperDelegate {
             preferredStyle: UIDevice.current.userInterfaceIdiom == .pad ? .alert : .actionSheet
         )
         actionSheet.overrideUserInterfaceStyle = .dark
-        actionSheet.view.tintColor = UIColor(red: 0.0, green: 0.59, blue: 1.0, alpha: 1)
+        actionSheet.view.tintColor = .AlertController.tintColor
 
         let addCustomListAction = UIAlertAction(
             title: NSLocalizedString(

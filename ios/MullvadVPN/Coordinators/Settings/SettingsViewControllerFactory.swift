@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by Jon Petersson on 2024-11-26.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import MullvadSettings
@@ -11,6 +11,7 @@ import Routing
 import SwiftUI
 import UIKit
 
+@MainActor
 struct SettingsViewControllerFactory {
     /// The result of creating a child representing a route.
     enum MakeChildResult {
@@ -53,23 +54,25 @@ struct SettingsViewControllerFactory {
         case .root:
             // Handled in SettingsCoordinator.
             .failed
-        case .vpnSettings:
-            makeVPNSettingsViewController()
-        case .problemReport:
-            makeProblemReportViewController()
-        case .apiAccess:
-            makeAPIAccessViewController()
         case .faq:
             // Handled separately and presented as a modal.
             .failed
+        case .vpnSettings:
+            makeVPNSettingsViewCoordinator()
+        case .problemReport:
+            makeProblemReportViewController()
+        case .apiAccess:
+            makeAPIAccessCoordinator()
+        case .changelog:
+            makeChangelogCoordinator()
         case .multihop:
             makeMultihopViewController()
         case .daita:
-            makeDAITAViewController()
+            makeDAITASettingsCoordinator()
         }
     }
 
-    private func makeVPNSettingsViewController() -> MakeChildResult {
+    private func makeVPNSettingsViewCoordinator() -> MakeChildResult {
         return .childCoordinator(VPNSettingsCoordinator(
             navigationController: navigationController,
             interactorFactory: interactorFactory,
@@ -84,12 +87,22 @@ struct SettingsViewControllerFactory {
         ))
     }
 
-    private func makeAPIAccessViewController() -> MakeChildResult {
+    private func makeAPIAccessCoordinator() -> MakeChildResult {
         return .childCoordinator(ListAccessMethodCoordinator(
             navigationController: navigationController,
             accessMethodRepository: accessMethodRepository,
             proxyConfigurationTester: proxyConfigurationTester
         ))
+    }
+
+    private func makeChangelogCoordinator() -> MakeChildResult {
+        return .childCoordinator(
+            ChangeLogCoordinator(
+                route: .settings(.changelog),
+                navigationController: navigationController,
+                viewModel: ChangeLogViewModel(changeLogReader: ChangeLogReader())
+            )
+        )
     }
 
     private func makeMultihopViewController() -> MakeChildResult {
@@ -108,72 +121,14 @@ struct SettingsViewControllerFactory {
         return .viewController(host)
     }
 
-    private func makeDAITAViewController() -> MakeChildResult {
+    private func makeDAITASettingsCoordinator() -> MakeChildResult {
         let viewModel = DAITATunnelSettingsViewModel(tunnelManager: interactorFactory.tunnelManager)
-        let view = SettingsDAITAView(tunnelViewModel: viewModel)
-
-        viewModel.didFailDAITAValidation = { result in
-            showPrompt(
-                for: result.item,
-                onSave: {
-                    viewModel.value = result.setting
-                },
-                onDiscard: {}
-            )
-        }
-
-        let host = UIHostingController(rootView: view)
-        host.title = NSLocalizedString(
-            "NAVIGATION_TITLE_DAITA",
-            tableName: "Settings",
-            value: "DAITA",
-            comment: ""
-        )
-        host.view.setAccessibilityIdentifier(.daitaView)
-
-        return .viewController(host)
-    }
-
-    private func showPrompt(
-        for item: DAITASettingsPromptItem,
-        onSave: @escaping () -> Void,
-        onDiscard: @escaping () -> Void
-    ) {
-        let presentation = AlertPresentation(
-            id: "settings-daita-prompt",
-            accessibilityIdentifier: .daitaPromptAlert,
-            icon: .info,
-            message: NSLocalizedString(
-                "SETTINGS_DAITA_ENABLE_TEXT",
-                tableName: "DAITA",
-                value: item.description,
-                comment: ""
-            ),
-            buttons: [
-                AlertAction(
-                    title: String(format: NSLocalizedString(
-                        "SETTINGS_DAITA_ENABLE_OK_ACTION",
-                        tableName: "DAITA",
-                        value: "Enable %@",
-                        comment: ""
-                    ), item.title),
-                    style: .default,
-                    accessibilityId: .daitaConfirmAlertEnableButton,
-                    handler: { onSave() }
-                ),
-                AlertAction(
-                    title: NSLocalizedString(
-                        "SETTINGS_DAITA_ENABLE_CANCEL_ACTION",
-                        tableName: "DAITA",
-                        value: "Back",
-                        comment: ""
-                    ),
-                    style: .default,
-                    handler: { onDiscard() }
-                ),
-            ]
+        let coordinator = DAITASettingsCoordinator(
+            navigationController: navigationController,
+            route: .settings(.daita),
+            viewModel: viewModel
         )
 
-        alertPresenter.showAlert(presentation: presentation, animated: true)
+        return .childCoordinator(coordinator)
     }
 }

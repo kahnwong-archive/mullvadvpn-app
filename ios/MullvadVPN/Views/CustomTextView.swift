@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 16/09/2020.
-//  Copyright © 2020 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import UIKit
@@ -84,7 +84,7 @@ class CustomTextView: UITextView {
         }
     }
 
-    private var notificationObserver: Any?
+    nonisolated(unsafe) private var notificationObserver: Any?
 
     override init(frame: CGRect, textContainer: NSTextContainer?) {
         super.init(frame: frame, textContainer: textContainer)
@@ -125,7 +125,9 @@ class CustomTextView: UITextView {
             object: textStorage,
             queue: OperationQueue.main
         ) { [weak self] _ in
-            self?.updatePlaceholderVisibility()
+            MainActor.assumeIsolated {
+                self?.updatePlaceholderVisibility()
+            }
         }
 
         updatePlaceholderVisibility()

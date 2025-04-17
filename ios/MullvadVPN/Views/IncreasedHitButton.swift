@@ -3,14 +3,14 @@
 //  MullvadVPN
 //
 //  Created by Mojgan on 2023-05-16.
-//  Copyright © 2023 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import SwiftUI
 import UIKit
 
 final class IncreasedHitButton: UIButton {
-    private let defaultSize = UIMetrics.Button.barButtonSize
+    private let defaultSize = UIMetrics.Button.minimumTappableAreaSize.width
 
     override func point(inside point: CGPoint, with event: UIEvent?) -> Bool {
         let width = bounds.width

@@ -3,13 +3,13 @@
 //  MullvadRESTTests
 //
 //  Created by Mojgan on 2024-01-02.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Combine
 import MullvadSettings
 
-public struct AccessMethodRepositoryStub: AccessMethodRepositoryDataSource {
+public struct AccessMethodRepositoryStub: AccessMethodRepositoryDataSource, @unchecked Sendable {
     public var directAccess: PersistentAccessMethod
 
     public var accessMethodsPublisher: AnyPublisher<[PersistentAccessMethod], Never> {

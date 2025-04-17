@@ -3,21 +3,27 @@
 //  MullvadVPN
 //
 //  Created by Jon Petersson on 2024-01-16.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
-import Foundation
+@preconcurrency import Combine
 import MullvadLogging
 
-public protocol IPOverrideRepositoryProtocol {
+public protocol IPOverrideRepositoryProtocol: Sendable {
+    var overridesPublisher: AnyPublisher<[IPOverride], Never> { get }
     func add(_ overrides: [IPOverride])
     func fetchAll() -> [IPOverride]
     func deleteAll()
     func parse(data: Data) throws -> [IPOverride]
 }
 
-public class IPOverrideRepository: IPOverrideRepositoryProtocol {
-    private let logger = Logger(label: "IPOverrideRepository")
+public final class IPOverrideRepository: IPOverrideRepositoryProtocol {
+    private let overridesSubject: CurrentValueSubject<[IPOverride], Never> = .init([])
+    public var overridesPublisher: AnyPublisher<[IPOverride], Never> {
+        overridesSubject.eraseToAnyPublisher()
+    }
+
+    nonisolated(unsafe) private let logger = Logger(label: "IPOverrideRepository")
     private let readWriteLock = NSLock()
 
     public init() {}
@@ -58,6 +64,7 @@ public class IPOverrideRepository: IPOverrideRepositoryProtocol {
         do {
             try readWriteLock.withLock {
                 try SettingsManager.store.delete(key: .ipOverrides)
+                overridesSubject.send([])
             }
         } catch {
             logger.error("Could not delete all overrides. \nError: \(error)")
@@ -85,6 +92,7 @@ public class IPOverrideRepository: IPOverrideRepositoryProtocol {
 
         try readWriteLock.withLock {
             try SettingsManager.store.write(data, for: .ipOverrides)
+            overridesSubject.send(overrides)
         }
     }
 

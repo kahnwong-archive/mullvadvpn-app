@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 26/10/2022.
-//  Copyright © 2022 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -12,26 +12,22 @@ import MullvadREST
 import MullvadSettings
 import MullvadTypes
 import Operations
-import StoreKit
+@preconcurrency import StoreKit
 
-final class OutOfTimeInteractor {
-    private let storePaymentManager: StorePaymentManager
+final class OutOfTimeInteractor: Sendable {
     private let tunnelManager: TunnelManager
 
-    private var tunnelObserver: TunnelObserver?
-    private var paymentObserver: StorePaymentObserver?
+    nonisolated(unsafe) private var tunnelObserver: TunnelObserver?
 
-    private let logger = Logger(label: "OutOfTimeInteractor")
+    nonisolated(unsafe) private let logger = Logger(label: "OutOfTimeInteractor")
 
     private let accountUpdateTimerInterval: Duration = .minutes(1)
-    private var accountUpdateTimer: DispatchSourceTimer?
+    nonisolated(unsafe) private var accountUpdateTimer: DispatchSourceTimer?
 
-    var didReceivePaymentEvent: ((StorePaymentEvent) -> Void)?
-    var didReceiveTunnelStatus: ((TunnelStatus) -> Void)?
-    var didAddMoreCredit: (() -> Void)?
+    nonisolated(unsafe) var didReceiveTunnelStatus: (@Sendable (TunnelStatus) -> Void)?
+    nonisolated(unsafe) var didAddMoreCredit: (@Sendable () -> Void)?
 
-    init(storePaymentManager: StorePaymentManager, tunnelManager: TunnelManager) {
-        self.storePaymentManager = storePaymentManager
+    init(tunnelManager: TunnelManager) {
         self.tunnelManager = tunnelManager
 
         let tunnelObserver = TunnelBlockObserver(
@@ -47,15 +43,9 @@ final class OutOfTimeInteractor {
             }
         )
 
-        let paymentObserver = StorePaymentBlockObserver { [weak self] _, event in
-            self?.didReceivePaymentEvent?(event)
-        }
-
         tunnelManager.addObserver(tunnelObserver)
-        storePaymentManager.addPaymentObserver(paymentObserver)
 
         self.tunnelObserver = tunnelObserver
-        self.paymentObserver = paymentObserver
     }
 
     var tunnelStatus: TunnelStatus {
@@ -68,33 +58,6 @@ final class OutOfTimeInteractor {
 
     func stopTunnel() {
         tunnelManager.stopTunnel()
-    }
-
-    func addPayment(_ payment: SKPayment, for accountNumber: String) {
-        storePaymentManager.addPayment(payment, for: accountNumber)
-    }
-
-    func restorePurchases(
-        for accountNumber: String,
-        completionHandler: @escaping (Result<
-            REST.CreateApplePaymentResponse,
-            Error
-        >) -> Void
-    ) -> Cancellable {
-        storePaymentManager.restorePurchases(
-            for: accountNumber,
-            completionHandler: completionHandler
-        )
-    }
-
-    func requestProducts(
-        with productIdentifiers: Set<StoreSubscription>,
-        completionHandler: @escaping (Result<SKProductsResponse, Error>) -> Void
-    ) -> Cancellable {
-        storePaymentManager.requestProducts(
-            with: productIdentifiers,
-            completionHandler: completionHandler
-        )
     }
 
     func startAccountUpdateTimer() {

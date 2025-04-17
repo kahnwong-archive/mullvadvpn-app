@@ -1,8 +1,8 @@
 import styled from 'styled-components';
 
+import { Spinner } from '../../lib/components';
 import { useSelector } from '../../redux/store';
-import { calculateHeaderBarStyle, DefaultHeaderBar } from '../HeaderBar';
-import ImageView from '../ImageView';
+import { AppMainHeader } from '../app-main-header';
 import { Container, Layout } from '../Layout';
 import Map from '../Map';
 import NotificationArea from '../NotificationArea';
@@ -21,7 +21,7 @@ const Content = styled.div({
   maxHeight: '100%',
 });
 
-const StatusIcon = styled(ImageView)({
+const StatusIcon = styled(Spinner)({
   position: 'absolute',
   alignSelf: 'center',
   marginTop: 94,
@@ -49,14 +49,17 @@ export default function MainView() {
 
   return (
     <Layout>
-      <DefaultHeaderBar barStyle={calculateHeaderBarStyle(connection.status)} />
+      <AppMainHeader size="basedOnLoginStatus" variant="basedOnConnectionStatus">
+        <AppMainHeader.AccountButton />
+        <AppMainHeader.SettingsButton />
+      </AppMainHeader>
       <StyledContainer>
         <Map />
         <Content>
           <StyledNotificationArea />
 
           <StyledMain>
-            {showSpinner ? <StatusIcon source="icon-spinner" height={60} width={60} /> : null}
+            {showSpinner ? <StatusIcon size="big" /> : null}
 
             <ConnectionPanel />
           </StyledMain>

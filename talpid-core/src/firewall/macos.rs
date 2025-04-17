@@ -329,7 +329,7 @@ impl Firewall {
         // no nat to [vpn ip]
         let no_nat_to_vpn_server = pfctl::NatRuleBuilder::default()
             .action(pfctl::NatRuleAction::NoNat)
-            .to(peer_endpoint.endpoint.address.ip())
+            .to(peer_endpoint.endpoint.address)
             .build()?;
         rules.push(no_nat_to_vpn_server);
 
@@ -550,7 +550,7 @@ impl Firewall {
         tunnel: &crate::tunnel::TunnelMetadata,
         server: IpAddr,
     ) -> Result<Vec<pfctl::FilterRule>> {
-        let mut rules = Vec::with_capacity(4);
+        let mut rules = Vec::with_capacity(2);
 
         // Allow outgoing requests on the tunnel interface only
         let allow_tunnel_tcp = self
@@ -577,6 +577,7 @@ impl Firewall {
         Ok(rules)
     }
 
+    /// Allow traffic to relay_endpoint on the correct ip/port/protocol, for the root-user only.
     fn get_allow_relay_rule(&self, relay_endpoint: &AllowedEndpoint) -> Result<pfctl::FilterRule> {
         let pfctl_proto = as_pfctl_proto(relay_endpoint.endpoint.protocol);
 
@@ -925,6 +926,11 @@ impl Firewall {
         // remove_anchor() does not deactivate active rules
         self.pf
             .flush_rules(ANCHOR_NAME, pfctl::RulesetKind::Filter)?;
+        if *NAT_WORKAROUND {
+            self.pf.flush_rules(ANCHOR_NAME, pfctl::RulesetKind::Nat)?;
+        }
+        self.pf
+            .flush_rules(ANCHOR_NAME, pfctl::RulesetKind::Scrub)?;
         Ok(())
     }
 

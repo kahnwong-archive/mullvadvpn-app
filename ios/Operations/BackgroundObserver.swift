@@ -3,7 +3,7 @@
 //  Operations
 //
 //  Created by pronebird on 31/05/2022.
-//  Copyright © 2022 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 #if canImport(UIKit)
@@ -26,7 +26,9 @@ public final class BackgroundObserver: OperationObserver {
     }
 
     public func didAttach(to operation: Operation) {
-        let expirationHandler = cancelUponExpiration ? { operation.cancel() } : nil
+        let expirationHandler = cancelUponExpiration
+            ? { @MainActor in operation.cancel() } as? @MainActor @Sendable () -> Void
+            : nil
 
         taskIdentifier = backgroundTaskProvider.beginBackgroundTask(
             withName: name,

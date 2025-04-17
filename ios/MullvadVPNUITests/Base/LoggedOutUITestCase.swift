@@ -3,7 +3,7 @@
 //  MullvadVPNUITests
 //
 //  Created by Niklas Berglund on 2024-01-22.
-//  Copyright © 2024 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -14,7 +14,6 @@ class LoggedOutUITestCase: BaseUITestCase {
         super.setUp()
 
         agreeToTermsOfServiceIfShown()
-        dismissChangeLogIfShown()
         logoutIfLoggedIn()
 
         // Relaunch app so that tests start from a deterministic state

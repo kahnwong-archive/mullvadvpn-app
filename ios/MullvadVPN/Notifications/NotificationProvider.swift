@@ -3,7 +3,7 @@
 //  MullvadVPN
 //
 //  Created by pronebird on 09/12/2022.
-//  Copyright © 2022 Mullvad VPN AB. All rights reserved.
+//  Copyright © 2025 Mullvad VPN AB. All rights reserved.
 //
 
 import Foundation
@@ -16,7 +16,7 @@ protocol NotificationProviderDelegate: AnyObject {
 }
 
 /// Base class for all notification providers.
-class NotificationProvider: NotificationProviderProtocol {
+class NotificationProvider: NotificationProviderProtocol, @unchecked Sendable {
     weak var delegate: NotificationProviderDelegate?
 
     /**
@@ -27,6 +27,13 @@ class NotificationProvider: NotificationProviderProtocol {
      */
     var identifier: NotificationProviderIdentifier {
         .default
+    }
+
+    /**
+     Default implementation for the priority property, setting it to `.low`.
+     */
+    var priority: NotificationPriority {
+        .low
     }
 
     /**
@@ -51,7 +58,7 @@ class NotificationProvider: NotificationProviderProtocol {
         }
     }
 
-    private func dispatchOnMain(_ block: @escaping () -> Void) {
+    private func dispatchOnMain(_ block: @escaping @Sendable () -> Void) {
         if Thread.isMainThread {
             block()
         } else {

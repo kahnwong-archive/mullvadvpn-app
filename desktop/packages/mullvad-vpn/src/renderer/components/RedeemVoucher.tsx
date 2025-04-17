@@ -6,9 +6,10 @@ import { VoucherResponse } from '../../shared/daemon-rpc-types';
 import { formatRelativeDate } from '../../shared/date-helper';
 import { messages } from '../../shared/gettext';
 import { useAppContext } from '../context';
+import { Flex, Spinner } from '../lib/components';
+import { IconBadge } from '../lib/icon-badge';
 import { useSelector } from '../redux/store';
 import * as AppButton from './AppButton';
-import ImageView from './ImageView';
 import { ModalAlert } from './Modal';
 import {
   StyledEmptyResponse,
@@ -16,9 +17,6 @@ import {
   StyledInput,
   StyledLabel,
   StyledProgressResponse,
-  StyledProgressWrapper,
-  StyledSpinner,
-  StyledStatusIcon,
   StyledTitle,
 } from './RedeemVoucherStyles';
 
@@ -154,14 +152,12 @@ export function RedeemVoucherResponse() {
 
   if (submitting) {
     return (
-      <>
-        <StyledProgressWrapper>
-          <StyledSpinner source="icon-spinner" height={20} width={20} />
-          <StyledProgressResponse>
-            {messages.pgettext('redeem-voucher-view', 'Verifying voucher...')}
-          </StyledProgressResponse>
-        </StyledProgressWrapper>
-      </>
+      <Flex $alignItems="center" $margin={{ top: 'small' }} $gap="small">
+        <Spinner size="medium" />
+        <StyledProgressResponse>
+          {messages.pgettext('redeem-voucher-view', 'Verifying voucher...')}
+        </StyledProgressResponse>
+      </Flex>
     );
   }
 
@@ -229,9 +225,9 @@ export function RedeemVoucherAlert(props: IRedeemVoucherAlertProps) {
           </AppButton.BlueButton>,
         ]}
         close={props.onClose}>
-        <StyledStatusIcon>
-          <ImageView source="icon-success" height={60} width={60} />
-        </StyledStatusIcon>
+        <Flex $justifyContent="center" $margin={{ top: 'large', bottom: 'medium' }}>
+          <IconBadge state="positive" />
+        </Flex>
         <StyledTitle>
           {messages.pgettext('redeem-voucher-view', 'Voucher was successfully redeemed.')}
         </StyledTitle>

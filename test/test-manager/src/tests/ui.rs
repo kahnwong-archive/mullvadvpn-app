@@ -1,6 +1,7 @@
 use super::{config::TEST_CONFIG, helpers, Error, TestContext};
 use mullvad_management_interface::MullvadProxyClient;
 use mullvad_relay_selector::query::builder::RelayQueryBuilder;
+use mullvad_types::relay_constraints::RelaySettings;
 use std::{
     collections::BTreeMap,
     fmt::Debug,
@@ -91,25 +92,15 @@ pub async fn test_ui_tunnel_settings(
     rpc: ServiceClient,
     mut mullvad_client: MullvadProxyClient,
 ) -> anyhow::Result<()> {
-    // NOTE: This test connects multiple times using various settings, some of which may cause a
-    // significant increase in connection time, e.g. multihop and OpenVPN. For this reason, it is
-    // preferable to only target low latency servers.
-    use helpers::custom_lists::LowLatency;
-
     // tunnel-state.spec precondition: a single WireGuard relay should be selected
     log::info!("Select WireGuard relay");
-    let entry = helpers::constrain_to_relay(
-        &mut mullvad_client,
-        RelayQueryBuilder::new()
-            .wireguard()
-            .location(LowLatency)
-            .build(),
-    )
-    .await?;
+    let entry =
+        helpers::constrain_to_relay(&mut mullvad_client, RelayQueryBuilder::wireguard().build())
+            .await?;
 
     let ui_result = run_test_env(
         &rpc,
-        &["tunnel-state.spec"],
+        &["state-dependent/tunnel-state.spec"],
         [
             ("HOSTNAME", entry.hostname.as_str()),
             ("IN_IP", &entry.ipv4_addr_in.to_string()),
@@ -123,6 +114,28 @@ pub async fn test_ui_tunnel_settings(
     .unwrap();
     assert!(ui_result.success());
 
+    Ok(())
+}
+
+/// Test how various tunnel settings for OpenVPN are handled and displayed by the GUI
+#[test_function]
+pub async fn test_ui_openvpn_tunnel_settings(
+    _: TestContext,
+    rpc: ServiceClient,
+    mut mullvad_client: MullvadProxyClient,
+) -> anyhow::Result<()> {
+    // openvpn-tunnel-state.spec precondition: OpenVPN needs to be selected
+    let relay_settings = mullvad_client.get_settings().await?.get_relay_settings();
+    let RelaySettings::Normal(mut constraints) = relay_settings else {
+        unimplemented!()
+    };
+    constraints.tunnel_protocol = talpid_types::net::TunnelType::OpenVpn;
+    mullvad_client
+        .set_relay_settings(RelaySettings::Normal(constraints))
+        .await?;
+
+    let ui_result = run_test(&rpc, &["openvpn-tunnel-state.spec"]).await?;
+    assert!(ui_result.success());
     Ok(())
 }
 
@@ -273,7 +286,11 @@ async fn test_custom_bridge_gui(
 
 /// Test settings import / IP overrides in the GUI
 #[test_function]
-pub async fn test_import_settings_ui(_: TestContext, rpc: ServiceClient) -> Result<(), Error> {
+pub async fn test_import_settings_ui(
+    _: TestContext,
+    rpc: ServiceClient,
+    _: MullvadProxyClient,
+) -> Result<(), Error> {
     let ui_result = run_test(&rpc, &["settings-import.spec"]).await?;
     assert!(ui_result.success());
     Ok(())
@@ -281,7 +298,11 @@ pub async fn test_import_settings_ui(_: TestContext, rpc: ServiceClient) -> Resu
 
 /// Test obfuscation settings in the GUI
 #[test_function]
-pub async fn test_obfuscation_settings_ui(_: TestContext, rpc: ServiceClient) -> Result<(), Error> {
+pub async fn test_obfuscation_settings_ui(
+    _: TestContext,
+    rpc: ServiceClient,
+    _: MullvadProxyClient,
+) -> Result<(), Error> {
     let ui_result = run_test(&rpc, &["obfuscation.spec"]).await?;
     assert!(ui_result.success());
     Ok(())
@@ -289,7 +310,11 @@ pub async fn test_obfuscation_settings_ui(_: TestContext, rpc: ServiceClient) ->
 
 /// Test settings in the GUI
 #[test_function]
-pub async fn test_settings_ui(_: TestContext, rpc: ServiceClient) -> Result<(), Error> {
+pub async fn test_settings_ui(
+    _: TestContext,
+    rpc: ServiceClient,
+    _: MullvadProxyClient,
+) -> Result<(), Error> {
     let ui_result = run_test(&rpc, &["settings.spec"]).await?;
     assert!(ui_result.success());
     Ok(())
